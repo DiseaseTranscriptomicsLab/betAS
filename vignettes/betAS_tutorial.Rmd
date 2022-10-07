@@ -1,0 +1,147 @@
+---
+title: "betAS tutorial"
+output: 
+    rmarkdown::html_vignette:
+        toc: true
+vignette: >
+    %\VignetteIndexEntry{Case study: command-line interface (CLI) tutorial}
+    %\VignetteEngine{knitr::rmarkdown}
+    \usepackage[utf8]{inputenc}
+---
+
+```{r}
+
+library(betAS)
+library(ggplot2)
+
+```
+
+Load files and variables
+
+```{r}
+
+sampleTable           <- readRDS("samplesTable.rds")
+maxDevSimulationN100  <- readRDS("xintercepts_100incr_100cov_100trials.rds")
+pastelColors          <- c("#FF9AA2", "#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7", "#C7CEEA", "#FBE2FD", "#D9ECFE")
+
+```
+
+# Simulate loading a (vast-tools) table into the app
+Demo file: only exon skipping event types ("C1", "C2", "C3", "S" and "MIC"), minimum coverage without NAs
+
+```{r}
+
+testTable   <- readRDS("testTableEX.rds")
+cat(paste0("Filtered events: ", nrow(testTable$PSI)))
+table(testTable$PSI$COMPLEX)
+
+```
+
+# (optional) Select "alternative" events (1 < PSI < 99)
+
+```{r}
+
+testTable <- alternativeVastTools(testTable, minPsi = 1, maxPsi = 99)
+cat(paste0("Alternative events: ", nrow(testTable$PSI)))
+
+```
+
+# Define PSI and Qual table to be used in the following sections
+
+```{r}
+
+psiObject <- testTable
+psiTable  <- psiObject$PSI
+qualTable <- psiObject$Qual
+
+```
+
+# "Big picture" plot
+
+```{r}
+
+bigPicturePlot <- bigPicturePlot(table = psiTable)
+bigPicturePlot + theme_minimal()
+
+```
+
+# Define groups based on sampleTable
+
+```{r}
+
+groups <- unique(sampleTable[,"organism_part"])
+random_colors <- pastelColors
+groupList <- list()
+
+for(i in 1:length(groups$organism_part)){
+
+  groupNames <- sampleTable$Run[which(sampleTable[,"organism_part"] == groups$organism_part[i])]
+
+  # Assign new group
+  currentNames <- names(groupList)
+  groupList[[length(groupList)+1]] <- list(name = groups$organism_part[i],
+                                           samples = groupNames,
+                                           color = random_colors[1])
+  names(groupList) <- make.unique(c(currentNames, groups$organism_part[i]))
+
+  random_colors <- random_colors[-1]
+
+}
+
+```
+
+# Plot densities for defined groups/samples
+
+```{r}
+
+tdensities <- plotIndividualDensitiesList(eventID = "HsaEX0019479",
+                                          npoints = 500,
+                                          psitable = psiTable,
+                                          qualtable = qualTable,
+                                          groupList = groupList,
+                                          maxDevTable = maxDevSimulationN100)
+
+tdensities + theme_minimal()
+
+```
+
+# Perform betAS
+
+```{r}
+
+groupA    <- "heart"
+groupB    <- "forebrain"
+
+samplesA    <- groupList[[groupA]]$samples
+samplesB    <- groupList[[groupB]]$samples
+
+colsGroupA    <- convertCols(psiTable, samplesA)
+colsGroupB    <- convertCols(psiTable, samplesB)
+
+```
+
+## Volcano plot with Pdiff as y-axis variable
+
+```{r}
+
+volcanoTable <- prepareTableVolcano(psitable = psiTable,
+                                    qualtable = qualTable,
+                                    npoints = 500,
+                                    colsA = colsGroupA,
+                                    colsB = colsGroupB,
+                                    labA = groupA,
+                                    labB = groupB,
+                                    basalColor = "#89C0AE",
+                                    interestColor = "#E69A9C",
+                                    maxDevTable = maxDevSimulationN100)
+
+volcanoPdiff <- plotVolcano(betasTable = volcanoTable,
+                            labA = groupList$heart,
+                            labB = groupList$forebrain,
+                            basalColor = "#89C0AE",
+                            interestColor = "#E69A9C")
+
+volcanoPdiff + theme_minimal()
+
+```
+

@@ -1,0 +1,45 @@
+Package: betAS
+Type: Package
+Title: Intuitive differential alternative splicing analyses using beta distributions 
+Version: 0.1.0
+Authors@R: c(
+        person("Mariana", "Ascensão-Ferreira",
+               email="marianaascferreira@medicina.ulisboa.pt", role=c("aut", "cre"),
+               comment=c(ORCID="0000-0002-5247-246X")),
+        person("Nuno", "Saraiva-Agostinho",
+               email="nunodanielagostinho@gmail.com", role=c("aut"),
+               comment=c(ORCID="0000-0002-5549-105X")),
+        person(c("Nuno", "Luís"), "Barbosa-Morais",
+                email="nmorais@medicina.ulisboa.pt", role=c("aut", "led", "ths"),
+               comment=c(ORCID="0000-0002-1215-0538")))
+Description: betAS is a user-friendly R package that allows intuitive visualisation of differential alternative splicing analyses based on beta distributions.
+    Next generation sequencing allows alternative splicing (AS) quantification with unprecedented precision, with exon inclusion being commonly quantified as the proportion of RNA sequencing (RNA-seq) reads supporting the inclusion of that exon.
+    However, percent-spliced-in (PSI) values do not incorporate the number of reads supporting inclusion of a given AS event, even though this number of reads is the readout of RNA quantity in cells. The beta distribution, widely used to model proportions, is suitable to quantify inclusion levels using reads supporting exon inclusion/exclusion as surrogates for the distribution shape parameters. The distribution has as mean value the PSI ratio and is more narrowed when the number of reads is higher. By expanding previously developed work by others we introduce a computational pipeline based on individual-sample beta distributions and fitted-group beta distributions to accurately model inclusion levels and accommodate the respective magnitude of inclusion evidence to compare AS across different conditions. Also, our methodology allowed the definition of a significance metric associated to a given differential inclusion across conditions.
+License: MIT + file LICENSE
+Encoding: UTF-8
+RoxygenNote: 7.2.1
+VignetteBuilder: knitr
+biocViews: Sequencing, AlternativeSplicing, DifferentialSplicing
+Imports:
+    bslib,
+    colourpicker,
+    DT,
+    ggplot2,
+    ggrepel,
+    ggridges,
+    graphics,
+    grDevices,
+    highcharter,
+    reshape2,
+    shiny,
+    shinycssloaders,
+    stats,
+    thematic,
+    utils
+Depends: 
+    R (>= 4.1.0)
+Suggests: 
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
+Config/testthat/edition: 3
