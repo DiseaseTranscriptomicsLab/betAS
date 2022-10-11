@@ -4,8 +4,9 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of betAS is to ...
-This is a line from RStudio
+betAS is a user-friendly R package that allows intuitive analysis and
+visualisation of differential alternative splicing (AS) based on
+beta distributions.
 
 ## Installation
 
@@ -25,3 +26,13 @@ library(betAS)
 ## basic example code
 ```
 
+## Feedback and support
+
+Please send any feedback and questions on betAS to:
+
+> Mariana Ascensão-Ferreira ([marianaascferreira@medicina.ulisboa.pt][email])
+> 
+> [Disease Transcriptomics Lab, Instituto de Medicina Molecular (Portugal)][NMorais]
+
+[email]: mailto:marianaascferreira@medicina.ulisboa.pt
+[NMorais]: http://imm.medicina.ulisboa.pt/group/distrans/
