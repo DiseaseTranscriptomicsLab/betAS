@@ -1,22 +1,56 @@
 ---
-title: "betAS tutorial"
+title: "betAS command-line interface (CLI) tutorial"
+author: "Mariana Ascensão-Ferreira"
+date: "`r Sys.Date()`"
 output: 
     rmarkdown::html_vignette:
         toc: true
 vignette: >
-    %\VignetteIndexEntry{Case study: command-line interface (CLI) tutorial}
+    %\VignetteIndexEntry{betAS command-line interface (CLI) tutorial}
     %\VignetteEngine{knitr::rmarkdown}
     \usepackage[utf8]{inputenc}
 ---
 
-```{r}
+*betAS* is a user-friendly R package that allows intuitive analysis and
+visualisation of differential alternative splicing (AS) based on
+beta distributions.
+
+Beta distributions are suitable to quantify inclusion proportions of
+alternative sequences, using RNA sequencing reads supporting their
+inclusion and exclusion as surrogates for the two distribution shape
+parameters. Each such beta distribution has the inclusion proportion as
+mean value and is narrower when the read coverage is higher, facilitating
+the interpretability of its precision when plotted. betAS uses beta
+distributions to accurately model PSI values and their precision, to
+quantitatively and visually compare AS between groups of samples.
+
+betAS allows the analysis of user-provided tables with AS quantifications,
+such as those obtained by vast-tools (https://github.com/vastgroup/vast-tools),
+ranking differentially spliced events by a significance metric that
+incorporates the compromise between the uncertainty in individual sample
+estimates and the variability among replicates.
+
+# Installing and starting the program
+Install *betAS* by typing the following in an R console:
+
+```{r install, eval=FALSE}
+
+install.packages("BiocManager")
+BiocManager::install("betAS")
+
+```
+
+After the installation, load betAS and other required packages by typing:
+
+```{r load, message=FALSE}
 
 library(betAS)
 library(ggplot2)
 
 ```
 
-Load files and variables
+# Case study: differential alternative splicing analysis between two groups
+Load required files and variables
 
 ```{r}
 
@@ -26,7 +60,7 @@ pastelColors          <- c("#FF9AA2", "#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7"
 
 ```
 
-# Simulate loading a (vast-tools) table into the app
+## Simulate loading a (vast-tools) table into the app
 Demo file: only exon skipping event types ("C1", "C2", "C3", "S" and "MIC"), minimum coverage without NAs
 
 ```{r}
@@ -37,7 +71,7 @@ table(testTable$PSI$COMPLEX)
 
 ```
 
-# (optional) Select "alternative" events (1 < PSI < 99)
+## (optional) Select "alternative" events (1 < PSI < 99)
 
 ```{r}
 
@@ -46,7 +80,7 @@ cat(paste0("Alternative events: ", nrow(testTable$PSI)))
 
 ```
 
-# Define PSI and Qual table to be used in the following sections
+## Define PSI and Qual table to be used in the following sections
 
 ```{r}
 
@@ -56,7 +90,7 @@ qualTable <- psiObject$Qual
 
 ```
 
-# "Big picture" plot
+## "Big picture" plot
 
 ```{r}
 
@@ -65,7 +99,7 @@ bigPicturePlot + theme_minimal()
 
 ```
 
-# Define groups based on sampleTable
+## Define groups based on sampleTable
 
 ```{r}
 
@@ -90,7 +124,7 @@ for(i in 1:length(groups$organism_part)){
 
 ```
 
-# Plot densities for defined groups/samples
+## Plot densities for defined groups/samples
 
 ```{r}
 
@@ -105,7 +139,7 @@ tdensities + theme_minimal()
 
 ```
 
-# Perform betAS
+# Apply betAS
 
 ```{r}
 
@@ -142,6 +176,14 @@ volcanoPdiff <- plotVolcano(betasTable = volcanoTable,
                             interestColor = "#E69A9C")
 
 volcanoPdiff + theme_minimal()
+
+```
+
+# Session information
+
+```{r si}
+
+sessionInfo()
 
 ```
 
