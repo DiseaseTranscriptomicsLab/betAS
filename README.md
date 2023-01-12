@@ -6,7 +6,7 @@
 
 betAS is a user-friendly R package that allows intuitive analysis and
 visualisation of differential alternative splicing (AS) based on
-beta distributions. (This is the developing branch)
+beta distributions.
 
 ## Installation
 
