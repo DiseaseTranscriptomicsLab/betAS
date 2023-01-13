@@ -16,7 +16,7 @@ You can install the development version of betAS from [GitHub](https://github.co
 # install.packages("devtools")
 devtools::install_github("marianaferreira/betAS")
 ```
-
+<!---
 ## Example
 
 This is a basic example which shows you how to solve a common problem:
@@ -25,6 +25,7 @@ This is a basic example which shows you how to solve a common problem:
 library(betAS)
 ## basic example code
 ```
+-->
 
 ## Feedback and support
 
