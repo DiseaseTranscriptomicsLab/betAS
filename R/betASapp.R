@@ -7,11 +7,12 @@
 betASapp_ui <- function(){
   # :::: Variables ::::
   # tools           <- c("vast-tools", "MISO", "SUPPA", "Other")
-  availabletools  <- c("vast-tools")
-  yAxisStats      <- c("Pdiff (probability of differential splicing)", "F-statistic (median(|between|)/median(|within|))", "False discovery rate (FDR)")
-  eventTypes      <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss")
-  exEventNames    <- c("HsaEX0007927", "HsaEX0032264", "HsaEX0039848", "HsaEX0029465", "HsaEX0026102", "HsaEX0056290", "HsaEX0035084", "HsaEX0065983", "HsaEX0036532", "HsaEX0049206")
-  pastelColors    <- c("#FF9AA2", "#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7", "#C7CEEA", "#FBE2FD", "#D9ECFE")
+  availabletools      <- c("vast-tools")
+  yAxisStats          <- c("Pdiff (probability of differential splicing)", "F-statistic (median(|between|)/median(|within|))", "False discovery rate (FDR)")
+  yAxisStats_multiple <- c("Pdiff (probability that |between| > |within|)", "F-statistic (median(|between|)/median(|within|))")
+  eventTypes          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss")
+  exEventNames        <- c("HsaEX0007927", "HsaEX0032264", "HsaEX0039848", "HsaEX0029465", "HsaEX0026102", "HsaEX0056290", "HsaEX0035084", "HsaEX0065983", "HsaEX0036532", "HsaEX0049206")
+  pastelColors        <- c("#FF9AA2", "#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7", "#C7CEEA", "#FBE2FD", "#D9ECFE")
 
   # Themes
   # dark <- bs_theme(bootswatch = "darkly")
@@ -169,7 +170,7 @@ betASapp_ui <- function(){
 
                  radioButtons("volcanoYAxis", label = "Choose significance statistic (Y-axis) to consider:", choices = yAxisStats),
 
-                 actionButton("rundiffbetas", "Run betAS", icon = icon("running"), class = "btn-info"),
+                 actionButton("rundiffbetas", "Run betAS", icon = icon("person-running"), class = "btn-info"),
                  # Other cool icons: play | play-circle
 
                  h5("Explore differential splicing at the event level:"),
@@ -228,33 +229,83 @@ betASapp_ui <- function(){
 
                      )
 
+    ) # end mainPanel
+
+    ) # end sidebarLayout
+    ), # end tabPanel
+
+    tabPanel("Differential alternative splicing (mutiple groups)", icon = icon("layer-group"),
+
+             sidebarLayout(fluid = TRUE,
+
+                           sidebarPanel(
+                             h4("Generalised differential alternative splicing across groups/conditions"),
+                             # "Perform differential alternative splicing analysis for all events",
+                             helpText(tags$ul(
+                               tags$li("All events from 'Import inclusion levels'"),
+                               tags$li("Groups created in 'Group definition'")
+                             )),
+
+                             h6(""),
+
+                             radioButtons("volcanoYAxis_mult", label = "Choose significance statistic (Y-axis) to consider:", choices = yAxisStats_multiple),
+                             actionButton("rundiffbetas_mult", "Run betAS (multiple groups)", icon = icon("person-running"), class = "btn-info"),
+
+                             h5("Current groups"),
+                             helpText(em("Defined groups can be edited in 'Group definition' tab")),
+                             DTOutput("groupsTableMultiple"),
+
+                             h6(""),
+
+                             h5("Explore differential splicing at the event level:"),
+                             helpText(em("Brush over the plot for event selection")),
+                             DTOutput("brushed_data_mult"),
+
+                             selectInput("eventidtoplot_mult", "Select alternative splicing event to plot:", choices = NULL),
+                             uiOutput("urlplot_mult"),
+
+                             h6(""),
+                             actionButton("plotEvent_mult", "Plot considered event", icon = icon("mound"), class = "btn-secondary"),
+
+                           ),
+
+                           mainPanel(
+
+                             shinycssloaders::withSpinner(plotOutput("volcano_mult",
+                                                                     height = "900px",
+                                                                     brush = brushOpts(id = "plot_brush_mult")),
+                                                          type = 8,
+                                                          color = "#FF9AA2",
+                                                          size = 2),
+
+                             fluidRow(
+
+                               column(3,
+                                      h4("Absolute differences 'between' and 'within' groups.")),
+
+                               column(9,
+                                      h4("PSI quantifications per sample across groups."))),
+
+                             fluidRow(
+
+                               column(3,
+
+                                      # plotOutput("FstatEventPlot_multgroup", height = "400px", width = "400px")
+
+                                      ),
+
+                               column(9,
+                                      shinycssloaders::withSpinner(plotOutput("violins_multgroup",
+                                                                     height = "600px"),
+                                                          type = 8,
+                                                          color = "#FF9AA2",
+                                                          size = 2)))
+
+                           )
+             )
     )
 
-
-    # tabPanel("Differential alternative splicing (multiple groups)",  icon = icon("toilet-paper"),
-    #
-    #          sidebarLayout(
-    #
-    #            sidebarPanel(
-    #
-    #              "Perform differential alternative splicing analysis for all events",
-    #
-    #              actionButton("rungroupdiffbetas", "Run multiple group betAS", icon = icon("users"), class = "btn-info")
-    #              # Other cool icons: play | play-circle
-    #
-    #            ),
-    #
-    #            mainPanel(
-    #              icon("calendar", class = "fa-5x")
-    #            )
-    #
-    #          )
-    #
-    #
-    #
-    # )
-
-    ))))
+    ))
 
 return(ui)
 
@@ -433,6 +484,11 @@ betASapp_server <- function(){
       return(input$eventidtoplot)
     })
 
+    selectedeventIDDiffMultiple <- reactive({
+      return(input$eventidtoplot_mult)
+    })
+
+
     selectedEventTable <- reactive({
 
       input$rundiffbetas
@@ -609,6 +665,8 @@ betASapp_server <- function(){
 
     observe({updateSelectInput(inputId = "indbetaseventid", choices = psifiltdataset()$EVENT)})
 
+    observe({updateSelectInput(inputId = "eventidtoplot_mult", choices = psifiltdataset()$EVENT)})
+
     values <- reactiveValues(groups = list())
 
     # plottingEvent <- reactiveValues(tableRow = list())
@@ -770,6 +828,102 @@ betASapp_server <- function(){
 
     })
 
+    betasTableVolcanoMultiple <- reactive({
+
+      req(input$rundiffbetas_mult)
+
+      input$rundiffbetas_mult
+
+      isolate({
+
+        yStat <- input$volcanoYAxis_mult
+
+      })
+
+      if(length(values$groups)<1){
+
+        showNotification("Please define groups for differential splicing analysis (see 'Group definition' tab)",
+                         closeButton = TRUE,
+                         duration = 5,
+                         type = c("error"))
+        return(NULL)
+
+      }
+
+      showNotification("Please note that multiple-group quantifications may take some minutes.",
+                       closeButton = TRUE,
+                       duration = 10,
+                       type = c("message"))
+
+      table <- prepareTableVolcanoMultipleGroups(psitable = isolate(psifiltdataset()),
+                                                 qualtable = isolate(qualfiltdataset()),
+                                                 groupList = values$groups,
+                                                 npoints = 500,
+                                                 maxDevTable = maxDevSimulationN100)
+
+      return(table)
+
+    })
+
+    simplifiedTableVolcanoMultiple <- reactive({
+
+      req(betasTableVolcanoMultiple())
+
+      isolate({
+
+        yStat <- input$volcanoYAxis_mult
+
+      })
+
+      if(length(values$groups)<1){
+
+        showNotification("Please define groups for differential splicing analysis (see 'Group definition' tab)",
+                         closeButton = TRUE,
+                         duration = 5,
+                         type = c("error"))
+        return(NULL)
+
+      }else if(
+
+        yStat == "Pdiff (probability that |between| > |within|)"){
+        column  <- 'Pdiff'
+
+      }else if(
+
+        yStat == "F-statistic (median(|between|)/median(|within|))"){
+        column <- 'Fstat'
+
+
+      }
+
+      simplifiedTable <- betasTableVolcanoMultiple()
+      simplifiedTable <- simplifiedTable[,match(c("EVENT", "GENE", "deltaAbsolute", column), colnames(simplifiedTable))]
+
+      return(simplifiedTable)
+
+    })
+
+    selectedEventTableMultiple <- reactive({
+
+      input$rundiffbetas_mult
+
+      eventList <- prepareTableEvent(eventID = selectedeventIDDiff(),
+                                     psitable = psifiltdataset(),
+                                     qualtable = qualfiltdataset(),
+                                     npoints = 500,
+                                     colsA = colsGroupA,
+                                     colsB = colsGroupB,
+                                     labA = groupA,
+                                     labB = groupB,
+                                     basalColor = "#89C0AE",
+                                     interestColor = "#E69A9C",
+                                     maxDevTable = maxDevSimulationN100,
+                                     nsim = 1000)
+
+      return(eventList)
+
+    })
+
     output$sampleTable <- renderDT({
 
       if(is.null(input$psitable)){
@@ -782,8 +936,30 @@ betASapp_server <- function(){
     rownames = FALSE,
     colnames = c("Run", "Age", "DevStage", "Organ", "Sex"))
 
-
     output$groupsTable <- renderDT({
+
+      if(length(values$groups)<1)return(NULL)
+
+      table <- c()
+      for(i in 1:length(values$groups)){
+
+        group <- c("Name" = values$groups[[i]]$name,
+                   "Samples" = paste0(values$groups[[i]]$samples, collapse = " "),
+                   "Color" = values$groups[[i]]$color)
+
+        table <- rbind(table, group)
+
+      }
+
+      rownames(table) <- NULL
+
+      return(table)
+
+    },
+    selection = c("multiple"),
+    rownames = FALSE)
+
+    output$groupsTableMultiple <- renderDT({
 
       if(length(values$groups)<1)return(NULL)
 
@@ -986,7 +1162,6 @@ betASapp_server <- function(){
     # rownames = FALSE,
     # colnames = colnameVector())
 
-
     output$urlplot <- renderUI({
       req(input$eventidtoplot)
       event <- selectedeventIDDiff()
@@ -1155,6 +1330,147 @@ betASapp_server <- function(){
       plotFDRFromEventObjList(eventObjList = isolate(selectedEventTable()))
 
     })
+
+    # Outputs from "multiple group" tab
+
+    output$volcano_mult <- renderPlot({
+
+      input$rundiffbetas_mult
+
+      req(betasTableVolcanoMultiple())
+      req(simplifiedTableVolcanoMultiple())
+
+      isolate({
+
+        yStat <- input$volcanoYAxis_mult
+
+      })
+
+      if(length(values$groups)<1){
+
+        showNotification("Please define groups for differential splicing analysis (see 'Group definition' tab)",
+                         closeButton = TRUE,
+                         duration = 5,
+                         type = c("error"))
+        return(NULL)
+
+      }else if(
+
+        yStat == "Pdiff (probability that |between| > |within|)"){
+
+        plotVolcano_MultipleGroups_Pdiff(betasTable = isolate(betasTableVolcanoMultiple()))
+
+      }else if(
+
+        yStat == "F-statistic (median(|between|)/median(|within|))"){
+
+        plotVolcano_MultipleGroups_Fstat(betasTable = isolate(betasTableVolcanoMultiple()))
+
+      }
+
+    })
+
+    colnameVector_mult <- reactive({
+
+      req(input$plot_brush_mult)
+      # req(input$volcanoYAxis())
+      req(betasTableVolcanoMultiple())
+      req(simplifiedTableVolcanoMultiple())
+
+      isolate({
+
+        yStat   <- input$volcanoYAxis_mult
+
+      })
+
+      if(yStat == "Pdiff (probability that |between| > |within|)"){
+
+        column <- "Pdiff"
+        colnameVector <- c("Event ID" = "EVENT", "Gene" = "GENE", "dPSI(between to within)" = "deltaAbsolute", "Pdiff" = "Pdiff")
+
+      }else if(
+
+        yStat == "F-statistic (median(|between|)/median(|within|))"){
+
+        column <- "Fstat"
+        colnameVector <- c("Event ID" = "EVENT", "Gene" = "GENE", "dPSI(between to within)" = "deltaAbsolute", "F-stat" = "Fstat")
+
+      }
+
+      colnameVector
+
+    })
+
+    output$brushed_data_mult <- renderDT({
+
+      req(input$plot_brush_mult)
+      req(colnameVector_mult())
+
+      datatable(brushedPoints(df = simplifiedTableVolcanoMultiple(), input$plot_brush_mult),
+                rownames = FALSE,
+                colnames = colnameVector_mult()) %>% formatRound(columns = c(3:4), digits = 3)
+
+    })
+    # Required if using renderDT from shiny but with DT (to allow formatRound()); rownames/colnames are replaced by the parameters inside DT::datatable
+    # rownames = FALSE,
+    # colnames = colnameVector())
+
+    output$violins_multgroup <- renderPlot({
+
+      # req(input$eventidtoplot_mult)
+      # req(input$plotEvent)
+
+      if(length(values$groups)<1)return(NULL)
+
+      plotIndividualViolinsList(eventID = selectedeventIDDiffMultiple(),
+                                npoints = 500,
+                                psitable = psifiltdataset(),
+                                qualtable = qualfiltdataset(),
+                                groupList = values$groups,
+                                maxDevTable = maxDevSimulationN100)
+
+    })
+
+    output$FstatEventPlot_multgroup <- renderPlot({
+
+      input$rundiffbetas_mult
+
+      req(betasTableVolcanoMultiple())
+      req(selectedeventIDDiffMultiple())
+      req(selectedEventTable())
+      req(input$plotEvent_mult)
+
+
+      isolate({
+
+        groupA <- input$groupA
+        groupB <- input$groupB
+
+      })
+
+      if(is.null(groupA) || is.null(groupB))return(NULL)
+
+      samplesA <- values$groups[[groupA]]$samples
+      colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
+
+      samplesB <- values$groups[[groupB]]$samples
+      colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
+
+      plotFstatFromEventObjList(eventObjList = isolate(selectedEventTable()))
+
+    })
+
+    output$urlplot_mult <- renderUI({
+      req(input$eventidtoplot_mult)
+      event <- selectedeventIDDiffMultiple()
+      url <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
+      HTML(paste0("<p>Check event details in <a href='", url, "'>VastDB (hg19)</a></p>"))
+    })
+
+
+
+
+
 
   }
 

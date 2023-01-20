@@ -325,6 +325,107 @@ plotIndividualDensitiesList <- function(eventID, npoints, psitable, qualtable, g
 
 }
 
+#' Plot individual beta distributions as violin plots per sample from groups list
+#'
+#' @param eventID (character) event ID
+#' @param npoints number of points emitted by each beta distribution
+#' @param psitable PSI table
+#' @param qualtable Qual table
+#' @param groupList group list
+#' @param maxDevTable table with increments to be summed to zero-valued reads, per coverage
+#'
+#' @return ggplot density plot grid
+#' @export
+#'
+#' @examples
+plotIndividualViolinsList <- function(eventID, npoints, psitable, qualtable, groupList, maxDevTable){
+
+  row <- which(psitable$EVENT == eventID)
+
+  # Data-frame containing emitted points, sample names and group names
+  densities_df  <- data.frame("points" = numeric(), "samples" = character())
+  psis_df       <- data.frame("psis" = numeric(), "samples" = character())
+
+  betasPerGroup           <- list()
+  betasPerSamplePerGroup  <- list()
+
+  definedColorsPerGroup <- c()
+  definedGroups <- names(groupList)
+
+  # for each defined group
+  for(g in 1:length(groupList)){
+
+    groupName     <- groupList[[g]]$name
+    groupSamples  <- groupList[[g]]$samples
+    groupColor    <- groupList[[g]]$color
+
+    columns       <- convertCols(psitable, groupSamples)
+    samples       <- names(columns)
+
+    groupBetas    <- individualBetas_nofitting_incr(table = qualtable[row,],
+                                                    cols = columns,
+                                                    indpoints = npoints,
+                                                    maxdevRefTable = maxDevTable)
+    betasPerGroup[[g]] <- groupBetas
+
+    groupIndSamplesList <- list()
+    for(samp in 1:length(samples)){
+
+      indBetasGroup <- individualBetas_nofitting_incr(table = qualtable[row,],
+                                                      cols = columns[samp],
+                                                      indpoints = npoints,
+                                                      maxdevRefTable = maxDevTable)
+
+      groupIndSamplesList[[samp]] <- indBetasGroup
+
+      #prepare table with emitted points
+      points_df     <- data.frame("points" = matrix(unlist(indBetasGroup$BetaPoints), nrow = npoints, byrow=TRUE), stringsAsFactors=FALSE)
+      sample_df     <- cbind("points" = points_df, "samples" = rep(samples[samp], times = length(points_df)), "group" = rep(groupName, times = length(points_df)))
+      densities_df  <- rbind(densities_df, sample_df)
+
+      #prepare table with psis
+      psis          <- data.frame("psis" = matrix(unlist(indBetasGroup$PSI), nrow = 1, byrow=TRUE), stringsAsFactors=FALSE)
+      samplepsis_df <- cbind("psis" = psis, "samples" = rep(samples[samp], times = 1), "group" = rep(groupName, times =  1))
+      psis_df       <- rbind(psis_df, samplepsis_df)
+
+    }
+
+    names(groupIndSamplesList) <- samples
+    betasPerSamplePerGroup[[g]] <- groupIndSamplesList
+    definedColorsPerGroup <- c(definedColorsPerGroup, groupColor)
+
+  }
+
+  plot <- ggplot(densities_df,
+                 aes(x = samples,
+                     y = points,
+                     # group = samples,
+                     color = group,
+                     fill = group)) +
+    geom_violin(alpha = 0.6,
+                show.legend = FALSE) +
+    scale_color_manual(name = "",
+                       values = definedColorsPerGroup,
+                       breaks = definedGroups,
+                       limits =  definedGroups) +
+    scale_fill_manual(name = "",
+                      values = definedColorsPerGroup,
+                      breaks = definedGroups,
+                      limits =  definedGroups) +
+    xlab("Samples") +
+    ylab("Proportion spliced-in (PSI)") +
+    labs(title) +
+    scale_y_continuous(breaks = seq(0,1, 0.25), limits = c(0,1)) +
+    theme_betAS() +
+    theme(legend.position = "bottom",
+          axis.text.x = element_text(size = 10, angle = 45)) +
+    facet_grid(. ~ group,
+               scales = "free_x")
+
+  return(plot)
+
+}
+
 
 #' Prepare and return table used for betAS volcano plot (probability of splicing differences as y-axis)
 #'
@@ -434,7 +535,7 @@ prepareTableVolcano <- function(psitable, qualtable, npoints, colsA, colsB, labA
 #' plotVolcano(betasTable = volcanoTable, labA = groupA, labB = groupB, basalColor = "#89C0AE", interestColor = "#E69A9C")
 plotVolcano <- function(betasTable, labA, labB, basalColor, interestColor){
 
-  refSeq      <- seq(0,1, 0.1)
+  refSeq      <- seq(0, 1, 0.1)
   maxDeltaPsi <- max(abs(betasTable$deltapsi))
   pos         <- which(abs(refSeq-maxDeltaPsi)==min(abs(refSeq-maxDeltaPsi)))
   refScale    <- refSeq[pos+1]
@@ -672,6 +773,166 @@ plotVolcanoFDR <- function(betasTable, labA, labB, basalColor, interestColor){
     theme_betAS()
 
 }
+
+# Prepare and return table used for betAS volcano plot (multiple group analysis)
+#
+# @param psitable
+# @param qualtable
+# @param npoints
+# @param groupList
+# @param basalColor
+# @param interestColor
+#
+# @return
+# @export
+#
+# @examples
+# @importFrom ggrepel geom_text_repel
+prepareTableVolcanoMultipleGroups <- function(psitable, qualtable, groupList, npoints, maxDevTable){
+
+  # Prepare individual betAS object per group
+  groupNames  <- names(groupList)
+  listNames   <- paste0(groupNames, "_indBetas")
+
+  samplesPerGroupList <- list()
+  indBetasList        <- list()
+
+  for(i in 1:length(groupNames)){
+
+    samples <- groupList[[i]]$samples
+    pos <- match(samples, colnames(psitable))
+
+    samplesPerGroupList[[i]] <- samples
+
+    # Prepare individual betAS object for this group
+    indbetas <- pblapply(1:nrow(qualtable),
+                         function(x)
+                           individualBetas_nofitting_incr(table = qualtable[x,],
+                                                          cols = pos,
+                                                          indpoints = npoints,
+                                                          maxdevRefTable = maxDevSimulationN100))
+    # Name each position in list after the event
+    names(indbetas) <- qualtable$EVENT
+
+    # Assign ind betas to global list
+    indBetasList[[i]] <- indbetas
+
+  }
+
+  names(indBetasList) <- listNames
+  names(samplesPerGroupList) <- listNames
+
+  # Prepare directional ANOVA-like approach
+  genGroupsBetas <- pblapply(1:length(indBetasList[[1]]),
+                             function(x)
+                               generalisedGroupsBetas(eventPos = x,
+                                                      indList = indBetasList,
+                                                      samplesList = samplesPerGroupList,
+                                                      groupNames = groupNames))
+
+  # Name each position in list after the event
+  names(genGroupsBetas) <- names(indBetasList[[1]])
+
+  multipleGroupTable <- psitable
+
+  multipleGroupTable$Fstat             <- as.numeric(as.vector(pblapply(1:length(indBetasList[[1]]), function(x) genGroupsBetas[[x]][[3]])))
+  multipleGroupTable$Pzero             <- as.numeric(as.vector(pblapply(1:length(indBetasList[[1]]), function(x) genGroupsBetas[[x]][[4]])))
+  multipleGroupTable$Pdiff             <- as.numeric(as.vector(pblapply(1:length(indBetasList[[1]]), function(x) genGroupsBetas[[x]][[5]])))
+  multipleGroupTable$medianBetweens    <- as.numeric(as.vector(pblapply(1:length(indBetasList[[1]]), function(x) genGroupsBetas[[x]][[6]])))
+  multipleGroupTable$deltaAbsolute     <- as.numeric(as.vector(pblapply(1:length(indBetasList[[1]]), function(x) genGroupsBetas[[x]][[7]])))
+
+  return(multipleGroupTable)
+
+}
+
+
+#' Plot betAS volcano plot (with Pdiff as y-axis metric)
+#'
+#'
+#' @param betasTable data table generated with prepareTableVolcanoMultipleGroups
+#' @param basalColor general color for points (events)
+#' @param interestColor color for highlighted points (events)
+#'
+#' @return ggplot scatterplot
+#' @export
+#'
+#' @importFrom ggrepel geom_text_repel
+#' @examples
+plotVolcano_MultipleGroups_Pdiff <- function(betasTable){
+
+  ggplot(betasTable,
+         aes(x = deltaAbsolute,
+             y = Pdiff,
+             color = Fstat)) +
+    geom_point(size = 4,
+               alpha = 0.8) +
+    scale_color_gradient2(low = "white",
+                          high = "#DC143C",
+                          name = "F statistic") +
+    # y = -log10(1.001-Pdiff))) +
+    geom_point(data = betasTable[which(abs(betasTable$deltaAbsolute) > 0.1),],
+               size = 4,
+               shape = 21) +
+    geom_text_repel(data = betasTable[which(abs(betasTable$deltaAbsolute) > 0.1),],
+                    aes(label = paste0(EVENT, "\n(", GENE, ")")),
+                    size = 5) +
+    scale_x_continuous(breaks = seq(0,0.5,0.1), limits = c(-0.01,0.5)) +
+    scale_y_continuous(breaks = seq(0.5,1,0.1), limits = c(0.5,1)) +
+    xlab(expression(median["|between|"]-median["|within|"]~(PSI))) +
+    ylab("Prob. |between| > |within|") +
+    theme_betAS() +
+    theme(legend.position = "top",
+          legend.background = element_blank(),
+          legend.key.width = unit(6, 'cm'),
+          legend.direction = "horizontal")
+
+}
+
+#' Plot betAS volcano plot (with Fstat as y-axis metric)
+#'
+#'
+#' @param betasTable data table generated with prepareTableVolcanoMultipleGroups
+#' @param basalColor general color for points (events)
+#' @param interestColor color for highlighted points (events)
+#'
+#' @return ggplot scatterplot
+#' @export
+#'
+#' @importFrom ggrepel geom_text_repel
+#' @examples
+plotVolcano_MultipleGroups_Fstat <- function(betasTable){
+
+  # maxFstat <- max(abs(betasTable$Fstat), na.rm = TRUE)
+
+  ggplot(betasTable,
+         aes(x = deltaAbsolute,
+             y = Fstat,
+             color = Pdiff)) +
+    geom_point(size = 4,
+               alpha = 0.8) +
+    scale_color_gradient(low = "white",
+                         high = "blue",
+                         limits = c(0.5, 1),
+                         name = "Prob. |between| > |within|") +
+    # y = -log10(1.001-Pdiff))) +
+    geom_point(data = betasTable[which(abs(betasTable$deltaAbsolute) > 0.1),],
+               shape = 21,
+               size = 4) +
+    geom_text_repel(data = betasTable[which(abs(betasTable$deltaAbsolute) > 0.1),],
+                    aes(label = paste0(EVENT, "\n(", GENE, ")")),
+                    size = 5) +
+    scale_x_continuous(breaks = seq(0,0.5,0.1), limits = c(-0.01,0.5)) +
+    # scale_y_continuous(breaks = seq(0, round(maxFstat), 2), limits = c(0, maxFstat)) +
+    xlab(expression(median["|between|"]-median["|within|"]~(PSI))) +
+    ylab("F statistic") +
+    theme_betAS() +
+    theme(legend.position = "top",
+          legend.background = element_blank(),
+          legend.key.width = unit(6, 'cm'),
+          legend.direction = "horizontal")
+
+}
+
 
 
 #' Prepare pie chart

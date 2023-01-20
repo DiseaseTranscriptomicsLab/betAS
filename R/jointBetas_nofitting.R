@@ -312,3 +312,118 @@ names(jntBetas) <- c("Simulated dPSI", "Found dPSI", "FDR")
 return(jntBetas)
 
 }
+
+# Estimate multiple-groups differential alternative splicing statistics
+# Takes group-wise beta distributions and estimates the emitted values differences between and within groups, from which statistics of differential alternative splicing across groups (Pdiff and F-statistic).
+# @param eventPos (numeric) position of event under analysis in provided list
+# @param indList (list) list of individual betAS objects per group
+# @param samplesList (list) list of vectors of samples corresponding to each group
+# @param groupNames (character vector) vector of group names in indList
+#
+# @return dirGroupBetas object list with: 1) samples considered; 2) group per sample, 3) F-stat, 4) P(|betweens| > |withins|), 5) Transformed Pdiff, 6) Median of between distances and 7) Difference between median(|betweens|) to median(|withins|)
+# @export
+#
+# @examples
+#' @importFrom stats density median rbeta sd
+generalisedGroupsBetas <- function(eventPos, indList, samplesList, groupNames){
+
+  dirGroupBetas <- list()
+
+  # indList is a list of objects coming from "individualBetas" function
+  # groupNames is a vector of group names, each corresponding to one object in indList
+  # samplesList is a list where each element is a vector of sample names,
+  # 		that correspond to the samples in the same position in indBetas
+  # groupColors are the colors to use in the plot of each group of samples
+
+  samples <- c()
+  groups  <- c()
+
+  for(i in 1:length(samplesList)){
+
+    samples <- c(samples, samplesList[[i]])
+    groups 	<- c(groups, rep(groupNames[i], times = length(samplesList[[i]])))
+
+  }
+
+  # Assign samples and groups as part of function's output
+  dirGroupBetas[[1]] <- samples
+  dirGroupBetas[[2]] <- groups
+
+
+  # Store event-wise results
+  allBetaPoints 	<- c()
+  allMedianPsi 	<- c()
+  withins 		<- c()
+  betweens 		<- c()
+
+  for(g in 1:length(unique(groups))){
+
+    points <- indList[[g]][[eventPos]]$BetaPoints
+    medians <- indList[[g]][[eventPos]]$MedianBeta
+    groupSamples <- samplesList[[g]]
+    nsamp <- length(groupSamples)
+
+    allBetaPoints <- c(allBetaPoints, points)
+    allMedianPsi <- c(allMedianPsi, medians)
+
+    # Matrix determining all possible combinations of sample pairs within group
+    within_combs <- combn(groupSamples, 2, simplify = TRUE)
+
+    # Define withins for each of those combinations
+    for(c in 1:ncol(within_combs)){
+
+      betasA  <- points[grep(within_combs[1,c], names(points))]
+      betasB  <- points[grep(within_combs[2,c], names(points))]
+      withins <- c(withins, betasB-betasA)
+
+    }
+
+  }
+
+  between_combs <- combn(unique(groups), 2, simplify = TRUE)
+
+  for(c in 1:ncol(between_combs)){
+
+    posA <-   grep(between_combs[1,c], names(indList))
+    posB <-   grep(between_combs[2,c], names(indList))
+
+    betasA  <- indList[[posA]][[eventPos]]$BetaPoints
+    betasB  <- indList[[posB]][[eventPos]]$BetaPoints
+
+    if(length(betasA) < length(betasB)){
+      betasB <- sample(betasB, size = length(betasA))
+    }else if(length(betasA) > length(betasB)){
+      betasA <- sample(betasA, size = length(betasB))
+    }
+
+    betweens <- c(betweens, betasB-betasA)
+
+  }
+
+  # Generate F-like statistic
+  fstat  <- median(abs(betweens))/median(abs(withins))
+
+  # Generate Pdiff-like
+  len_Fstat 		<- min(length(betweens), length(withins))
+  between_sample  <- sample(x = betweens, size = len_Fstat)
+  within_sample   <- sample(x = withins, size = len_Fstat)
+
+  p_zero_anova  	<- length(which(abs(between_sample) - abs(within_sample) > 0))/len_Fstat
+  pdiff_anova   	<- abs(p_zero_anova-0.5)+0.5
+
+  # Calculate a sort of delta PSI
+  medianBetweens 	<- median(betweens)
+  deltaAbsolute 	<- median(abs(betweens)) - median(abs(withins))
+
+  dirGroupBetas[[3]] <- fstat
+  dirGroupBetas[[4]] <- p_zero_anova
+  dirGroupBetas[[5]] <- pdiff_anova
+  dirGroupBetas[[6]] <- medianBetweens
+  dirGroupBetas[[7]] <- deltaAbsolute
+
+  names(dirGroupBetas) <- c("samples", "groups",
+                            "Fstat", "Pzero", "Pdiff", "medianBetweens", "deltaAbsolute")
+  class(dirGroupBetas) <- c(class(dirGroupBetas), "dirGroups")
+  return(dirGroupBetas)
+
+}
