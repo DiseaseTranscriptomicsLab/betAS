@@ -778,10 +778,9 @@ plotVolcanoFDR <- function(betasTable, labA, labB, basalColor, interestColor){
 #
 # @param psitable
 # @param qualtable
-# @param npoints
 # @param groupList
-# @param basalColor
-# @param interestColor
+# @param npoints
+# @param maxDevTable
 #
 # @return
 # @export
@@ -810,7 +809,7 @@ prepareTableVolcanoMultipleGroups <- function(psitable, qualtable, groupList, np
                            individualBetas_nofitting_incr(table = qualtable[x,],
                                                           cols = pos,
                                                           indpoints = npoints,
-                                                          maxdevRefTable = maxDevSimulationN100))
+                                                          maxdevRefTable = maxDevTable))
     # Name each position in list after the event
     names(indbetas) <- qualtable$EVENT
 
@@ -1604,6 +1603,212 @@ plotFDRFromEventObjList <- function(eventObjList){
     scale_x_continuous(breaks = seq(-refScale,refScale,length.out = 5), limits = c(-refScale,refScale)) +
     labs(title = title) +
     ylab("Density") +
+    theme_betAS() +
+    theme(axis.text = element_text(size = 14),
+          axis.title = element_text(size = 20),
+          plot.title = element_text(size = 24))
+
+  return(plot)
+
+}
+
+# Prepare and return table used for betAS event-wise plots (multiple-group section)
+#
+# @param eventID
+# @param psitable
+# @param qualtable
+# @param groupList
+# @param npoints
+# @param maxDevTable
+#
+# @return
+# @export
+#
+# @examples
+prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, npoints, maxDevTable){
+
+  x <- match(eventID, qualtable$EVENT)
+
+  # Prepare individual betAS object per group
+  groupNames  <- names(groupList)
+  listNames   <- paste0(groupNames, "_indBetas")
+
+  samplesPerGroupList <- list()
+  indBetasList        <- list()
+
+  for(i in 1:length(groupNames)){
+
+    samples <- groupList[[i]]$samples
+    pos <- match(samples, colnames(psitable))
+
+    samplesPerGroupList[[i]] <- samples
+
+    # Prepare individual betAS object for this group
+    indbetas <- individualBetas_nofitting_incr(table = qualtable[x,],
+                                               cols = pos,
+                                               indpoints = npoints,
+                                               maxdevRefTable = maxDevTable)
+    # Name each position in list after the event
+    names(indbetas) <- qualtable$EVENT
+
+    # Assign ind betas to global list
+    indBetasList[[i]] <- indbetas
+
+  }
+
+  names(indBetasList) <- listNames
+  names(samplesPerGroupList) <- listNames
+
+  # Define groups
+
+  samples <- c()
+  groups  <- c()
+
+  for(i in 1:length(samplesPerGroupList)){
+
+    samples <- c(samples, samplesPerGroupList[[i]])
+    groups  <- c(groups, rep(groupNames[i], times = length(samplesPerGroupList[[i]])))
+
+  }
+
+
+  # Store event-wise results
+  allBetaPoints   <- c()
+  allMedianPsi  <- c()
+  withins     <- c()
+  betweens    <- c()
+
+  for(g in 1:length(unique(groups))){
+
+    points <- indBetasList[[g]][[1]]$BetaPoints
+    medians <- indBetasList[[g]][[1]]$MedianBeta
+    groupSamples <- samplesList[[g]]
+    nsamp <- length(groupSamples)
+
+    allBetaPoints <- c(allBetaPoints, points)
+    allMedianPsi <- c(allMedianPsi, medians)
+
+    # Matrix determining all possible combinations of sample pairs within group
+    within_combs <- combn(groupSamples, 2, simplify = TRUE)
+
+    # Define withins for each of those combinations
+    for(c in 1:ncol(within_combs)){
+
+      betasA  <- points[grep(within_combs[1,c], names(points))]
+      betasB  <- points[grep(within_combs[2,c], names(points))]
+      withins <- c(withins, betasB-betasA)
+
+    }
+
+  }
+
+  between_combs <- combn(unique(groups), 2, simplify = TRUE)
+
+  for(c in 1:ncol(between_combs)){
+
+    posA <-   grep(between_combs[1,c], names(indBetasList))
+    posB <-   grep(between_combs[2,c], names(indBetasList))
+
+    betasA  <- indBetasList[[posA]][[1]]$BetaPoints
+    betasB  <- indBetasList[[posB]][[1]]$BetaPoints
+
+    if(length(betasA) < length(betasB)){
+      betasB <- sample(betasB, size = length(betasA))
+    }else if(length(betasA) > length(betasB)){
+      betasA <- sample(betasA, size = length(betasB))
+    }
+
+    betweens <- c(betweens, betasB-betasA)
+
+  }
+
+  # Generate F-like statistic
+  fstat  <- median(abs(betweens))/median(abs(withins))
+
+  # Generate Pdiff-like
+  len_Fstat     <- min(length(betweens), length(withins))
+  between_sample  <- sample(x = betweens, size = len_Fstat)
+  within_sample   <- sample(x = withins, size = len_Fstat)
+
+  p_zero_anova    <- length(which(abs(between_sample) - abs(within_sample) > 0))/len_Fstat
+  pdiff_anova     <- abs(p_zero_anova-0.5)+0.5
+
+  # Calculate a sort of delta PSI
+  medianBetweens  <- median(betweens)
+  deltaAbsolute   <- median(abs(betweens)) - median(abs(withins))
+
+
+  # Store output as a list
+  eventPlotsObjs <- list()
+
+  eventPlotsObjs[[1]] <- p_zero_anova
+  eventPlotsObjs[[2]] <- pdiff_anova
+
+  eventPlotsObjs[[3]] <- withins
+  eventPlotsObjs[[4]] <- betweens
+  eventPlotsObjs[[5]] <- fstat
+
+  eventPlotsObjs[[6]] <- medianBetweens
+  eventPlotsObjs[[7]] <- deltaAbsolute
+
+  eventPlotsObjs[[8]] <- eventID
+
+  names(eventPlotsObjs) <- c("Pzero", "Pdiff",
+                             "Withins", "Betweens", "Fstat",
+                             "medianBetweens", "deltaAbsolute",
+                             "eventID")
+
+  return(eventPlotsObjs)
+
+}
+
+# Plot Fstat explanation plot per sample
+#
+# @param eventObjList
+#
+# @return
+# @export
+#
+# @examples
+# @importFrom ggridges geom_density_ridges
+plotFstatFromEventObjListMultiple <- function(eventObjList){
+
+  eventID <- eventObjList$eventID
+  withins <- eventObjList$Withins
+  betweens <- eventObjList$Betweens
+  fstat <- eventObjList$Fstat
+
+  title <- paste0("F-statistic = ", round(fstat, digits = 3))
+
+  relHeight <- max(max(density(abs(withins))$y), max(density(abs(betweens))$y))
+
+  plot <- ggplot() +
+    geom_density(aes(x = abs(betweens)),
+                 color = NA,
+                 fill = "#DC143C",
+                 alpha = 0.2) +
+    geom_density(aes(x = abs(withins)),
+                 color = NA,
+                 fill = "darkgray",
+                 alpha = 0.3) +
+    geom_density(aes(x = abs(betweens)),
+                 color = "#DC143C",
+                 size = 1,
+                 fill = NA) +
+    geom_density(aes(x = abs(withins)),
+                 color = "darkgray",
+                 size = 1,
+                 fill = NA) +
+    annotate(x = 0.75,
+             y = c(0.8, 0.7)*relHeight,
+             size = 7,
+             geom = "text",
+             label = c("within groups", "between groups"),
+             color = c("darkgray", "#DC143C")) +
+    xlab("Absolute PSI difference") +
+    ylab("Density") +
+    labs(title = title) +
+    scale_x_continuous(breaks = seq(0,1,0.25), limits = c(0,1)) +
     theme_betAS() +
     theme(axis.text = element_text(size = 14),
           axis.title = element_text(size = 20),

@@ -281,16 +281,16 @@ betASapp_ui <- function(){
                              fluidRow(
 
                                column(3,
-                                      h4("Absolute differences 'between' and 'within' groups.")),
+                                      h5("Absolute differences 'between' and 'within' groups.")),
 
                                column(9,
-                                      h4("PSI quantifications per sample across groups."))),
+                                      h5("PSI quantifications per sample across groups."))),
 
                              fluidRow(
 
                                column(3,
 
-                                      # plotOutput("FstatEventPlot_multgroup", height = "400px", width = "400px")
+                                      plotOutput("FstatEventPlot_multgroup", height = "400px", width = "400px")
 
                                       ),
 
@@ -907,18 +907,12 @@ betASapp_server <- function(){
 
       input$rundiffbetas_mult
 
-      eventList <- prepareTableEvent(eventID = selectedeventIDDiff(),
-                                     psitable = psifiltdataset(),
-                                     qualtable = qualfiltdataset(),
-                                     npoints = 500,
-                                     colsA = colsGroupA,
-                                     colsB = colsGroupB,
-                                     labA = groupA,
-                                     labB = groupB,
-                                     basalColor = "#89C0AE",
-                                     interestColor = "#E69A9C",
-                                     maxDevTable = maxDevSimulationN100,
-                                     nsim = 1000)
+      eventList <- prepareTableEventMultiple(eventID = selectedeventIDDiffMultiple(),
+                                             psitable = psifiltdataset(),
+                                             qualtable = qualfiltdataset(),
+                                             groupList = values$groups,
+                                             npoints = 500,
+                                             maxDevTable = maxDevSimulationN100)
 
       return(eventList)
 
@@ -1437,26 +1431,12 @@ betASapp_server <- function(){
 
       req(betasTableVolcanoMultiple())
       req(selectedeventIDDiffMultiple())
-      req(selectedEventTable())
+      req(selectedEventTableMultiple())
       req(input$plotEvent_mult)
 
+      if(length(values$groups)<1)return(NULL)
 
-      isolate({
-
-        groupA <- input$groupA
-        groupB <- input$groupB
-
-      })
-
-      if(is.null(groupA) || is.null(groupB))return(NULL)
-
-      samplesA <- values$groups[[groupA]]$samples
-      colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
-
-      samplesB <- values$groups[[groupB]]$samples
-      colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
-
-      plotFstatFromEventObjList(eventObjList = isolate(selectedEventTable()))
+      plotFstatFromEventObjListMultiple(eventObjList = isolate(selectedEventTableMultiple()))
 
     })
 
