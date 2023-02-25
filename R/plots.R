@@ -804,7 +804,7 @@ prepareTableVolcanoMultipleGroups <- function(psitable, qualtable, groupList, np
     samplesPerGroupList[[i]] <- samples
 
     # Prepare individual betAS object for this group
-    indbetas <- pblapply(1:nrow(qualtable),
+    indbetas <- lapply(1:nrow(qualtable),
                          function(x)
                            individualBetas_nofitting_incr(table = qualtable[x,],
                                                           cols = pos,
@@ -822,7 +822,7 @@ prepareTableVolcanoMultipleGroups <- function(psitable, qualtable, groupList, np
   names(samplesPerGroupList) <- listNames
 
   # Prepare directional ANOVA-like approach
-  genGroupsBetas <- pblapply(1:length(indBetasList[[1]]),
+  genGroupsBetas <- lapply(1:length(indBetasList[[1]]),
                              function(x)
                                generalisedGroupsBetas(eventPos = x,
                                                       indList = indBetasList,
@@ -834,11 +834,11 @@ prepareTableVolcanoMultipleGroups <- function(psitable, qualtable, groupList, np
 
   multipleGroupTable <- psitable
 
-  multipleGroupTable$Fstat             <- as.numeric(as.vector(pblapply(1:length(indBetasList[[1]]), function(x) genGroupsBetas[[x]][[3]])))
-  multipleGroupTable$Pzero             <- as.numeric(as.vector(pblapply(1:length(indBetasList[[1]]), function(x) genGroupsBetas[[x]][[4]])))
-  multipleGroupTable$Pdiff             <- as.numeric(as.vector(pblapply(1:length(indBetasList[[1]]), function(x) genGroupsBetas[[x]][[5]])))
-  multipleGroupTable$medianBetweens    <- as.numeric(as.vector(pblapply(1:length(indBetasList[[1]]), function(x) genGroupsBetas[[x]][[6]])))
-  multipleGroupTable$deltaAbsolute     <- as.numeric(as.vector(pblapply(1:length(indBetasList[[1]]), function(x) genGroupsBetas[[x]][[7]])))
+  multipleGroupTable$Fstat             <- as.numeric(as.vector(lapply(1:length(indBetasList[[1]]), function(x) genGroupsBetas[[x]][[3]])))
+  multipleGroupTable$Pzero             <- as.numeric(as.vector(lapply(1:length(indBetasList[[1]]), function(x) genGroupsBetas[[x]][[4]])))
+  multipleGroupTable$Pdiff             <- as.numeric(as.vector(lapply(1:length(indBetasList[[1]]), function(x) genGroupsBetas[[x]][[5]])))
+  multipleGroupTable$medianBetweens    <- as.numeric(as.vector(lapply(1:length(indBetasList[[1]]), function(x) genGroupsBetas[[x]][[6]])))
+  multipleGroupTable$deltaAbsolute     <- as.numeric(as.vector(lapply(1:length(indBetasList[[1]]), function(x) genGroupsBetas[[x]][[7]])))
 
   return(multipleGroupTable)
 
@@ -1649,7 +1649,7 @@ prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, n
                                                indpoints = npoints,
                                                maxdevRefTable = maxDevTable)
     # Name each position in list after the event
-    names(indbetas) <- qualtable$EVENT
+    # names(indbetas) <- groupNames[i]
 
     # Assign ind betas to global list
     indBetasList[[i]] <- indbetas
@@ -1680,9 +1680,9 @@ prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, n
 
   for(g in 1:length(unique(groups))){
 
-    points <- indBetasList[[g]][[1]]$BetaPoints
-    medians <- indBetasList[[g]][[1]]$MedianBeta
-    groupSamples <- samplesList[[g]]
+    points <- indBetasList[[g]]$BetaPoints
+    medians <- indBetasList[[g]]$MedianBeta
+    groupSamples <- samplesPerGroupList[[g]]
     nsamp <- length(groupSamples)
 
     allBetaPoints <- c(allBetaPoints, points)
@@ -1709,8 +1709,8 @@ prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, n
     posA <-   grep(between_combs[1,c], names(indBetasList))
     posB <-   grep(between_combs[2,c], names(indBetasList))
 
-    betasA  <- indBetasList[[posA]][[1]]$BetaPoints
-    betasB  <- indBetasList[[posB]][[1]]$BetaPoints
+    betasA  <- indBetasList[[posA]]$BetaPoints
+    betasB  <- indBetasList[[posB]]$BetaPoints
 
     if(length(betasA) < length(betasB)){
       betasB <- sample(betasB, size = length(betasA))

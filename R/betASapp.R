@@ -290,7 +290,7 @@ betASapp_ui <- function(){
 
                                column(3,
 
-                                      plotOutput("FstatEventPlot_multgroup", height = "400px", width = "400px")
+                                      plotOutput("FstatEventPlot_multgroup", height = "600px", width = "400px")
 
                                       ),
 
@@ -1427,12 +1427,8 @@ betASapp_server <- function(){
 
     output$FstatEventPlot_multgroup <- renderPlot({
 
-      input$rundiffbetas_mult
-
-      req(betasTableVolcanoMultiple())
-      req(selectedeventIDDiffMultiple())
-      req(selectedEventTableMultiple())
-      req(input$plotEvent_mult)
+      # req(input$eventidtoplot_mult)
+      # req(input$plotEvent_mult)
 
       if(length(values$groups)<1)return(NULL)
 
