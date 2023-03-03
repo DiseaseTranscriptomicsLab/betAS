@@ -53,30 +53,63 @@ filterrMATS <- function(incTable){
   # Remove "\"" from some gene symbols (probably not needed if read.table/read.delim is done with quote = "\"")
   commonCols$geneSymbol <- gsub(pattern = "\"", replacement = "", x = commonCols$geneSymbol)
 
-  # Infer number of samples from the first row in "SJC columns" by summing 1 to the number of ","
-  Nsamples_Group1 <- length(gregexpr(",", incTable$SJC_SAMPLE_1[1], fixed = TRUE)[[1]])+1
-  Nsamples_Group2 <- length(gregexpr(",", incTable$SJC_SAMPLE_2[1], fixed = TRUE)[[1]])+1
+  # Check if rMATS table was done with one or two groups
+  if(all(is.na(c(incTable$IncLevel2, incTable$IJC_SAMPLE_2, incTable$SJC_SAMPLE_2)))){
 
-  # Name samples from groups 1 and 2
-  Samples_Group1 <- paste0("G1_S",1:Nsamples_Group1)
-  Samples_Group2 <- paste0("G2_S",1:Nsamples_Group2)
+    # If Group2 does not exist in rMATS table:
+    # ::::::::::::::::::::::::::::::::::::::::
 
-  # psiTable
-  psiRM <- cbind(commonCols,
-                 apply(matrix(unlist(strsplit(incTable$IncLevel1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric),
-                 apply(matrix(unlist(strsplit(incTable$IncLevel2, ",")),ncol=Nsamples_Group2,byrow=T), 2, as.numeric))
-  colnames(psiRM) <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX",Samples_Group1,Samples_Group2)
+    # Infer number of samples from the first row in "SJC columns" by summing 1 to the number of ","
+    Nsamples_Group1 <- length(gregexpr(",", incTable$SJC_SAMPLE_1[1], fixed = TRUE)[[1]])+1
 
-  # qualTable
-  inc <-  cbind(apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$IncFormLen,
-                apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_2, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$IncFormLen)
-  exc <-  cbind(apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$SkipFormLen,
-                apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_2, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$SkipFormLen)
+    # Name samples from groups 1 and 2
+    Samples_Group1 <- paste0("G1_S",1:Nsamples_Group1)
 
-  qualRM <- cbind(commonCols,
-                  # Mimicking vast-tools INCLUSION table ".Q" columns to facilitate the compatibility with other betAS functions
-                  matrix(paste0("A,A,0=0=0,A,",rep(eventType,nrow(incTable)),"@", inc , ",", exc ), nrow = nrow(inc)))
-  colnames(qualRM) <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX",paste0(Samples_Group1,".Q"),paste0(Samples_Group2,".Q"))
+    # psiTable
+    psiRM <- cbind(commonCols,
+                   apply(matrix(unlist(strsplit(incTable$IncLevel1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric))
+    colnames(psiRM) <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX",Samples_Group1)
+
+    # qualTable
+    inc <-  cbind(apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$IncFormLen)
+    exc <-  cbind(apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$SkipFormLen)
+
+    qualRM <- cbind(commonCols,
+                    # Mimicking vast-tools INCLUSION table ".Q" columns to facilitate the compatibility with other betAS functions
+                    matrix(paste0("A,A,0=0=0,A,",rep(eventType,nrow(incTable)),"@", inc , ",", exc ), nrow = nrow(inc)))
+    colnames(qualRM) <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX",paste0(Samples_Group1,".Q"))
+
+  }else{
+
+    # If Group2 exists in rMATS table:
+    # ::::::::::::::::::::::::::::::::
+
+    # Infer number of samples from the first row in "SJC columns" by summing 1 to the number of ","
+    Nsamples_Group1 <- length(gregexpr(",", incTable$SJC_SAMPLE_1[1], fixed = TRUE)[[1]])+1
+    Nsamples_Group2 <- length(gregexpr(",", incTable$SJC_SAMPLE_2[1], fixed = TRUE)[[1]])+1
+
+    # Name samples from groups 1 and 2
+    Samples_Group1 <- paste0("G1_S",1:Nsamples_Group1)
+    Samples_Group2 <- paste0("G2_S",1:Nsamples_Group2)
+
+    # psiTable
+    psiRM <- cbind(commonCols,
+                   apply(matrix(unlist(strsplit(incTable$IncLevel1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric),
+                   apply(matrix(unlist(strsplit(incTable$IncLevel2, ",")),ncol=Nsamples_Group2,byrow=T), 2, as.numeric))
+    colnames(psiRM) <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX",Samples_Group1,Samples_Group2)
+
+    # qualTable
+    inc <-  cbind(apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$IncFormLen,
+                  apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_2, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$IncFormLen)
+    exc <-  cbind(apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$SkipFormLen,
+                  apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_2, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$SkipFormLen)
+
+    qualRM <- cbind(commonCols,
+                    # Mimicking vast-tools INCLUSION table ".Q" columns to facilitate the compatibility with other betAS functions
+                    matrix(paste0("A,A,0=0=0,A,",rep(eventType,nrow(incTable)),"@", inc , ",", exc ), nrow = nrow(inc)))
+    colnames(qualRM) <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX",paste0(Samples_Group1,".Q"),paste0(Samples_Group2,".Q"))
+
+  }
 
   # Remove events containing at least one NA
   psiRM$AnyNA    <- apply(psiRM, 1, anyNA)
