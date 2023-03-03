@@ -7,7 +7,7 @@
 betASapp_ui <- function(){
   # :::: Variables ::::
   # tools           <- c("vast-tools", "MISO", "SUPPA", "Other")
-  availabletools      <- c("vast-tools", "rMATS")
+  availabletools      <- c("vast-tools")
   yAxisStats          <- c("Pdiff (probability of differential splicing)", "F-statistic (median(|between|)/median(|within|))", "False discovery rate (FDR)")
   yAxisStats_multiple <- c("Pdiff (probability that |between| > |within|)", "F-statistic (median(|between|)/median(|within|))")
   eventTypes          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss")
@@ -70,7 +70,8 @@ betASapp_ui <- function(){
                                           "<a href='", "https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/",
                                           "'>Human RNA-seq time-series of the development of seven major organs</a></p>")),
 
-                              helpText("(betAS currently supports inclusion level tables from: vast-tools and rMATS (*.MATS.JC.txt tables))"),
+                              # helpText("(betAS currently supports inclusion level tables from: vast-tools and rMATS (*.MATS.JC.txt tables))"),
+                              helpText("(betAS currently supports inclusion level tables from: vast-tools"),
                               radioButtons("sourcetool", label = "Table source:", choices = availabletools),
 
                               h5("Filter events from loaded table:"),
