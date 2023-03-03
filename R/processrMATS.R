@@ -94,8 +94,8 @@ filterrMATS <- function(incTable){
 
     # psiTable
     psiRM <- cbind(commonCols,
-                   apply(matrix(unlist(strsplit(incTable$IncLevel1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric),
-                   apply(matrix(unlist(strsplit(incTable$IncLevel2, ",")),ncol=Nsamples_Group2,byrow=T), 2, as.numeric))
+                   apply(matrix(unlist(strsplit(incTable$IncLevel1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)*100,
+                   apply(matrix(unlist(strsplit(incTable$IncLevel2, ",")),ncol=Nsamples_Group2,byrow=T), 2, as.numeric)*100)
     colnames(psiRM) <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX",Samples_Group1,Samples_Group2)
 
     # qualTable

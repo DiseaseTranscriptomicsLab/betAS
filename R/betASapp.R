@@ -7,7 +7,7 @@
 betASapp_ui <- function(){
   # :::: Variables ::::
   # tools           <- c("vast-tools", "MISO", "SUPPA", "Other")
-  availabletools      <- c("vast-tools")
+  availabletools      <- c("vast-tools", "rMATS")
   yAxisStats          <- c("Pdiff (probability of differential splicing)", "F-statistic (median(|between|)/median(|within|))", "False discovery rate (FDR)")
   yAxisStats_multiple <- c("Pdiff (probability that |between| > |within|)", "F-statistic (median(|between|)/median(|within|))")
   eventTypes          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss")
@@ -70,12 +70,13 @@ betASapp_ui <- function(){
                                           "<a href='", "https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/",
                                           "'>Human RNA-seq time-series of the development of seven major organs</a></p>")),
 
-                              # helpText("(betAS currently supports inclusion level tables from: vast-tools and rMATS (*.MATS.JC.txt tables))"),
-                              helpText("(betAS currently supports inclusion level tables from: vast-tools"),
+                              helpText("(betAS currently supports inclusion level tables from: vast-tools and rMATS (*.MATS.JC.txt tables))"),
+                              # helpText("(betAS currently supports inclusion level tables from: vast-tools)"),
                               radioButtons("sourcetool", label = "Table source:", choices = availabletools),
 
                               h5("Filter events from loaded table:"),
                               checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypes),
+                              # checkboxGroupInput("types", label = "Event types to consider:", selected = NULL,  choices = NULL),
                               sliderInput("psirange", "PSI values to consider:", value = c(1, 99), min = 0, max = 100),
                               helpText((em("Consider only alternative splicing events with all PSI values within this range.")),
                               h6(textOutput("textTotalNumberEvents")),
@@ -343,9 +344,11 @@ betASapp_server <- function(){
 
       if(is.null(input$psitable)){
 
-        testTable <- readRDS(file = "test/INCLUSION_LEVELS_FULL-hg19-98-v251.rds")
+        if(input$sourcetool == "vast-tools"){
 
-        if(input$sourcetool == "rMATS"){
+          testTable <- readRDS(file = "test/INCLUSION_LEVELS_FULL-hg19-98-v251.rds")
+
+        }else if(input$sourcetool == "rMATS"){
 
           testTable <- read.delim(file = "test/SE.MATS.JC.txt")
 
@@ -353,21 +356,35 @@ betASapp_server <- function(){
 
         return(testTable)
 
+      }else{
+
+        req(input$sourcetool)
+
+        if(length(grep(pattern = "[.]gz", x = input$psitable$datapath)) == 0){
+
+          loadingFile <- input$psitable$datapath
+
+        }
+
+        loadingFile <- gzfile(input$psitable$datapath)
+
+        if(input$sourcetool == "vast-tools"){
+
+          read.table(loadingFile, sep="\t", header=TRUE, quote="")
+
+        }else if(input$sourcetool == "rMATS"){
+
+          read.delim(loadingFile)
+
+        }
+
+
       }
-
-      req(input$psitable)
-
-      if(length(grep(pattern = "[.]gz", x = input$psitable$datapath)) == 0){
-
-        loadingFile <- input$psitable$datapath
-
-      }
-
-      loadingFile <- gzfile(input$psitable$datapath)
-
-      read.table(loadingFile, sep="\t", header=TRUE, quote="")
 
       })
+
+    # Update input for AS event type from dataset
+    observe({updateCheckboxGroupInput(inputId = "types", choices = names(dataset()$EventsPerType))})
 
     sampleTable <- reactive({
 
@@ -386,137 +403,130 @@ betASapp_server <- function(){
     # 1. Filter table to remove events: with at least one NA, ANN and with at least one sample with less than VLOW quality
     filterVastToolsTable <- reactive({
 
-      selectedEventTypes <- c()
+      req(input$sourcetool)
 
-      if("EX" %in% input$types) selectedEventTypes <- c("C1", "C2", "C3", "S", "MIC")
-      if("IR" %in% input$types) selectedEventTypes <- c(selectedEventTypes, "IR-C", "IR-S")
-      if("Altss" %in% input$types) selectedEventTypes <- c(selectedEventTypes, "Alt3", "Alt5")
-      if(length(selectedEventTypes) == 0){
-        showNotification("Please select at least one event type", duration = 5, type = c("error"))
-        return(NULL)
+      if(input$sourcetool == "vast-tools"){
+
+        selectedEventTypes <- c()
+
+        if("EX" %in% input$types) selectedEventTypes <- c("C1", "C2", "C3", "S", "MIC")
+        if("IR" %in% input$types) selectedEventTypes <- c(selectedEventTypes, "IR-C", "IR-S")
+        if("Altss" %in% input$types) selectedEventTypes <- c(selectedEventTypes, "Alt3", "Alt5")
+        if(length(selectedEventTypes) == 0){
+          showNotification("Please select at least one event type", duration = 5, type = c("error"))
+          return(NULL)
+        }
+
+        filteredList <- filterVastTools(dataset(), types = selectedEventTypes)
+
       }
-
-      filteredList <- filterVastTools(dataset(), types = selectedEventTypes)
-      return(filteredList)
-
-    })
-
-    filterRMATSTable <- reactive({
 
       if(input$sourcetool == "rMATS"){
 
         filteredList <- filterrMATS(dataset())
-        return(filteredList)
 
       }
 
+      return(filteredList)
+
     })
+
+    # filterRMATSTable <- reactive({
+    #
+    #   req(input$sourcetool)
+    #
+    #   if(input$sourcetool == "rMATS"){
+    #
+    #     filteredList <- filterrMATS(dataset())
+    #     return(filteredList)
+    #
+    #   }
+    #
+    # })
 
     selectAlternatives <- reactive({
 
-      alternativeList <- alternativeVastTools(req(filterVastToolsTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
-
-      if(nrow(alternativeList$PSI) == 0){
-
-        showNotification("There are no events with PSI values within such range.",
-                         closeButton = TRUE,
-                         duration = 5,
-                         type = c("error"))
-        return(NULL)
-
-      }
-
-      return(alternativeList)
-
-    })
-
-    selectAlternativesRM <- reactive({
-
-      alternativeList <- alternativerMATS(req(filterRMATSTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
-
-      if(nrow(alternativeList$PSI) == 0){
-
-        showNotification("There are no events with PSI values within such range.",
-                         closeButton = TRUE,
-                         duration = 5,
-                         type = c("error"))
-        return(NULL)
-
-      }
-
-      return(alternativeList)
-
-    })
-
-    # create a reactive expression
-    psidataset <- reactive({
+      req(input$sourcetool)
 
       if(input$sourcetool == "vast-tools"){
 
-        return(filterVastToolsTable()$PSI)
+        alternativeList <- alternativeVastTools(req(filterVastToolsTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
+
+        if(nrow(alternativeList$PSI) == 0){
+
+          showNotification("There are no events with PSI values within such range.",
+                           closeButton = TRUE,
+                           duration = 5,
+                           type = c("error"))
+          return(NULL)
+
+        }
 
       }
 
       if(input$sourcetool == "rMATS"){
 
-        return(filterRMATSTable()$PSI)
+        alternativeList <- alternativerMATS(req(filterVastToolsTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
+
+        if(nrow(alternativeList$PSI) == 0){
+
+          showNotification("There are no events with PSI values within such range.",
+                           closeButton = TRUE,
+                           duration = 5,
+                           type = c("error"))
+          return(NULL)
+
+        }
 
       }
+
+      return(alternativeList)
+
+    })
+
+    # selectAlternativesRM <- reactive({
+    #
+    #   alternativeList <- alternativerMATS(req(filterRMATSTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
+    #
+    #   if(nrow(alternativeList$PSI) == 0){
+    #
+    #     showNotification("There are no events with PSI values within such range.",
+    #                      closeButton = TRUE,
+    #                      duration = 5,
+    #                      type = c("error"))
+    #     return(NULL)
+    #
+    #   }
+    #
+    #   return(alternativeList)
+    #
+    # })
+
+    # create a reactive expression
+    psidataset <- reactive({
+
+        filterVastToolsTable()$PSI
 
     })
 
     qualdataset <- reactive({
 
-      if(input$sourcetool == "vast-tools"){
-
-        return(filterVastToolsTable()$Qual)
-
-      }
-
-      if(input$sourcetool == "rMATS"){
-
-        return(filterRMATSTable()$Qual)
-
-      }
+      filterVastToolsTable()$Qual
 
     })
 
     # create a reactive expression
     psifiltdataset <- reactive({
 
-      if(input$sourcetool == "vast-tools"){
-
         req(selectAlternatives())
         return(selectAlternatives()$PSI)
-
-      }
-
-      if(input$sourcetool == "rMATS"){
-
-        req(selectAlternativesRM())
-        return(selectAlternativesRM()$PSI)
-
-      }
-
 
     })
 
     qualfiltdataset <- reactive({
 
-      if(input$sourcetool == "vast-tools"){
-
         req(selectAlternatives())
         return(selectAlternatives()$Qual)
-
-      }
-
-      if(input$sourcetool == "rMATS"){
-
-        req(selectAlternativesRM())
-        return(selectAlternativesRM()$Qual)
-
-      }
-
 
     })
 
