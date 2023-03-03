@@ -22,7 +22,6 @@ VT_all_minVLOW_tags <- function(quals){
 
 }
 
-
 # Filter INCLUSION table (vast-tools) for quality and event type
 # Filter original table from vast-tools to remove events containing NAs in at least one sample and those that do not have minimal coverage based on VT_all_minVLOW_tags() and split PSI and Qual tables
 # @param incTable vast-tools' INCLUSION table

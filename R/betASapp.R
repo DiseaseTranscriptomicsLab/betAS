@@ -7,7 +7,7 @@
 betASapp_ui <- function(){
   # :::: Variables ::::
   # tools           <- c("vast-tools", "MISO", "SUPPA", "Other")
-  availabletools      <- c("vast-tools")
+  availabletools      <- c("vast-tools", "rMATS")
   yAxisStats          <- c("Pdiff (probability of differential splicing)", "F-statistic (median(|between|)/median(|within|))", "False discovery rate (FDR)")
   yAxisStats_multiple <- c("Pdiff (probability that |between| > |within|)", "F-statistic (median(|between|)/median(|within|))")
   eventTypes          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss")
@@ -70,7 +70,7 @@ betASapp_ui <- function(){
                                           "<a href='", "https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/",
                                           "'>Human RNA-seq time-series of the development of seven major organs</a></p>")),
 
-                              helpText("(betAS currently supports inclusion level tables from: vast-tools)"),
+                              helpText("(betAS currently supports inclusion level tables from: vast-tools and rMATS (*.MATS.JC.txt tables))"),
                               radioButtons("sourcetool", label = "Table source:", choices = availabletools),
 
                               h5("Filter events from loaded table:"),
@@ -344,6 +344,12 @@ betASapp_server <- function(){
 
         testTable <- readRDS(file = "test/INCLUSION_LEVELS_FULL-hg19-98-v251.rds")
 
+        if(input$sourcetool == "rMATS"){
+
+          testTable <- read.delim(file = "test/SE.MATS.JC.txt")
+
+        }
+
         return(testTable)
 
       }
@@ -394,6 +400,17 @@ betASapp_server <- function(){
 
     })
 
+    filterRMATSTable <- reactive({
+
+      if(input$sourcetool == "rMATS"){
+
+        filteredList <- filterrMATS(dataset())
+        return(filteredList)
+
+      }
+
+    })
+
     selectAlternatives <- reactive({
 
       alternativeList <- alternativeVastTools(req(filterVastToolsTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
@@ -412,24 +429,94 @@ betASapp_server <- function(){
 
     })
 
+    selectAlternativesRM <- reactive({
+
+      alternativeList <- alternativerMATS(req(filterRMATSTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
+
+      if(nrow(alternativeList$PSI) == 0){
+
+        showNotification("There are no events with PSI values within such range.",
+                         closeButton = TRUE,
+                         duration = 5,
+                         type = c("error"))
+        return(NULL)
+
+      }
+
+      return(alternativeList)
+
+    })
+
     # create a reactive expression
     psidataset <- reactive({
-      return(filterVastToolsTable()$PSI)
+
+      if(input$sourcetool == "vast-tools"){
+
+        return(filterVastToolsTable()$PSI)
+
+      }
+
+      if(input$sourcetool == "rMATS"){
+
+        return(filterRMATSTable()$PSI)
+
+      }
+
     })
 
     qualdataset <- reactive({
-      return(filterVastToolsTable()$Qual)
+
+      if(input$sourcetool == "vast-tools"){
+
+        return(filterVastToolsTable()$Qual)
+
+      }
+
+      if(input$sourcetool == "rMATS"){
+
+        return(filterRMATSTable()$Qual)
+
+      }
+
     })
 
     # create a reactive expression
     psifiltdataset <- reactive({
-      req(selectAlternatives())
-      return(selectAlternatives()$PSI)
+
+      if(input$sourcetool == "vast-tools"){
+
+        req(selectAlternatives())
+        return(selectAlternatives()$PSI)
+
+      }
+
+      if(input$sourcetool == "rMATS"){
+
+        req(selectAlternativesRM())
+        return(selectAlternativesRM()$PSI)
+
+      }
+
+
     })
 
     qualfiltdataset <- reactive({
-      req(selectAlternatives())
-      return(selectAlternatives()$Qual)
+
+      if(input$sourcetool == "vast-tools"){
+
+        req(selectAlternatives())
+        return(selectAlternatives()$Qual)
+
+      }
+
+      if(input$sourcetool == "rMATS"){
+
+        req(selectAlternativesRM())
+        return(selectAlternativesRM()$Qual)
+
+      }
+
+
     })
 
     eventNumber <- reactive({
@@ -438,7 +525,7 @@ betASapp_server <- function(){
 
     output$textTotalNumberEvents <- renderText({
 
-      req(selectAlternatives())
+      # req(selectAlternatives())
 
       paste0("You have selected ", eventNumber(), " events")
 
