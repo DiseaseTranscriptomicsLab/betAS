@@ -55,10 +55,15 @@ betASapp_ui <- function(){
                               # h3("Exploratory analysis of inclusion levels"),
                               h4("Exploratory analysis of inclusion levels"),
 
-                              HTML(paste0("<p>Explore a subset of the publicly available dataset:",
+                              HTML(paste0("<p>Explore a vast-tools table for a subset of the publicly available dataset:",
                                           "<br>",
                                           "<a href='", "https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/",
                                           "'>Human RNA-seq time-series of the development of seven major organs</a></p>")),
+
+                              HTML(paste0("<p>Explore an rMATS table for a subset of the publicly available dataset:",
+                                          "<br>",
+                                          "<a href='", "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/",
+                                          "'>Deep transcriptional profiling of longitudinal changes during neurogenesis and network maturation in vivo</a></p>")),
 
                               "Alternatively, upload table* with inclusion level quantification (e.g. PSI)",
 
@@ -381,9 +386,6 @@ betASapp_server <- function(){
       }
 
       })
-
-    # Update input for AS event type from dataset
-    # observe({updateCheckboxGroupInput(inputId = "types", choices = names(dataset()$COMPLEX))})
 
     sampleTable <- reactive({
 
@@ -787,6 +789,26 @@ betASapp_server <- function(){
 
     })
 
+    # eventTypesToConsider <- reactiveValues(types = list())
+    #
+    # observeEvent(input$sourcetool, {
+    #
+    #   if(input$sourcetool == "vast-tools"){
+    #
+    #     # eventTypesToConsider$types <- eventTypes
+    #
+    #   }
+    #
+    #   if(input$sourcetool == "rMATS"){
+    #
+    #     eventTypesToConsider$types <- NULL
+    #
+    #   }
+    #
+    # })
+    #
+    # observe({updateCheckboxGroupInput(inputId = "types", choices = eventTypesToConsider$types)})
+
     # nextSuggestedColor <- reactive({
     #   if(length(values$groups)<1){nextColor <- "#89C0AE"}else{
     #
@@ -825,18 +847,33 @@ betASapp_server <- function(){
 
     })
 
-    observeEvent(input$psitable, {
+    observeEvent(input$sourcetool, {
 
-      if(is.null(input$psitable)){
-
-      }else{
-
-        updateRadioButtons(inputId = "sourcetool", label = "Table source:", selected = character(0))
+      if(is.null(input$sourcetool)){
 
         showNotification("Please select the tool associated with loaded table.",
                          closeButton = TRUE,
                          duration = 5,
                          type = c("error"))
+
+      }
+
+    })
+
+    observeEvent(input$psitable, {
+
+      if(is.null(input$psitable)){
+
+        updateRadioButtons(inputId = "sourcetool", label = "Table source:", selected = "vast-tools")
+
+      }else{
+
+        updateRadioButtons(inputId = "sourcetool", label = "Table source:", selected = character(0))
+
+        # showNotification("Please select the tool associated with loaded table.",
+        #                  closeButton = TRUE,
+        #                  duration = 5,
+        #                  type = c("error"))
 
       }
 
