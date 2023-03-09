@@ -55,8 +55,12 @@ betASapp_ui <- function(){
                               # h3("Exploratory analysis of inclusion levels"),
                               h4("Exploratory analysis of inclusion levels"),
 
+                              HTML(paste0("<p>Explore a subset of the publicly available dataset:",
+                                          "<br>",
+                                          "<a href='", "https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/",
+                                          "'>Human RNA-seq time-series of the development of seven major organs</a></p>")),
 
-                              "Upload table with inclusion level quantification (e.g. PSI)",
+                              "Alternatively, upload table* with inclusion level quantification (e.g. PSI)",
 
                               tags$ul(
                                 tags$li("each row is an alternative splicing event"),
@@ -64,13 +68,8 @@ betASapp_ui <- function(){
                               ),
 
                               fileInput("psitable", NULL),
+                              helpText("(*) betAS currently supports inclusion level tables from: vast-tools (INCLUSION_LEVELS_FULL*.tab) and rMATS (*.MATS.JC.txt tables)"),
 
-                              HTML(paste0("<p>Alternatively, explore a subset of the publicly available dataset:",
-                                          "<br>",
-                                          "<a href='", "https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/",
-                                          "'>Human RNA-seq time-series of the development of seven major organs</a></p>")),
-
-                              helpText("(betAS currently supports inclusion level tables from: vast-tools and rMATS (*.MATS.JC.txt tables))"),
                               # helpText("(betAS currently supports inclusion level tables from: vast-tools)"),
                               radioButtons("sourcetool", label = "Table source:", choices = availabletools),
 
@@ -204,7 +203,7 @@ betASapp_ui <- function(){
 
                      column(4,
                             h4("P(A - B) > x:"),
-                            h6("Probabilty that estimated PSI of one group is greater than the other by x.")),
+                            h6("Probability that estimated PSI of one group is greater than the other by x.")),
 
                      column(4,
                             h4("F-statistic:"),
@@ -384,7 +383,7 @@ betASapp_server <- function(){
       })
 
     # Update input for AS event type from dataset
-    observe({updateCheckboxGroupInput(inputId = "types", choices = names(dataset()$EventsPerType))})
+    # observe({updateCheckboxGroupInput(inputId = "types", choices = names(dataset()$COMPLEX))})
 
     sampleTable <- reactive({
 
@@ -407,10 +406,13 @@ betASapp_server <- function(){
 
       if(input$sourcetool == "vast-tools"){
 
+        presentEventTypes <- unique(dataset()$COMPLEX)
+
         selectedEventTypes <- c()
 
         if("EX" %in% input$types) selectedEventTypes <- c("C1", "C2", "C3", "S", "MIC")
-        if("IR" %in% input$types) selectedEventTypes <- c(selectedEventTypes, "IR-C", "IR-S")
+        if("IR" %in% input$types & "IR" %in% presentEventTypes) selectedEventTypes <- c(selectedEventTypes, "IR")
+        if("IR" %in% input$types & "IR-S" %in% presentEventTypes) selectedEventTypes <- c(selectedEventTypes, "IR-C", "IR-S")
         if("Altss" %in% input$types) selectedEventTypes <- c(selectedEventTypes, "Alt3", "Alt5")
         if(length(selectedEventTypes) == 0){
           showNotification("Please select at least one event type", duration = 5, type = c("error"))
@@ -818,6 +820,23 @@ betASapp_server <- function(){
       if(is.null(input$psitable)){
 
         updateSelectInput(inputId = "groupingFeature", choices = NULL)
+
+      }
+
+    })
+
+    observeEvent(input$psitable, {
+
+      if(is.null(input$psitable)){
+
+      }else{
+
+        updateRadioButtons(inputId = "sourcetool", label = "Table source:", selected = character(0))
+
+        showNotification("Please select the tool associated with loaded table.",
+                         closeButton = TRUE,
+                         duration = 5,
+                         type = c("error"))
 
       }
 
