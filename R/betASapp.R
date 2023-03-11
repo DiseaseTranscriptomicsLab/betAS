@@ -14,8 +14,6 @@ betASapp_ui <- function(){
   exEventNames        <- c("HsaEX0007927", "HsaEX0032264", "HsaEX0039848", "HsaEX0029465", "HsaEX0026102", "HsaEX0056290", "HsaEX0035084", "HsaEX0065983", "HsaEX0036532", "HsaEX0049206")
   pastelColors        <- c("#FF9AA2", "#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7", "#C7CEEA", "#FBE2FD", "#D9ECFE")
 
-  # test 3
-
   # Themes
   # dark <- bs_theme(bootswatch = "darkly")
   # light <- bs_theme(bootswatch = "minty")
@@ -82,6 +80,7 @@ betASapp_ui <- function(){
 
                               h5("Filter events from loaded table:"),
                               checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypes),
+                              #checkboxGroupInput("types", label = "Event types to consider:", choices = eventTypes),
                               # checkboxGroupInput("types", label = "Event types to consider:", selected = NULL,  choices = NULL),
                               sliderInput("psirange", "PSI values to consider:", value = c(1, 99), min = 0, max = 100),
                               helpText((em("Consider only alternative splicing events with all PSI values within this range.")),
@@ -403,14 +402,35 @@ betASapp_server <- function(){
 
     })
 
+
+    GetTable <- reactive({
+
+      req(dataset())
+      req(input$sourcetool)
+
+      if(input$sourcetool == "vast-tools"){
+         FormattedTable <- getVastTools(dataset())
+
+      }
+
+      if(input$sourcetool == "rMATS"){
+        FormattedTable <- getrMATS(dataset())
+      }
+
+      return(FormattedTable)
+
+    })
+
+
     # 1. Filter table to remove events: with at least one NA, ANN and with at least one sample with less than VLOW quality
-    filterVastToolsTable <- reactive({
+    #filterVastToolsTable <- reactive({
+    filterTable <- reactive({
 
       req(input$sourcetool)
 
       if(input$sourcetool == "vast-tools"){
 
-        presentEventTypes <- unique(dataset()$COMPLEX)
+        presentEventTypes <- unique(GetTable()$COMPLEX)
 
         selectedEventTypes <- c()
 
@@ -423,19 +443,48 @@ betASapp_server <- function(){
           return(NULL)
         }
 
-        filteredList <- filterVastTools(dataset(), types = selectedEventTypes)
+        filteredList <- filterVastTools(GetTable(), types = selectedEventTypes)
 
       }
 
       if(input$sourcetool == "rMATS"){
 
-        filteredList <- filterrMATS(dataset())
-
+        filteredList <- filterrMATS(GetTable())
+        if(length(input$types) == 0){
+          showNotification("Please select at least one event type", duration = 5, type = c("error"))
+          return(NULL)
+        }
       }
 
       return(filteredList)
 
     })
+
+
+
+    # eventTypesToConsider <- reactiveValues(types = list())
+    #
+    # observeEvent(input$sourcetool, {
+    #
+    #   if(input$sourcetool == "vast-tools"){
+    #
+    #     # eventTypesToConsider$types <- eventTypes
+    #     #updateRadioButtons(inputId = "sourcetool", label = "Table source:", selected = "vast-tools")
+    #
+    #   }
+    #
+    #   if(input$sourcetool == "rMATS"){
+    #
+    #     eventTypesToConsider$types <- NULL
+    #
+    #   }
+    #
+    # })
+    #
+    # observe({updateCheckboxGroupInput(inputId = "types", choices = eventTypesToConsider$types)})
+    #
+
+
 
     # filterRMATSTable <- reactive({
     #
@@ -456,7 +505,7 @@ betASapp_server <- function(){
 
       if(input$sourcetool == "vast-tools"){
 
-        alternativeList <- alternativeVastTools(req(filterVastToolsTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
+        alternativeList <- alternativeVastTools(req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
 
         if(nrow(alternativeList$PSI) == 0){
 
@@ -472,7 +521,7 @@ betASapp_server <- function(){
 
       if(input$sourcetool == "rMATS"){
 
-        alternativeList <- alternativerMATS(req(filterVastToolsTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
+        alternativeList <- alternativerMATS(req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
 
         if(nrow(alternativeList$PSI) == 0){
 
@@ -511,13 +560,13 @@ betASapp_server <- function(){
     # create a reactive expression
     psidataset <- reactive({
 
-        filterVastToolsTable()$PSI
+        filterTable()$PSI
 
     })
 
     qualdataset <- reactive({
 
-      filterVastToolsTable()$Qual
+      filterTable()$Qual
 
     })
 
@@ -791,25 +840,8 @@ betASapp_server <- function(){
 
     })
 
-    # eventTypesToConsider <- reactiveValues(types = list())
-    #
-    # observeEvent(input$sourcetool, {
-    #
-    #   if(input$sourcetool == "vast-tools"){
-    #
-    #     # eventTypesToConsider$types <- eventTypes
-    #
-    #   }
-    #
-    #   if(input$sourcetool == "rMATS"){
-    #
-    #     eventTypesToConsider$types <- NULL
-    #
-    #   }
-    #
-    # })
-    #
-    # observe({updateCheckboxGroupInput(inputId = "types", choices = eventTypesToConsider$types)})
+
+
 
     # nextSuggestedColor <- reactive({
     #   if(length(values$groups)<1){nextColor <- "#89C0AE"}else{

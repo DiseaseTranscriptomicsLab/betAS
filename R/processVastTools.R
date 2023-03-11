@@ -31,20 +31,48 @@ VT_all_minVLOW_tags <- function(quals){
 # @export
 #
 # @examples
-filterVastTools <- function(incTable, types){
+
+
+
+getVastTools <- function(incTable){
 
   filterVT <- list()
-  # Structure of vast-tools "INCLUSION(...)" table is the following:
-  # . 6 columns describing the event
-  # . one column per sample with the PSI (between 0 and 100)
-  # . one column per sample with the "Quality" information, including inc and exc
-  # . each Quality column follows respective PSI column
 
   qual_cols <- grep("[.]Q", colnames(incTable))
   psi_cols  <- qual_cols-1
 
   psiVAST  <- incTable[,c(1:6,psi_cols)]
   qualVAST <- incTable[,c(1:6,qual_cols)]
+
+  filterVT[[1]] <- psiVAST
+  filterVT[[2]] <- qualVAST
+  filterVT[[3]] <- table(psiVAST$COMPLEX)
+  filterVT[[4]] <- colnames(psiVAST)[-c(1:6)]
+
+  names(filterVT) <- c("PSI", "Qual", "EventsPerType", "Samples")
+  return(filterVT)
+
+}
+
+
+
+filterVastTools <- function(incTable, types){
+
+  filterVT <- incTable
+  # Structure of vast-tools "INCLUSION(...)" table is the following:
+  # . 6 columns describing the event
+  # . one column per sample with the PSI (between 0 and 100)
+  # . one column per sample with the "Quality" information, including inc and exc
+  # . each Quality column follows respective PSI column
+
+  #qual_cols <- grep("[.]Q", colnames(incTable))
+  #psi_cols  <- qual_cols-1
+
+  #psiVAST  <- incTable[,c(1:6,psi_cols)]
+  #qualVAST <- incTable[,c(1:6,qual_cols)]
+
+  psiVAST <- incTable$PSI
+  qualVAST <- incTable$Qual
 
   originalColN <- ncol(psiVAST)
 
@@ -77,8 +105,6 @@ filterVastTools <- function(incTable, types){
 
   filterVT[[1]] <- psiVAST
   filterVT[[2]] <- qualVAST
-  filterVT[[3]] <- table(psiVAST$COMPLEX)
-  filterVT[[4]] <- colnames(psiVAST)[-c(1:6)]
 
   names(filterVT) <- c("PSI", "Qual", "EventsPerType", "Samples")
   return(filterVT)
