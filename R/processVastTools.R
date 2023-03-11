@@ -22,12 +22,11 @@ VT_all_minVLOW_tags <- function(quals){
 
 }
 
-# Filter INCLUSION table (vast-tools) for quality and event type
-# Filter original table from vast-tools to remove events containing NAs in at least one sample and those that do not have minimal coverage based on VT_all_minVLOW_tags() and split PSI and Qual tables
+
+# Format INCLUSION table (vast-tools) for further analyses
 # @param incTable vast-tools' INCLUSION table
-# @param types (character) vast-tools' COMPLEX column letter code for alternative event types (Alt3, Alt5, ANN, C1, C2, C3, IR-C, IR-S, MIC or S) as described in https://github.com/vastgroup/vast-tools
 #
-# @return List with: 1) filtered table PSI columns, 2) filtered table Qual columns, 3) table with number of events per type and 4) Samples (based on colnames)
+# @return List with: 1) table PSI columns, 2) table Qual columns, 3) table with number of events per type and 4) Samples (based on colnames)
 # @export
 #
 # @examples
@@ -37,6 +36,12 @@ VT_all_minVLOW_tags <- function(quals){
 getVastTools <- function(incTable){
 
   filterVT <- list()
+
+  # Structure of vast-tools "INCLUSION(...)" table is the following:
+  # . 6 columns describing the event
+  # . one column per sample with the PSI (between 0 and 100)
+  # . one column per sample with the "Quality" information, including inc and exc
+  # . each Quality column follows respective PSI column
 
   qual_cols <- grep("[.]Q", colnames(incTable))
   psi_cols  <- qual_cols-1
@@ -55,24 +60,22 @@ getVastTools <- function(incTable){
 }
 
 
+# Filter INCLUSION table (vast-tools) for quality and event type
+# Filter table from vast-tools to remove events containing NAs in at least one sample and those that do not have minimal coverage based on VT_all_minVLOW_tags() and split PSI and Qual tables
+# @param VTlist list containing PSI and Qual tables, as well as event and samples, obtained with getVastTools()
+# @param types (character) vast-tools' COMPLEX column letter code for alternative event types (Alt3, Alt5, ANN, C1, C2, C3, IR-C, IR-S, MIC or S) as described in https://github.com/vastgroup/vast-tools
+#
+# @return List with: 1) filtered table PSI columns, 2) filtered table Qual columns, 3) table with number of events per type and 4) Samples (based on colnames)
+# @export
+#
+# @examples
 
-filterVastTools <- function(incTable, types){
+filterVastTools <- function(VTlist, types){
 
-  filterVT <- incTable
-  # Structure of vast-tools "INCLUSION(...)" table is the following:
-  # . 6 columns describing the event
-  # . one column per sample with the PSI (between 0 and 100)
-  # . one column per sample with the "Quality" information, including inc and exc
-  # . each Quality column follows respective PSI column
+  filterVT <- VTlist
 
-  #qual_cols <- grep("[.]Q", colnames(incTable))
-  #psi_cols  <- qual_cols-1
-
-  #psiVAST  <- incTable[,c(1:6,psi_cols)]
-  #qualVAST <- incTable[,c(1:6,qual_cols)]
-
-  psiVAST <- incTable$PSI
-  qualVAST <- incTable$Qual
+  psiVAST <- filterVT$PSI
+  qualVAST <- filterVT$Qual
 
   originalColN <- ncol(psiVAST)
 
