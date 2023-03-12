@@ -10,6 +10,7 @@ betASapp_ui <- function(){
   availabletools      <- c("vast-tools", "rMATS")
   yAxisStats          <- c("Pdiff (probability of differential splicing)", "F-statistic (median(|between|)/median(|within|))", "False discovery rate (FDR)")
   yAxisStats_multiple <- c("Pdiff (probability that |between| > |within|)", "F-statistic (median(|between|)/median(|within|))")
+  #eventTypes          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss","Mutually Exclusive Exons (MXE)"="MXE")
   eventTypes          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss")
   exEventNames        <- c("HsaEX0007927", "HsaEX0032264", "HsaEX0039848", "HsaEX0029465", "HsaEX0026102", "HsaEX0056290", "HsaEX0035084", "HsaEX0065983", "HsaEX0036532", "HsaEX0049206")
   pastelColors        <- c("#FF9AA2", "#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7", "#C7CEEA", "#FBE2FD", "#D9ECFE")
@@ -94,7 +95,8 @@ betASapp_ui <- function(){
                  mainPanel(
                    shinycssloaders::withSpinner(plotOutput("plot", height = "1200px"), type = 8, color = "#FF9AA2", size = 2),
                    # shinycssloaders::withSpinner(plotOutput("plot"), type = 8, color = "#FF9AA2", size = 2),
-                   h6("NOTE: vast-tools tables consider PSI values as percent spliced-in values, i.e., in the [0;100] interval"),
+                   #h6("NOTE: vast-tools tables consider PSI values as percent spliced-in values, i.e., in the [0;100] interval"),
+                   h6(textOutput("TextToolInfo")),
                    DTOutput("table")
                  )
                )
@@ -459,6 +461,7 @@ betASapp_server <- function(){
       return(filteredList)
 
     })
+
 
 
 
@@ -1186,11 +1189,34 @@ betASapp_server <- function(){
 
     })
 
+    output$TextToolInfo <- renderText({
+
+      if(input$sourcetool == "rMATS"){
+
+        "NOTE: rMATS tables consider inclusion levels in the [0;1] interval"
+
+      } else if (input$sourcetool == "vast-tools"){
+
+        "NOTE: vast-tools tables consider PSI values as percent spliced-in values, i.e., in the [0;100] interval"
+
+      }
+
+    })
+
     output$table <- renderDT({
 
       req(selectAlternatives())
 
-      psifiltdataset()
+      if(input$sourcetool == "rMATS"){
+
+        eventIDs <- psifiltdataset()$EVENT
+        dataset()[dataset()$ID %in% eventIDs,]
+
+      } else if (input$sourcetool == "vast-tools"){
+
+        psifiltdataset()
+
+      }
 
     }, rownames = FALSE)
 
