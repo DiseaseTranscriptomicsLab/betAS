@@ -73,7 +73,7 @@ betASapp_ui <- function(){
                                 tags$li("each column is a sample")
                               ),
 
-                              fileInput("psitable", NULL),
+                              fileInput("psitable", NULL, placeholder = "No file selected (max. 10MB)"),
                               helpText("(*) betAS currently supports inclusion level tables from: vast-tools (INCLUSION_LEVELS_FULL*.tab) and rMATS (*.MATS.JC.txt tables)"),
 
                               # helpText("(betAS currently supports inclusion level tables from: vast-tools)"),
@@ -324,7 +324,9 @@ return(ui)
 #' @importFrom utils read.table
 betASapp_server <- function(){
 
-  options(highcharter.theme = hc_theme_smpl(tooltip = list(valueDecimals = 2)))
+  # file size limit = 10MB
+
+  options(highcharter.theme = hc_theme_smpl(tooltip = list(valueDecimals = 2)), shiny.maxRequestSize = 10 * 1024^2)
 
   # :::: Variables ::::
   # file                  <- "test/INCLUSION_LEVELS_FULL-Hsa32-hg19_to_test.tab.gz"
