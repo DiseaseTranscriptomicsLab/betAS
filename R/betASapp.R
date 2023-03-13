@@ -80,9 +80,15 @@ betASapp_ui <- function(){
                               radioButtons("sourcetool", label = "Table source:", choices = availabletools),
 
                               h5("Filter events from loaded table:"),
-                              checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypes),
-                              #checkboxGroupInput("types", label = "Event types to consider:", choices = eventTypes),
+                              #checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypes),
                               # checkboxGroupInput("types", label = "Event types to consider:", selected = NULL,  choices = NULL),
+
+                              conditionalPanel(
+                                condition = "input.sourcetool == 'vast-tools'",
+                                checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypes)
+                                ),
+
+
                               sliderInput("psirange", "PSI values to consider:", value = c(1, 99), min = 0, max = 100),
                               helpText((em("Consider only alternative splicing events with all PSI values within this range.")),
                               h6(textOutput("textTotalNumberEvents")),
@@ -597,8 +603,27 @@ betASapp_server <- function(){
     output$textTotalNumberEvents <- renderText({
 
       # req(selectAlternatives())
+      if (input$sourcetool == "vast-tools"){
 
-      paste0("You have selected ", eventNumber(), " events")
+        paste0("You have selected ", eventNumber(), " events")
+
+      } else if (input$sourcetool == "rMATS") {
+
+        rMATSEventType <- names(selectAlternatives()$EventsPerType)
+
+        if (rMATSEventType == "EX") {
+          rMATSEventTypeText <- "Exon Skipping"
+        } else if (rMATSEventType == "IR") {
+          rMATSEventTypeText <- "Intron Retention"
+        } else if (rMATSEventType == "Altss") {
+          rMATSEventTypeText <- "Alternative splice site (Altss)"
+        } else if (rMATSEventType == "MXE"){
+          rMATSEventTypeText <- "Mutually Exclusive Exons"
+        }
+
+        paste0("You have selected ", eventNumber(), " ", rMATSEventTypeText," events")
+
+      }
 
     })
 
