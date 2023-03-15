@@ -8,6 +8,7 @@ betASapp_ui <- function(){
   # :::: Variables ::::
   # tools           <- c("vast-tools", "MISO", "SUPPA", "Other")
   availabletools      <- c("vast-tools", "rMATS")
+  #availabletools      <- c("vast-tools", "rMATS","whippet")
   yAxisStats          <- c("Pdiff (probability of differential splicing)", "F-statistic (median(|between|)/median(|within|))", "False discovery rate (FDR)")
   yAxisStats_multiple <- c("Pdiff (probability that |between| > |within|)", "F-statistic (median(|between|)/median(|within|))")
   #eventTypes          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss","Mutually Exclusive Exons (MXE)"="MXE")
@@ -56,15 +57,20 @@ betASapp_ui <- function(){
                               # h3("Exploratory analysis of inclusion levels"),
                               h4("Exploratory analysis of inclusion levels"),
 
-                              HTML(paste0("<p>Explore a vast-tools table for a subset of the publicly available dataset:",
-                                          "<br>",
-                                          "<a href='", "https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/",
-                                          "'>Human RNA-seq time-series of the development of seven major organs</a></p>")),
+                              radioButtons("sourcetool", label = "Explore examples from publicly available datasets:", choiceNames = list( HTML(paste0(a("Human RNA-seq time-series of the development of seven major organs", href="https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/"), " (obtained using vast-tools)")),
+                                                                                                                             HTML(paste0(a("Deep transcriptional profiling of longitudinal changes during neurogenesis and network maturation in vivo", href="https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"), " (obtained using rMATS)"))),
 
-                              HTML(paste0("<p>Explore an rMATS table for a subset of the publicly available dataset:",
-                                          "<br>",
-                                          "<a href='", "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/",
-                                          "'>Deep transcriptional profiling of longitudinal changes during neurogenesis and network maturation in vivo</a></p>")),
+                                           choiceValues = availabletools),
+
+                              # HTML(paste0("<p>Explore a vast-tools table for a subset of the publicly available dataset:",
+                              #             "<br>",
+                              #             "<a href='", "https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/",
+                              #             "'>Human RNA-seq time-series of the development of seven major organs</a></p>")),
+                              #
+                              # HTML(paste0("<p>Explore an rMATS table for a subset of the publicly available dataset:",
+                              #             "<br>",
+                              #             "<a href='", "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/",
+                              #             "'>Deep transcriptional profiling of longitudinal changes during neurogenesis and network maturation in vivo</a></p>")),
 
                               "Alternatively, upload table* with inclusion level quantification (e.g. PSI)",
 
@@ -72,19 +78,19 @@ betASapp_ui <- function(){
                                 tags$li("each row is an alternative splicing event"),
                                 tags$li("each column is a sample")
                               ),
-
-                              fileInput("psitable", NULL, placeholder = "No file selected (max. 10MB)"),
                               helpText("(*) betAS currently supports inclusion level tables from: vast-tools (INCLUSION_LEVELS_FULL*.tab) and rMATS (*.MATS.JC.txt tables)"),
 
+                              fileInput("psitable", NULL, placeholder = "No file selected (max. 10MB)"),
+
                               # helpText("(betAS currently supports inclusion level tables from: vast-tools)"),
-                              radioButtons("sourcetool", label = "Table source:", choices = availabletools),
+                              #radioButtons("sourcetool", label = "Table source:", choices = availabletools, selected="vast-tools"),
 
                               h5("Filter events from loaded table:"),
                               #checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypes),
                               # checkboxGroupInput("types", label = "Event types to consider:", selected = NULL,  choices = NULL),
 
                               conditionalPanel(
-                                condition = "input.sourcetool == 'vast-tools'",
+                                condition = "output.sourcetool == 'vast-tools'",
                                 checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypes)
                                 ),
 
@@ -373,7 +379,6 @@ betASapp_server <- function(){
 
       }else{
 
-        req(input$sourcetool)
 
         if(length(grep(pattern = "[.]gz", x = input$psitable$datapath)) == 0){
 
@@ -381,17 +386,19 @@ betASapp_server <- function(){
 
         }
 
+        # else if not necessary??
+
         loadingFile <- gzfile(input$psitable$datapath)
 
-        if(input$sourcetool == "vast-tools"){
+       # if(input$sourcetool == "vast-tools"){
+         # read.table(loadingFile, sep="\t", header=TRUE, quote="")
 
-          read.table(loadingFile, sep="\t", header=TRUE, quote="")
 
-        }else if(input$sourcetool == "rMATS"){
+        #}else if(input$sourcetool == "rMATS"){
 
           read.delim(loadingFile)
 
-        }
+        #}
 
 
       }
@@ -413,17 +420,59 @@ betASapp_server <- function(){
     })
 
 
+#Check data format. Currently supports rMATS & vast-tools tables
+
+    sourcetool <- reactive({
+
+      req(dataset())
+
+      # vast-tools inclusion tables have (at least) the following columns: GENE	EVENT	COORD	LENGTH	FullCO	COMPLEX	Sample1	Sample1.Q (...)
+      requiredcols_vasttools <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX")
+
+      # rMATS inclusion tables have the following columns: ID	GeneID	geneSymbol	chr	strand IJC_SAMPLE_1 SJC_SAMPLE_1	IJC_SAMPLE_2	SJC_SAMPLE_2
+      requiredcols_rMATS <- c("ID","GeneID","geneSymbol","chr","strand","IJC_SAMPLE_1","SJC_SAMPLE_1","IJC_SAMPLE_2","SJC_SAMPLE_2")
+
+      inputTablecols <- colnames(dataset())
+
+      if(length(inputTablecols[inputTablecols %in% requiredcols_vasttools]) == length(requiredcols_vasttools)){
+
+        sourcetool <- "vast-tools"
+         print(sourcetool)
+
+      } else if( length(inputTablecols[inputTablecols %in% requiredcols_rMATS]) == length(requiredcols_rMATS)){
+
+        sourcetool <- "rMATS"
+         print(sourcetool)
+
+      }else{
+
+        return(NULL)
+
+      }
+
+      return(sourcetool)
+
+    })
+
+
+
+    output$sourcetool <- reactive({
+       return(sourcetool())
+    })
+    outputOptions(output, 'sourcetool', suspendWhenHidden=FALSE)
+
+
     GetTable <- reactive({
 
       req(dataset())
-      req(input$sourcetool)
+      req(sourcetool())
 
-      if(input$sourcetool == "vast-tools"){
+      if(sourcetool() == "vast-tools"){
          FormattedTable <- getVastTools(dataset())
 
       }
 
-      if(input$sourcetool == "rMATS"){
+      if(sourcetool() == "rMATS"){
         FormattedTable <- getrMATS(dataset())
       }
 
@@ -432,13 +481,17 @@ betASapp_server <- function(){
     })
 
 
+
+
+
+
     # 1. Filter table to remove events: with at least one NA, ANN and with at least one sample with less than VLOW quality
     #filterVastToolsTable <- reactive({
     filterTable <- reactive({
 
-      req(input$sourcetool)
+      req(sourcetool())
 
-      if(input$sourcetool == "vast-tools"){
+      if(sourcetool() == "vast-tools"){
 
         presentEventTypes <- unique(GetTable()$COMPLEX)
 
@@ -457,7 +510,7 @@ betASapp_server <- function(){
 
       }
 
-      if(input$sourcetool == "rMATS"){
+      if(sourcetool() == "rMATS"){
 
         filteredList <- filterrMATS(GetTable())
         if(length(input$types) == 0){
@@ -475,16 +528,16 @@ betASapp_server <- function(){
 
     # eventTypesToConsider <- reactiveValues(types = list())
     #
-    # observeEvent(input$sourcetool, {
+    # observeEvent(sourcetool(), {
     #
-    #   if(input$sourcetool == "vast-tools"){
+    #   if(sourcetool() == "vast-tools"){
     #
     #     # eventTypesToConsider$types <- eventTypes
     #     #updateRadioButtons(inputId = "sourcetool", label = "Table source:", selected = "vast-tools")
     #
     #   }
     #
-    #   if(input$sourcetool == "rMATS"){
+    #   if(sourcetool() == "rMATS"){
     #
     #     eventTypesToConsider$types <- NULL
     #
@@ -499,9 +552,9 @@ betASapp_server <- function(){
 
     # filterRMATSTable <- reactive({
     #
-    #   req(input$sourcetool)
+    #   req(sourcetool())
     #
-    #   if(input$sourcetool == "rMATS"){
+    #   if(sourcetool() == "rMATS"){
     #
     #     filteredList <- filterrMATS(dataset())
     #     return(filteredList)
@@ -512,9 +565,9 @@ betASapp_server <- function(){
 
     selectAlternatives <- reactive({
 
-      req(input$sourcetool)
+      req(sourcetool())
 
-      if(input$sourcetool == "vast-tools"){
+      if(sourcetool() == "vast-tools"){
 
         alternativeList <- alternativeVastTools(req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
 
@@ -530,7 +583,7 @@ betASapp_server <- function(){
 
       }
 
-      if(input$sourcetool == "rMATS"){
+      if(sourcetool() == "rMATS"){
 
         alternativeList <- alternativerMATS(req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
 
@@ -603,11 +656,11 @@ betASapp_server <- function(){
     output$textTotalNumberEvents <- renderText({
 
       # req(selectAlternatives())
-      if (input$sourcetool == "vast-tools"){
+      if (sourcetool() == "vast-tools"){
 
         paste0("You have selected ", eventNumber(), " events")
 
-      } else if (input$sourcetool == "rMATS") {
+      } else if (sourcetool() == "rMATS") {
 
         rMATSEventType <- names(selectAlternatives()$EventsPerType)
 
@@ -911,18 +964,22 @@ betASapp_server <- function(){
 
     })
 
-    observeEvent(input$sourcetool, {
 
-      if(is.null(input$sourcetool)){
+#
+#     observeEvent(sourcetool(), {
+#
+#       if(is.null(sourcetool())){
+#
+#         showNotification("Please select the tool associated with loaded table.",
+#                          closeButton = TRUE,
+#                          duration = 5,
+#                          type = c("error"))
+#
+#       }
+#
+#     })
 
-        showNotification("Please select the tool associated with loaded table.",
-                         closeButton = TRUE,
-                         duration = 5,
-                         type = c("error"))
 
-      }
-
-    })
 
     observeEvent(input$psitable, {
 
@@ -1218,11 +1275,11 @@ betASapp_server <- function(){
 
     output$TextToolInfo <- renderText({
 
-      if(input$sourcetool == "rMATS"){
+      if(sourcetool() == "rMATS"){
 
         "NOTE: rMATS tables consider inclusion levels in the [0;1] interval"
 
-      } else if (input$sourcetool == "vast-tools"){
+      } else if (sourcetool() == "vast-tools"){
 
         "NOTE: vast-tools tables consider PSI values as percent spliced-in values, i.e., in the [0;100] interval"
 
@@ -1234,12 +1291,12 @@ betASapp_server <- function(){
 
       req(selectAlternatives())
 
-      if(input$sourcetool == "rMATS"){
+      if(sourcetool() == "rMATS"){
 
         eventIDs <- psifiltdataset()$EVENT
         dataset()[dataset()$ID %in% eventIDs,]
 
-      } else if (input$sourcetool == "vast-tools"){
+      } else if (sourcetool() == "vast-tools"){
 
         psifiltdataset()
 
