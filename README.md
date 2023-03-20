@@ -8,6 +8,8 @@ betAS is a user-friendly R package that allows intuitive analysis and
 visualisation of differential alternative splicing (AS) based on
 beta distributions.
 
+Please consider the latest version of betAS in the [dev](https://github.com/DiseaseTranscriptomicsLab/betAS/tree/dev) branch. 
+ 
 ## Installation
 
 You can install the development version of betAS from [GitHub](https://github.com/) with:
