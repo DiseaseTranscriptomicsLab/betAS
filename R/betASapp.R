@@ -95,7 +95,7 @@ betASapp_ui <- function(){
                                 ),
 
 
-                              sliderInput("psirange", "PSI values to consider:", value = c(1, 99), min = 0, max = 100),
+                              sliderInput("psirange", "PSI values to consider:", value = c(1, 99), min = 0, max = 100, step=0.1),
                               helpText((em("Consider only alternative splicing events with all PSI values within this range.")),
                               h6(textOutput("textTotalNumberEvents")),
                               # textOutput("textNumberEventsPerType"),
@@ -122,7 +122,10 @@ betASapp_ui <- function(){
                             selectInput("indbetaseventid", "Select alternative splicing event to plot:", choices = NULL),
                             uiOutput("url"),
 
-                            h5("Sample information"),
+                            #h5("Sample information"),
+
+                            h5(textOutput("samplesTabletext")),
+
                             DTOutput("sampleTable"),
 
                             h4("Organise samples into groups/conditions"),
@@ -150,12 +153,25 @@ betASapp_ui <- function(){
 
                               tags$ol(
 
-                                tags$li(h6("Group samples based on a given feature")),
-                                selectInput("groupingFeature", label = "Select feature to group samples by:", choices = c("organism_part", "developmental_stage", "sex")),
-                                actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info"),
+                                # tags$li(h6("Group samples based on a given feature")),
+                                # selectInput("groupingFeature", label = "Select feature to group samples by:", choices = c("organism_part", "developmental_stage", "sex")),
+                                # actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info"),
 
                                 tags$li(h6("Group samples based on sample name similarities")),
-                                actionButton("findGroups", "Automatic group(s)", icon = icon("wand-sparkles"), class = "btn-info")
+                                actionButton("findGroups", "Automatic group(s)", icon = icon("wand-sparkles"), class = "btn-info"),
+
+#
+#                                  conditionalPanel(
+#                                   condition = 'input.psitable === NULL',
+#                                   tags$li(h6("Group samples based on a given feature")),
+#                                   selectInput("groupingFeature", label = "Select feature to group samples by:", choices = NULL),
+#                                   actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info")
+#                                 )
+#
+                                  tags$li(h6("Group samples based on a given feature")),
+                                  selectInput("groupingFeature", label = "Select feature to group samples by:", choices = NULL),
+                                  actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info")
+
 
                               )),
 
@@ -198,7 +214,9 @@ betASapp_ui <- function(){
                  helpText(em("Brush over the plot for event selection")),
                  DTOutput("brushed_data"),
                  h6(""),
-                 textInput("eventidtoplot", "Alternative splicing event to plot:", placeholder = "e.g. HsaEX0007927"),
+                 textInput("eventidtoplot", "Alternative splicing event to plot:" ),
+                 #textInput("eventidtoplot", "Alternative splicing event to plot:", placeholder = "e.g. HsaEX0007927"),
+
                  uiOutput("urlplot"),
                  actionButton("plotEvent", "Plot considered event", icon = icon("mound"), class = "btn-secondary"),
                  # textOutput("showMeEvent"),
@@ -408,17 +426,38 @@ betASapp_server <- function(){
     sampleTable <- reactive({
 
       req(dataset())
+      req(sourcetool())
 
-      if(is.null(input$psitable)){
+      if(is.null(input$psitable) & sourcetool() == "vast-tools"){
 
         samplesTable <- readRDS(file = "test/samplesTable.rds")
 
         return(samplesTable)
 
+      } else if(is.null(input$psitable) & sourcetool() == "rMATS"){
+
+        samplesTable <- readRDS(file = "test/samplesTable_rMATS.rds")
+
+        return(samplesTable)
+
       }
+
 
     })
 
+
+    output$samplesTabletext <- renderText({
+
+      req(sourcetool())
+
+        if(is.null(input$psitable) & sourcetool() == "vast-tools"){
+
+
+        print("Sample information")
+
+      }
+
+    })
 
 #Check data format. Currently supports rMATS & vast-tools tables
 
@@ -437,12 +476,10 @@ betASapp_server <- function(){
       if(length(inputTablecols[inputTablecols %in% requiredcols_vasttools]) == length(requiredcols_vasttools)){
 
         sourcetool <- "vast-tools"
-         print(sourcetool)
 
       } else if( length(inputTablecols[inputTablecols %in% requiredcols_rMATS]) == length(requiredcols_rMATS)){
 
         sourcetool <- "rMATS"
-         print(sourcetool)
 
       }else{
 
@@ -965,6 +1002,28 @@ betASapp_server <- function(){
     })
 
 
+    observeEvent(sourcetool(), {
+
+      if(is.null(input$psitable) & sourcetool()=="rMATS"){
+
+        updateSelectInput(inputId = "groupingFeature", choices = c("CellType","Div"))
+
+      } else if (is.null(input$psitable) & sourcetool()=="vast-tools"){
+
+        updateSelectInput(inputId = "groupingFeature", choices = c("organism_part", "developmental_stage", "sex"))
+
+      } else if (!is.null(input$psitable)){
+
+        updateSelectInput(inputId = "groupingFeature", choices = "" )
+
+      }
+
+    })
+
+
+
+
+
 #
 #     observeEvent(sourcetool(), {
 #
@@ -981,24 +1040,24 @@ betASapp_server <- function(){
 
 
 
-    observeEvent(input$psitable, {
-
-      if(is.null(input$psitable)){
-
-        updateRadioButtons(inputId = "sourcetool", label = "Table source:", selected = "vast-tools")
-
-      }else{
-
-        updateRadioButtons(inputId = "sourcetool", label = "Table source:", selected = character(0))
-
-        # showNotification("Please select the tool associated with loaded table.",
-        #                  closeButton = TRUE,
-        #                  duration = 5,
-        #                  type = c("error"))
-
-      }
-
-    })
+    # observeEvent(input$psitable, {
+    #
+    #   if(is.null(input$psitable)){
+    #
+    #     updateRadioButtons(inputId = "sourcetool", label = "Table source:", selected = "vast-tools")
+    #
+    #   }else{
+    #
+    #     updateRadioButtons(inputId = "sourcetool", label = "Table source:", selected = character(0))
+    #
+    #     # showNotification("Please select the tool associated with loaded table.",
+    #     #                  closeButton = TRUE,
+    #     #                  duration = 5,
+    #     #                  type = c("error"))
+    #
+    #   }
+    #
+    # })
 
     observeEvent(input$deleteGroups, {
 
@@ -1061,6 +1120,7 @@ betASapp_server <- function(){
 
       req(dataset())
       req(sampleTable())
+      req(sourcetool())
       # req(input$findGroupsBasedSampleTable)
       # req(input$groupingFeatures)
 
@@ -1083,7 +1143,13 @@ betASapp_server <- function(){
 
       for(g in groups){
 
-        groupNames <- sampleTable$Run[which(sampleTable[,columnToGroupBy] == g)]
+        #groupNames <- sampleTable$Run[which(sampleTable[,columnToGroupBy] == g)]
+        if (sourcetool()=="vast-tools"){
+          groupNames <- sampleTable$Run[which(sampleTable[,columnToGroupBy] == g)]
+        } else if (sourcetool()=="rMATS"){
+          groupNames <- sampleTable$sampleID[which(sampleTable[,columnToGroupBy] == g)]
+        }
+
 
         # Assign new group
         currentNames <- names(values$groups)
@@ -1095,6 +1161,7 @@ betASapp_server <- function(){
         random_colors <- random_colors[-1]
 
       }
+
 
       showNotification("Groups based on the feature selected have been successfully created.",
                        closeButton = TRUE,
@@ -1200,10 +1267,11 @@ betASapp_server <- function(){
        sampleTable()
 
       }
-
-    },
-    rownames = FALSE,
-    colnames = c("Run", "Age", "DevStage", "Organ", "Sex"))
+    }
+    #},
+    #rownames = FALSE,
+    #colnames = c("Run", "Age", "DevStage", "Organ", "Sex")
+    )
 
     output$groupsTable <- renderDT({
 
@@ -1252,9 +1320,16 @@ betASapp_server <- function(){
     rownames = FALSE)
 
     output$url <- renderUI({
-      event <- selectedeventID()
-      url <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
-      HTML(paste0("<p>Check event details in <a href='", url, "'>VastDB (hg19)</a></p>"))
+      req(sourcetool())
+      if(is.null(input$psitable) & sourcetool() == "vast-tools"){
+
+        event <- selectedeventID()
+        url <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
+        HTML(paste0("<p>Check event details in <a href='", url, "'>VastDB (hg19)</a></p>"))
+
+      }
+
+
     })
 
     output$eventsPiechart <- renderHighchart({
@@ -1455,10 +1530,18 @@ betASapp_server <- function(){
     # colnames = colnameVector())
 
     output$urlplot <- renderUI({
+
       req(input$eventidtoplot)
-      event <- selectedeventIDDiff()
-      url <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
-      HTML(paste0("<p>Check event details in <a href='", url, "'>VastDB (hg19)</a></p>"))
+      req(sourcetool())
+
+      if(is.null(input$psitable) & sourcetool() == "vast-tools"){
+
+        event <- selectedeventIDDiff()
+        url <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
+        HTML(paste0("<p>Check event details in <a href='", url, "'>VastDB (hg19)</a></p>"))
+
+      }
+
     })
 
     # output$showMeEvent <- renderText({
@@ -1735,10 +1818,17 @@ betASapp_server <- function(){
     })
 
     output$urlplot_mult <- renderUI({
+
       req(input$eventidtoplot_mult)
-      event <- selectedeventIDDiffMultiple()
-      url <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
-      HTML(paste0("<p>Check event details in <a href='", url, "'>VastDB (hg19)</a></p>"))
+      req(sourcetool())
+
+      if(is.null(input$psitable) & sourcetool() == "vast-tools"){
+
+        event <- selectedeventIDDiffMultiple()
+        url <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
+        HTML(paste0("<p>Check event details in <a href='", url, "'>VastDB (hg19)</a></p>"))
+
+      }
     })
 
 
