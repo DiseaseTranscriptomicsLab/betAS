@@ -45,7 +45,8 @@ betASapp_ui <- function(){
 
     titlePanel("betAS: intuitive visualisation of differential alternative splicing"),
 
-    h5(strong(div("(development version)", style = "color: #E0E0E0"))),
+    #h5(strong(div("(development version)", style = "color: #E0E0E0"))),
+    h5(strong(div("v0.4.0", style = "color: #949494"))),
 
     tabsetPanel(
 
