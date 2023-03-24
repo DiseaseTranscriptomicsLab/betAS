@@ -531,7 +531,7 @@ betASapp_server <- function(){
 
       if(sourcetool() == "vast-tools"){
 
-        presentEventTypes <- unique(GetTable()$COMPLEX)
+        presentEventTypes <- names(GetTable()$EventsPerType)
 
         selectedEventTypes <- c()
 
@@ -543,7 +543,7 @@ betASapp_server <- function(){
           showNotification("Please select at least one event type", duration = 5, type = c("error"))
           return(NULL)
         }
-
+        print(selectedEventTypes)
         filteredList <- filterVastTools(GetTable(), types = selectedEventTypes)
 
       }
