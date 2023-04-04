@@ -152,6 +152,8 @@ filterrMATS <- function(RMlist){
 
   filterRM[[1]] <- psiRM
   filterRM[[2]] <- qualRM
+  filterRM[[3]] <- table(psiRM$COMPLEX)
+  filterRM[[4]] <- colnames(psiRM)[-c(1:6)]
 
   names(filterRM) <- c("PSI", "Qual", "EventsPerType", "Samples")
   return(filterRM)

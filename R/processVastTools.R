@@ -108,6 +108,8 @@ filterVastTools <- function(VTlist, types){
 
   filterVT[[1]] <- psiVAST
   filterVT[[2]] <- qualVAST
+  filterVT[[3]] <- table(psiVAST$COMPLEX)
+  filterVT[[4]] <- colnames(psiVAST)[-c(1:6)]
 
   names(filterVT) <- c("PSI", "Qual", "EventsPerType", "Samples")
   return(filterVT)
