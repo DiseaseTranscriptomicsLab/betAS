@@ -1,3 +1,6 @@
+# Testing VT functions ----------------------------------------------------
+
+
 filterVT <- list()
 
 testTable <- read.table(gzfile("/home/mariana/betAS/test/INCLUSION_LEVELS_FULL-Hsa32-hg19_to_test.tab.gz"), sep="\t", header=TRUE, quote="")
@@ -353,3 +356,31 @@ findGroupsVast <- function(table){
 
 
 }
+
+
+
+
+# Testing Whippet functions ----------------------------------------------------
+
+folder_Whippet <- "/mnt/scratch/home/mariana/Projects/betAS/Whippet/"
+files <- paste0("/mnt/scratch/home/mariana/Projects/betAS/Whippet/",list.files(folder_Whippet, pattern = "\\.psi\\.gz$"))
+listfiles <- lapply(files,fread)
+names(listfiles) <- sapply(files, function(file) gsub("\\..*","",gsub(".*/","",file)))
+
+saveRDS(object = listfiles, file = "test/listdfs_WHippet.rds")
+whip1 <- getWhippet(listfiles)
+
+filtwhip1 <- filterWhippet(whip1, names(whip1$EventsPerType))
+
+altfiltwhip1 <- alternativeWhippet(filtwhip1,1,99)
+
+
+metadatawhippet <- readRDS("test/samplesTable_rMATS.rds")
+metadatawhippet <- metadatawhippet[,-1]
+metadatawhippet
+saveRDS(object = metadatawhippet, file = "test/samplesTable_Whippet.rds")
+
+
+testonesamp <- readRDS("test/INCLUSION_LEVELS_FULL-hg19-98-v251.rds")
+testonesamp <- testonesamp[,c(1:8)]
+saveRDS(testonesamp, "test/testVT_onesamp.tab")

@@ -7,12 +7,21 @@
 betASapp_ui <- function(){
   # :::: Variables ::::
   # tools           <- c("vast-tools", "MISO", "SUPPA", "Other")
-  availabletools      <- c("vast-tools", "rMATS")
+  availabletools      <- c("vast-tools", "rMATS","whippet")
   #availabletools      <- c("vast-tools", "rMATS","whippet")
   yAxisStats          <- c("Pdiff (probability of differential splicing)", "F-statistic (median(|between|)/median(|within|))", "False discovery rate (FDR)")
   yAxisStats_multiple <- c("Pdiff (probability that |between| > |within|)", "F-statistic (median(|between|)/median(|within|))")
   #eventTypes          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss","Mutually Exclusive Exons (MXE)"="MXE")
-  eventTypes          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss")
+  eventTypesVT          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss")
+  eventTypesWhippet     <- c("Core Exon (CE)"="CE",
+                             "Alternative Acceptor splice site (AA)"="AA",
+                             "Alternative Donor splice site (AD)"="AD",
+                             "Intron retention (IR)"="RI",
+                             "Tandem transcription start site (TS)"="TS",
+                             "Tandem alternative polyadenylation site (TE)"="TE",
+                             "Alternative First exon (AF)"="AF",
+                             "Alternative Last exon (AL)"="AL",
+                             "Circular back-splicing (BS)"="BS")
   exEventNames        <- c("HsaEX0007927", "HsaEX0032264", "HsaEX0039848", "HsaEX0029465", "HsaEX0026102", "HsaEX0056290", "HsaEX0035084", "HsaEX0065983", "HsaEX0036532", "HsaEX0049206")
   pastelColors        <- c("#FF9AA2", "#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7", "#C7CEEA", "#FBE2FD", "#D9ECFE")
 
@@ -46,7 +55,7 @@ betASapp_ui <- function(){
     titlePanel("betAS: intuitive visualisation of differential alternative splicing"),
 
     #h5(strong(div("(development version)", style = "color: #E0E0E0"))),
-    h5(strong(div("v0.4.0", style = "color: #949494"))),
+    h5(strong(div("v0.5.0", style = "color: #949494"))),
 
     tabsetPanel(
 
@@ -59,9 +68,12 @@ betASapp_ui <- function(){
                               h4("Exploratory analysis of inclusion levels"),
 
                               radioButtons("sourcetool", label = "Explore examples from publicly available datasets:", choiceNames = list( HTML(paste0(a("Human RNA-seq time-series of the development of seven major organs", href="https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/"), " (obtained using vast-tools)")),
-                                                                                                                             HTML(paste0(a("Deep transcriptional profiling of longitudinal changes during neurogenesis and network maturation in vivo", href="https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"), " (obtained using rMATS)"))),
+                                                                                                                             HTML(paste0(a("Deep transcriptional profiling of longitudinal changes during neurogenesis and network maturation in vivo", href="https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"), " (obtained using rMATS)")),
+                                                                                                                             HTML(paste0(a("Deep transcriptional profiling of longitudinal changes during neurogenesis and network maturation in vivo", href="https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"), " (obtained using Whippet)"))),
 
                                            choiceValues = availabletools),
+
+
 
                               # HTML(paste0("<p>Explore a vast-tools table for a subset of the publicly available dataset:",
                               #             "<br>",
@@ -81,18 +93,19 @@ betASapp_ui <- function(){
                               ),
                               helpText("(*) betAS currently supports inclusion level tables from: vast-tools (INCLUSION_LEVELS_FULL*.tab) and rMATS (*.MATS.JC.txt tables)"),
 
-                              fileInput("psitable", NULL, placeholder = "No file selected (max. 10MB)"),
+                              fileInput("psitable", NULL, placeholder = "No file selected (max. 100MB)", multiple=T), #accept = c(".tab",".txt",".psi",".gz")
+                              tableOutput("filesinput"),
 
                               # helpText("(betAS currently supports inclusion level tables from: vast-tools)"),
                               #radioButtons("sourcetool", label = "Table source:", choices = availabletools, selected="vast-tools"),
 
                               h5("Filter events from loaded table:"),
-                              #checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypes),
+                              #checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT),
                               # checkboxGroupInput("types", label = "Event types to consider:", selected = NULL,  choices = NULL),
 
                               conditionalPanel(
-                                condition = "output.sourcetool == 'vast-tools'",
-                                checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypes)
+                                condition = "output.showchecks",
+                                checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT)
                                 ),
 
 
@@ -357,7 +370,7 @@ betASapp_server <- function(){
 
   # file size limit = 10MB
 
-  options(highcharter.theme = hc_theme_smpl(tooltip = list(valueDecimals = 2)), shiny.maxRequestSize = 10 * 1024^2)
+  options(highcharter.theme = hc_theme_smpl(tooltip = list(valueDecimals = 2)), shiny.maxRequestSize = 100 * 1024^2)
 
   # :::: Variables ::::
   # file                  <- "test/INCLUSION_LEVELS_FULL-Hsa32-hg19_to_test.tab.gz"
@@ -365,6 +378,18 @@ betASapp_server <- function(){
   # maxDevSimulationN100  <- readRDS(url("http://imm.medicina.ulisboa.pt/group/distrans/SharedFiles/Mariana/Splicing&SenescenceFLEX/xintercepts_100incr_100cov_100trials.R"))
   maxDevSimulationN100  <- readRDS("test/xintercepts_100incr_100cov_100trials.rds")
   pastelColors          <- c("#FF9AA2", "#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7", "#C7CEEA", "#FBE2FD", "#D9ECFE")
+
+  eventTypesVT          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss")
+  eventTypesWhippet     <- c("Core Exon (CE)"="CE",
+                             "Alternative Acceptor splice site (AA)"="AA",
+                             "Alternative Donor splice site (AD)"="AD",
+                             "Intron retention (IR)"="RI",
+                             "Tandem transcription start site (TS)"="TS",
+                             "Tandem alternative polyadenylation site (TE)"="TE",
+                             "Alternative First exon (AF)"="AF",
+                             "Alternative Last exon (AL)"="AL",
+                             "Circular back-splicing (BS)"="BS")
+
 
   # simplify test table
   # colnames(testTable)   <- gsub(x = colnames(testTable), pattern = "Sample_IMR90_", replacement = "")
@@ -392,34 +417,35 @@ betASapp_server <- function(){
 
           testTable <- read.delim(file = "test/SE.MATS.JC.txt")
 
+        } else if (input$sourcetool == "whippet"){
+
+          testTable <- readRDS(file = "test/listdfs_WHippet.rds")
+
         }
 
         return(testTable)
 
       }else{
 
+        if(length(input$psitable$datapath) > 1 & length(grep(pattern = "[.]psi", x = input$psitable$name)) != 0 ){
+
+          loadingFile <- lapply(as.list(input$psitable$datapath),fread)
+          names(loadingFile) <- sapply(input$psitable$name, function(file) gsub("\\..*","",gsub(".*/","",file)))
+
+        } else {
 
         if(length(grep(pattern = "[.]gz", x = input$psitable$datapath)) == 0){
 
           loadingFile <- input$psitable$datapath
+        } else {
+          loadingFile <- gzfile(input$psitable$datapath)
+        }
+
+        loadingFile <- read.delim(loadingFile)
 
         }
 
-        # else if not necessary??
-
-        loadingFile <- gzfile(input$psitable$datapath)
-
-       # if(input$sourcetool == "vast-tools"){
-         # read.table(loadingFile, sep="\t", header=TRUE, quote="")
-
-
-        #}else if(input$sourcetool == "rMATS"){
-
-          read.delim(loadingFile)
-
-        #}
-
-
+        return(loadingFile)
       }
 
       })
@@ -441,17 +467,25 @@ betASapp_server <- function(){
 
         return(samplesTable)
 
+      } else if(is.null(input$psitable) & sourcetool() == "whippet"){
+
+        samplesTable <- readRDS(file = "test/samplesTable_Whippet.rds")
+
+        return(samplesTable)
+
       }
 
 
     })
 
 
+    output$filesinput <- renderTable(input$psitable$name)
+
     output$samplesTabletext <- renderText({
 
       req(sourcetool())
 
-        if(is.null(input$psitable) & sourcetool() == "vast-tools"){
+        if(is.null(input$psitable) & sourcetool() %in% c("vast-tools","rMATS")){
 
 
         print("Sample information")
@@ -472,7 +506,19 @@ betASapp_server <- function(){
       # rMATS inclusion tables have the following columns: ID	GeneID	geneSymbol	chr	strand IJC_SAMPLE_1 SJC_SAMPLE_1	IJC_SAMPLE_2	SJC_SAMPLE_2
       requiredcols_rMATS <- c("ID","GeneID","geneSymbol","chr","strand","IJC_SAMPLE_1","SJC_SAMPLE_1","IJC_SAMPLE_2","SJC_SAMPLE_2")
 
-      inputTablecols <- colnames(dataset())
+      # Whippet inclusion tables have the following columns: "Gene" "Node" "Coord" "Strand" "Type" "Psi" "CI_Width" "CI_Lo,Hi" "Total_Reads" "Complexity" "Entropy" "Inc_Paths" "Exc_Paths" "Edges"
+      requiredcols_whippet <- c("Gene", "Node", "Coord", "Strand", "Type" ,"Psi", "CI_Width", "CI_Lo,Hi", "Total_Reads", "Complexity", "Entropy" ,"Inc_Paths", "Exc_Paths")
+
+      if (class(dataset())=="list"){
+
+        # for Whippet, the output for dataset() is a list of the original inclusion tables (one per sample), which should all have the same column names
+        inputTablecols <- colnames(dataset()[[1]])
+
+      } else {
+
+        inputTablecols <- colnames(dataset())
+
+      }
 
       if(length(inputTablecols[inputTablecols %in% requiredcols_vasttools]) == length(requiredcols_vasttools)){
 
@@ -482,22 +528,31 @@ betASapp_server <- function(){
 
         sourcetool <- "rMATS"
 
+      } else if(length(inputTablecols[inputTablecols %in% requiredcols_whippet]) == length(requiredcols_whippet)){
+
+        sourcetool <- "whippet"
+
       }else{
 
         return(NULL)
 
       }
-
+      print(sourcetool)
       return(sourcetool)
 
     })
 
 
 
-    output$sourcetool <- reactive({
-       return(sourcetool())
+    output$showchecks <- reactive({
+      req(sourcetool())
+      if (sourcetool() %in% c("vast-tools","whippet")){
+        return(TRUE)
+      }else{
+        return(FALSE)
+      }
     })
-    outputOptions(output, 'sourcetool', suspendWhenHidden=FALSE)
+    outputOptions(output, 'showchecks', suspendWhenHidden=FALSE)
 
 
     GetTable <- reactive({
@@ -514,11 +569,25 @@ betASapp_server <- function(){
         FormattedTable <- getrMATS(dataset())
       }
 
+      if(sourcetool() == "whippet"){
+        FormattedTable <- getWhippet(dataset())
+      }
       return(FormattedTable)
 
     })
 
 
+
+    observeEvent(sourcetool(),{
+
+      req(GetTable())
+
+      if(sourcetool()=="vast-tools"){
+        updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT)
+      }else if(sourcetool()=="whippet"){
+        updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = c("CE"),  choices = eventTypesWhippet)
+      }
+    })
 
 
 
@@ -528,6 +597,7 @@ betASapp_server <- function(){
     filterTable <- reactive({
 
       req(sourcetool())
+      req(GetTable())
 
       if(sourcetool() == "vast-tools"){
 
@@ -543,7 +613,6 @@ betASapp_server <- function(){
           showNotification("Please select at least one event type", duration = 5, type = c("error"))
           return(NULL)
         }
-        print(selectedEventTypes)
         filteredList <- filterVastTools(GetTable(), types = selectedEventTypes)
 
       }
@@ -551,11 +620,25 @@ betASapp_server <- function(){
       if(sourcetool() == "rMATS"){
 
         filteredList <- filterrMATS(GetTable())
-        if(length(input$types) == 0){
+        # if(length(input$types) == 0){
+        #   showNotification("Please select at least one event type", duration = 5, type = c("error"))
+        #   return(NULL)
+        # }
+      }
+
+
+      if(sourcetool() == "whippet"){
+
+        selectedEventTypes <- input$types
+
+        if(length(selectedEventTypes) == 0){
           showNotification("Please select at least one event type", duration = 5, type = c("error"))
           return(NULL)
         }
+        filteredList <- filterWhippet(GetTable(), types = selectedEventTypes)
+
       }
+
 
       return(filteredList)
 
@@ -604,6 +687,7 @@ betASapp_server <- function(){
     selectAlternatives <- reactive({
 
       req(sourcetool())
+      req(filterTable())
 
       if(sourcetool() == "vast-tools"){
 
@@ -636,6 +720,22 @@ betASapp_server <- function(){
         }
 
       }
+
+      if(sourcetool() == "whippet"){
+
+        alternativeList <- alternativeWhippet(req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
+
+         if(nrow(alternativeList$PSI) == 0){
+         showNotification("There are no events with PSI values within such range.",
+                           closeButton = TRUE,
+                           duration = 5,
+                           type = c("error"))
+          return(NULL)
+
+        }
+
+      }
+
 
       return(alternativeList)
 
@@ -694,7 +794,7 @@ betASapp_server <- function(){
     output$textTotalNumberEvents <- renderText({
 
       # req(selectAlternatives())
-      if (sourcetool() == "vast-tools"){
+      if (sourcetool() %in% c("vast-tools","whippet")){
 
         paste0("You have selected ", eventNumber(), " events")
 
@@ -1005,7 +1105,7 @@ betASapp_server <- function(){
 
     observeEvent(sourcetool(), {
 
-      if(is.null(input$psitable) & sourcetool()=="rMATS"){
+      if(is.null(input$psitable) & sourcetool() %in% c("rMATS","whippet")){
 
         updateSelectInput(inputId = "groupingFeature", choices = c("CellType","Div"))
 
@@ -1077,6 +1177,11 @@ betASapp_server <- function(){
 
       names <- colnames(psifiltdataset())[-c(1:6)]
 
+
+
+      print(names)
+
+
       not_grouped   <- names
       checked       <- c()
       random_colors <- pastelColors
@@ -1145,7 +1250,7 @@ betASapp_server <- function(){
       for(g in groups){
 
         #groupNames <- sampleTable$Run[which(sampleTable[,columnToGroupBy] == g)]
-        if (sourcetool()=="vast-tools"){
+        if (sourcetool() %in% c("vast-tools","whippet")){
           groupNames <- sampleTable$Run[which(sampleTable[,columnToGroupBy] == g)]
         } else if (sourcetool()=="rMATS"){
           groupNames <- sampleTable$sampleID[which(sampleTable[,columnToGroupBy] == g)]

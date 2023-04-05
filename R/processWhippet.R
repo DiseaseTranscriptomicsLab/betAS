@@ -15,42 +15,13 @@ getWhippet <- function(listIncTables){
   commonCols <- as.data.frame(cbind(listfiles[[1]]$Gene, listfiles[[1]]$eventID, listfiles[[1]]$Coord, rep(0, nrow(listfiles[[1]])), listfiles[[1]]$Coord, listfiles[[1]]$Type))
   colnames(commonCols) <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX")
 
-  # Get only relevant columns for each data frame in the input list of data frames, and creat the psi, inc and exc data frames (one column per sample)
-  # psis <- as.data.frame(matrix(NA,1))
-  # colnames(psis) <- c("eventID")
-  # inc <- as.data.frame(matrix(NA,1))
-  # colnames(inc) <- c("eventID")
-  # exc <- as.data.frame(matrix(NA,1))
-  # colnames(exc) <- c("eventID")
-  # for (sample in listfiles){
-  #   psis <- merge(psis, sample[,c("eventID","Psi")], by="eventID", all = TRUE)
-  #   inc <- merge(inc, sample[,c("eventID","Ninc")], by="eventID", all = TRUE)
-  #   exc <- merge(exc, sample[,c("eventID","Nexc")], by="eventID", all = TRUE)
-  # }
-
-
-  # Explanation: You essentially want to do l[[1]][, my_names], l[[2]][,
-  # my_names], ... lapply applies a function to every list element. In this
-  # case, the function is [, which takes rows as its first argument (we leave it
-  # blank to indicate all rows), columns as its second argument (we give it
-  # my_names). It returns the results in a list.
-
   # lapply(listfiles, "[", 1: nrow(listfiles[[1]]) , c("Psi")) gets every Psi column for each data frame in the list; nrow(listfiles[[1]]) is used just to ensure
   # that we select all rows, and only the psi column
   # Assumptions: each sample has the same events, in the same order (which should be the case if Whippet is applied for all samples at the same time)
 
-  #psis <- data.frame(eventID=commonCols$EVENT)
-  #psis[,names(listfiles)] <- as.data.frame(lapply(lapply(listfiles, "[", 1:nrow(commonCols) , c("Psi")),cbind))
-
   psis <- as.data.frame(lapply(lapply(listfiles, "[", 1:nrow(listfiles[[1]])  , c("Psi")),cbind))*100
-  # psis[,-1] <- psis[,-1]*100
 
-  #inc <- data.frame(eventID=commonCols$EVENT)
-  #inc[,names(listfiles)] <- as.data.frame(lapply(lapply(listfiles, "[", 1:nrow(commonCols) , c("Ninc")),cbind))
   inc <- as.data.frame(lapply(lapply(listfiles, "[", 1:nrow(listfiles[[1]]) , c("Ninc")),cbind))
-
-  #exc <- data.frame(eventID=commonCols$EVENT)
-  #exc[,names(listfiles)] <- as.data.frame(lapply(lapply(listfiles, "[", 1:nrow(commonCols) , c("Nexc")),cbind))
   exc <- as.data.frame(lapply(lapply(listfiles, "[",  1:nrow(listfiles[[1]])  , c("Nexc")),cbind))
 
   # qual matrix, which includes inc and exc counts
@@ -75,7 +46,6 @@ getWhippet <- function(listIncTables){
 }
 
 
-filterWhippet(whip1, names(whip1$EventsPerType))
 
 # to filter based on event type
 filterWhippet <- function(WhippetList, types){
@@ -111,4 +81,32 @@ filterWhippet <- function(WhippetList, types){
 }
 
 
+alternativeWhippet <- function(filteredWhippetList, minPsi, maxPsi){
 
+  alternativeWhippet <- list()
+
+  psiTable <- filteredWhippetList$PSI
+  qualTable <- filteredWhippetList$Qual
+
+  originalColN <- ncol(psiTable)
+
+  # Consider alternative events only
+  psiTable$AllGreaterMin  <- apply(psiTable[,-c(1:6)], 1, all_grteq_row, minPsi)
+  psiTable$AllLowerMax    <- apply(psiTable[,-c(1:6)], 1, all_lweq_row, maxPsi)
+  psiTable                <- psiTable[which(psiTable$AllGreaterMin == TRUE & psiTable$AllLowerMax == TRUE),]
+  qualTable               <- qualTable[match(psiTable$EVENT, qualTable$EVENT),]
+
+  # Remove columns added
+  psiTable                <- psiTable[,c(1:originalColN)]
+  qualTable               <- qualTable[,c(1:originalColN)]
+
+  alternativeWhippet[[1]] <- psiTable
+  alternativeWhippet[[2]] <- qualTable
+  alternativeWhippet[[3]] <- table(psiTable$COMPLEX)
+  alternativeWhippet[[4]] <- colnames(psiTable)[-c(1:6)]
+
+  names(alternativeWhippet) <- c("PSI", "Qual", "EventsPerType", "Samples")
+
+  return(alternativeWhippet)
+
+}
