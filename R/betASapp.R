@@ -38,6 +38,7 @@ betASapp_ui <- function(){
 
     # theme = bs_theme(bootswatch = "sketchy"),
     theme = bs_theme(bootswatch = "minty"),
+
     # theme = light,
 
     tags$head(
@@ -95,10 +96,13 @@ betASapp_ui <- function(){
                               helpText("(*) betAS currently supports inclusion level tables from: vast-tools (INCLUSION_LEVELS_FULL*.tab) and rMATS (*.MATS.JC.txt tables)"),
 
                               fileInput("psitable", NULL, placeholder = "No file selected (max. 100MB)", multiple=T), #accept = c(".tab",".txt",".psi",".gz")
-                              tableOutput("filesinput"),
+                              #tableOutput("filesinput"),
+                              DTOutput("files"),
 
                               # helpText("(betAS currently supports inclusion level tables from: vast-tools)"),
                               #radioButtons("sourcetool", label = "Table source:", choices = availabletools, selected="vast-tools"),
+
+                              hr(),
 
                               h5("Filter events from loaded table:"),
 
@@ -122,7 +126,8 @@ betASapp_ui <- function(){
                    # shinycssloaders::withSpinner(plotOutput("plot"), type = 8, color = "#FF9AA2", size = 2),
                    #h6("NOTE: vast-tools tables consider PSI values as percent spliced-in values, i.e., in the [0;100] interval"),
                    h6(textOutput("TextToolInfo")),
-                   DTOutput("table")
+                   #DTOutput("table")
+                   DTOutput("selected_file_table")
                  )
                )
       ),
@@ -481,6 +486,71 @@ betASapp_server <- function(){
 
     output$filesinput <- renderTable(input$psitable$name)
 
+    output$files <- renderDT({
+
+      req(sourcetool())
+
+      # Show input file names
+      if(!is.null(input$psitable)){
+
+      datatable(data.frame(FileName=input$psitable$name,
+                                Size=paste0(input$psitable$size*10^(-6)," MB")), selection = list(mode = 'single', selected = c(1)))
+
+      } else {
+        if (sourcetool() == "whippet"){
+          datatable(data.frame(FileName=paste0("Example_Whippet_",GetTable()$Samples)), selection = list(mode = 'single', selected = c(1)))
+        } else {
+          datatable(data.frame(FileName=paste0("Example_",sourcetool())), selection = list(mode = 'single', selected = c(1)))
+        }
+
+
+      }
+
+    }, rownames = FALSE)
+
+
+
+
+    #select a row in DT files and display the corresponding table
+    # output$selected_file_table <- renderDT({
+    #   req(input$psitable)
+    #   req(input$files_rows_selected)
+    #
+    #   all_files()[[
+    #     input$psitable$name[[input$files_rows_selected]]
+    #   ]]
+    # })
+
+    output$selected_file_table <- renderDT({
+       req(dataset())
+      req(selectAlternatives())
+
+
+      if (sourcetool()=="whippet"){
+        # if(!is.null(input$psitable)){
+          data <- dataset()[[input$files_rows_selected]]
+          data[data$Psi > input$psirange[1]/100 & data$Psi < input$psirange[2]/100 & !is.na(data$Psi),]
+        # }
+      }else if(sourcetool() == "rMATS"){
+
+        eventIDs <- psifiltdataset()$EVENT
+        dataset()[dataset()$ID %in% eventIDs,]
+
+      } else if (sourcetool() == "vast-tools"){
+
+        psifiltdataset()
+
+      }
+
+    }, rownames = FALSE)
+
+
+
+
+
+
+
+
     output$samplesTabletext <- renderText({
 
       req(sourcetool())
@@ -543,13 +613,19 @@ betASapp_server <- function(){
     })
 
 
-
+    # Auxiliary variable to show or not the event types to filter (rMATS tables cannot be filtered by event type, as they only have one)
     output$showchecks <- reactive({
+
       req(sourcetool())
+
       if (sourcetool() %in% c("vast-tools","whippet")){
+
         return(TRUE)
+
       }else{
+
         return(FALSE)
+
       }
     })
     outputOptions(output, 'showchecks', suspendWhenHidden=FALSE)
@@ -1457,9 +1533,9 @@ betASapp_server <- function(){
 
     output$TextToolInfo <- renderText({
 
-      if(sourcetool() == "rMATS"){
+      if(sourcetool() %in% c("rMATS","whippet")){
 
-        "NOTE: rMATS tables consider inclusion levels in the [0;1] interval"
+        paste0("NOTE: ", sourcetool()," tables consider inclusion levels in the [0;1] interval")
 
       } else if (sourcetool() == "vast-tools"){
 
