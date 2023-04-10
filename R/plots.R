@@ -535,10 +535,15 @@ prepareTableVolcano <- function(psitable, qualtable, npoints, colsA, colsB, labA
 #' plotVolcano(betasTable = volcanoTable, labA = groupA, labB = groupB, basalColor = "#89C0AE", interestColor = "#E69A9C")
 plotVolcano <- function(betasTable, labA, labB, basalColor, interestColor){
 
-  refSeq      <- seq(0, 1, 0.1)
+  refSeq      <- seq(0, 1.1, 0.1) # from 0 to 1.1, the latter needed to include deltaPSI=1
   maxDeltaPsi <- max(abs(betasTable$deltapsi))
   pos         <- which(abs(refSeq-maxDeltaPsi)==min(abs(refSeq-maxDeltaPsi)))
   refScale    <- refSeq[pos+1]
+
+  print(refSeq)
+  print(maxDeltaPsi)
+  print(pos)
+  print(refScale)
 
   ggplot(betasTable,
          aes(x = deltapsi,
@@ -628,7 +633,7 @@ prepareTableVolcanoFstat <- function(psitable, qualtable, npoints, colsA, colsB,
 # @importFrom ggrepel geom_text_repel
 plotVolcanoFstat <- function(betasTable, labA, labB, basalColor, interestColor){
 
-  refSeq      <- seq(0,1, 0.1)
+  refSeq      <- seq(0,1.1, 0.1) # from 0 to 1.1, the latter needed to include deltaPSI=1
   maxDeltaPsi <- max(abs(betasTable$deltapsi))
   pos         <- which(abs(refSeq-maxDeltaPsi)==min(abs(refSeq-maxDeltaPsi)))
   refScale    <- refSeq[pos+1]
@@ -735,7 +740,7 @@ prepareTableVolcanoFDR <- function(psitable, qualtable, npoints, colsA, colsB, l
 # @importFrom ggrepel geom_text_repel
 plotVolcanoFDR <- function(betasTable, labA, labB, basalColor, interestColor){
 
-  refSeq      <- seq(0,1, 0.1)
+  refSeq      <- seq(0,1.1, 0.1) # from 0 to 1.1, the latter needed to include deltaPSI=1
   maxDeltaPsi <- max(abs(betasTable$deltapsi))
   pos         <- which(abs(refSeq-maxDeltaPsi)==min(abs(refSeq-maxDeltaPsi)))
   refScale    <- refSeq[pos+1]

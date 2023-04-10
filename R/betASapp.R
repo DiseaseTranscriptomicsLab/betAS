@@ -22,6 +22,7 @@ betASapp_ui <- function(){
                              "Alternative First exon (AF)"="AF",
                              "Alternative Last exon (AL)"="AL",
                              "Circular back-splicing (BS)"="BS")
+  #eventTypesrMATS          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss", "Mutually Exclusive Exons (MXE)"="MXE")
   exEventNames        <- c("HsaEX0007927", "HsaEX0032264", "HsaEX0039848", "HsaEX0029465", "HsaEX0026102", "HsaEX0056290", "HsaEX0035084", "HsaEX0065983", "HsaEX0036532", "HsaEX0049206")
   pastelColors        <- c("#FF9AA2", "#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7", "#C7CEEA", "#FBE2FD", "#D9ECFE")
 
@@ -100,14 +101,12 @@ betASapp_ui <- function(){
                               #radioButtons("sourcetool", label = "Table source:", choices = availabletools, selected="vast-tools"),
 
                               h5("Filter events from loaded table:"),
-                              #checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT),
-                              # checkboxGroupInput("types", label = "Event types to consider:", selected = NULL,  choices = NULL),
 
                               conditionalPanel(
                                 condition = "output.showchecks",
                                 checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT)
                                 ),
-
+                              #checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT),
 
                               sliderInput("psirange", "PSI values to consider:", value = c(1, 99), min = 0, max = 100, step=0.1),
                               helpText((em("Consider only alternative splicing events with all PSI values within this range.")),
@@ -389,6 +388,7 @@ betASapp_server <- function(){
                              "Alternative First exon (AF)"="AF",
                              "Alternative Last exon (AL)"="AL",
                              "Circular back-splicing (BS)"="BS")
+  #eventTypesrMATS          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss", "Mutually Exclusive Exons (MXE)"="MXE")
 
 
   # simplify test table
@@ -582,11 +582,15 @@ betASapp_server <- function(){
 
       req(GetTable())
 
-      if(sourcetool()=="vast-tools"){
+       if(sourcetool()=="vast-tools"){
         updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT)
       }else if(sourcetool()=="whippet"){
         updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = c("CE"),  choices = eventTypesWhippet)
       }
+      # else if (sourcetool() == "rMATS"){
+      #   eventsrMATS <- eventTypesrMATS[eventTypesrMATS %in% names(GetTable()$EventsPerType)]
+      #   updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = eventsrMATS,  choices = eventsrMATS)
+      # }
     })
 
 
@@ -624,10 +628,7 @@ betASapp_server <- function(){
         #   showNotification("Please select at least one event type", duration = 5, type = c("error"))
         #   return(NULL)
         # }
-      }
-
-
-      if(sourcetool() == "whippet"){
+      } else if(sourcetool() == "whippet"){
 
         selectedEventTypes <- input$types
 
@@ -1510,6 +1511,7 @@ betASapp_server <- function(){
 
     })
 
+
     output$volcano <- renderPlot({
 
       input$rundiffbetas
@@ -1524,6 +1526,7 @@ betASapp_server <- function(){
         yStat <- input$volcanoYAxis
 
       })
+
 
       if(is.null(groupA) || is.null(groupB) || is.null(yStat))return(NULL)else if(
 
@@ -1957,7 +1960,7 @@ betASapp_server <- function(){
 #' @export
 betASapp <- function(...){
 
-  options(shiny.maxRequestSize = 200*1024^2)
+  options(shiny.maxRequestSize = 200*1024^2, shiny.error=NULL)
 
   # construct and start a Shiny application from UI and server
   app <- shinyApp(betASapp_ui(), betASapp_server())

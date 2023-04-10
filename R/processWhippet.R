@@ -19,10 +19,10 @@ getWhippet <- function(listIncTables){
   # that we select all rows, and only the psi column
   # Assumptions: each sample has the same events, in the same order (which should be the case if Whippet is applied for all samples at the same time)
 
-  psis <- as.data.frame(lapply(lapply(listfiles, "[", 1:nrow(listfiles[[1]])  , c("Psi")),cbind))*100
+  psis <- as.data.frame(lapply(lapply(listfiles, "[", , c("Psi")),cbind))*100
 
-  inc <- as.data.frame(lapply(lapply(listfiles, "[", 1:nrow(listfiles[[1]]) , c("Ninc")),cbind))
-  exc <- as.data.frame(lapply(lapply(listfiles, "[",  1:nrow(listfiles[[1]])  , c("Nexc")),cbind))
+  inc <- as.data.frame(lapply(lapply(listfiles, "[", , c("Ninc")),cbind))
+  exc <- as.data.frame(lapply(lapply(listfiles, "[", , c("Nexc")),cbind))
 
   # qual matrix, which includes inc and exc counts
   qualWhip <- cbind(commonCols,
