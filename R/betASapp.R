@@ -502,10 +502,7 @@ betASapp_server <- function(){
         } else {
           datatable(data.frame(FileName=paste0("Example_",sourcetool())), selection = list(mode = 'single', selected = c(1)))
         }
-
-
       }
-
     }, rownames = FALSE)
 
 
@@ -529,7 +526,8 @@ betASapp_server <- function(){
       if (sourcetool()=="whippet"){
         # if(!is.null(input$psitable)){
           data <- dataset()[[input$files_rows_selected]]
-          data[data$Psi > input$psirange[1]/100 & data$Psi < input$psirange[2]/100 & !is.na(data$Psi),]
+          events_to_show <- paste0(data$Gene,":",data$Node,":",data$Type) %in% psifiltdataset()$EVENT
+          data[events_to_show,]
         # }
       }else if(sourcetool() == "rMATS"){
 
