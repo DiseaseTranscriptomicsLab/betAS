@@ -43,12 +43,12 @@ betASapp_ui <- function(){
 
     tags$head(
       tags$style(
-      HTML(".shiny-notification {
+        HTML(".shiny-notification {
              position:fixed;
              top: calc(10%);
              left: calc(50%);
              }"),
-      'body {
+        'body {
       font-size: 16px}'
       )),
 
@@ -65,145 +65,167 @@ betASapp_ui <- function(){
 
                sidebarLayout(fluid = TRUE,
 
-                 sidebarPanel(style = "max-height: 100%",
-                              # h3("Exploratory analysis of inclusion levels"),
-                              h4("Exploratory analysis of inclusion levels"),
+                             sidebarPanel(style = "max-height: 100%",
+                                          # h3("Exploratory analysis of inclusion levels"),
+                                          h4("Exploratory analysis of inclusion levels"),
+                                          #
+                                          #                               radioButtons("sourcetool", label = "Explore examples from publicly available datasets:", choiceNames = list( HTML(paste0(a("Human RNA-seq time-series of the development of seven major organs", href="https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/"), " (obtained using vast-tools)")),
+                                          #                                                                                                                              HTML(paste0(a("Deep transcriptional profiling of longitudinal changes during neurogenesis and network maturation in vivo", href="https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"), " (obtained using rMATS)")),
+                                          #                                                                                                                              HTML(paste0(a("Deep transcriptional profiling of longitudinal changes during neurogenesis and network maturation in vivo", href="https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"), " (obtained using Whippet)"))),
+                                          #
+                                          #                                            choiceValues = availabletools),
+                                          h5(icon("file-import", style = "color: #000000"),"Import data"),
 
-                              radioButtons("sourcetool", label = "Explore examples from publicly available datasets:", choiceNames = list( HTML(paste0(a("Human RNA-seq time-series of the development of seven major organs", href="https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/"), " (obtained using vast-tools)")),
-                                                                                                                             HTML(paste0(a("Deep transcriptional profiling of longitudinal changes during neurogenesis and network maturation in vivo", href="https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"), " (obtained using rMATS)")),
-                                                                                                                             HTML(paste0(a("Deep transcriptional profiling of longitudinal changes during neurogenesis and network maturation in vivo", href="https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"), " (obtained using Whippet)"))),
+                                          selectInput("sourcetool", "Select example dataset:", choices = c("Example 1 (obtained using vast-tools)" = "vast-tools",
+                                                                                                           "Example 2 (obtained using rMATS)" = "rMATS",
+                                                                                                           "Example 3 (obtained using whippet)" = "whippet")),
 
-                                           choiceValues = availabletools),
+                                          # HTML(paste0("<p>Explore a vast-tools table for a subset of the publicly available dataset:",
+                                          #             "<br>",
+                                          #             "<a href='", "https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/",
+                                          #             "'>Human RNA-seq time-series of the development of seven major organs</a></p>")),
+                                          #
+                                          # HTML(paste0("<p>Explore an rMATS table for a subset of the publicly available dataset:",
+                                          #             "<br>",
+                                          #             "<a href='", "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/",
+                                          #             "'>Deep transcriptional profiling of longitudinal changes during neurogenesis and network maturation in vivo</a></p>")),
+
+                                          "Alternatively, upload table with inclusion level quantification (e.g. PSI):",
+
+                                          # tags$ul(
+                                          #   tags$li("each row is an alternative splicing event"),
+                                          #   tags$li("each column is a sample")
+                                          # ),
+
+                                          # helpText("(*) betAS currently supports inclusion level tables from: vast-tools (INCLUSION_LEVELS_FULL*.tab) and rMATS (*.MATS.JC.txt tables)"),
+                                          p("betAS currently supports inclusion level tables from vast-tools ",code("(INCLUSION_LEVELS_FULL*.tab)", style = "font-size:12px; color: #AAAAAA"),", rMATS ",code("(*.MATS.JC.txt)", style = "font-size:12px; color: #AAAAAA")," and whippet
+                                       ",code("(*.psi).", style = "font-size:12px; color: #AAAAAA"),"Only a single file is supported when using rMATS or vast-tools results. For whippet, please upload one file per sample,
+                                       obtained through the same run.", style = "font-size:12px; color: #AAAAAA"),
+
+
+                                          fileInput("psitable", NULL, placeholder = "No file selected (max. 100MB)", multiple=T), #accept = c(".tab",".txt",".psi",".gz")
+
+                                          hr(),
+
+                                          h5(icon("file", style = "color: #000000"),"Your files:"),
 
 
 
-                              # HTML(paste0("<p>Explore a vast-tools table for a subset of the publicly available dataset:",
-                              #             "<br>",
-                              #             "<a href='", "https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/",
-                              #             "'>Human RNA-seq time-series of the development of seven major organs</a></p>")),
-                              #
-                              # HTML(paste0("<p>Explore an rMATS table for a subset of the publicly available dataset:",
-                              #             "<br>",
-                              #             "<a href='", "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/",
-                              #             "'>Deep transcriptional profiling of longitudinal changes during neurogenesis and network maturation in vivo</a></p>")),
 
-                              "Alternatively, upload table* with inclusion level quantification (e.g. PSI)",
 
-                              tags$ul(
-                                tags$li("each row is an alternative splicing event"),
-                                tags$li("each column is a sample")
-                              ),
-                              helpText("(*) betAS currently supports inclusion level tables from: vast-tools (INCLUSION_LEVELS_FULL*.tab) and rMATS (*.MATS.JC.txt tables)"),
+                             uiOutput("datasetInfo"),
 
-                              fileInput("psitable", NULL, placeholder = "No file selected (max. 100MB)", multiple=T), #accept = c(".tab",".txt",".psi",".gz")
-                              #tableOutput("filesinput"),
-                              DTOutput("files"),
+                             #tableOutput("filesinput"),
+                             DTOutput("files"),
 
-                              # helpText("(betAS currently supports inclusion level tables from: vast-tools)"),
-                              #radioButtons("sourcetool", label = "Table source:", choices = availabletools, selected="vast-tools"),
+                             # helpText("(betAS currently supports inclusion level tables from: vast-tools)"),
+                             #radioButtons("sourcetool", label = "Table source:", choices = availabletools, selected="vast-tools"),
 
-                              hr(),
+                             hr(),
 
-                              h5("Filter events from loaded table:"),
+                             h5(icon("filter", style = "color: #000000", class="Light"),"Filter events from loaded table(s):"),
 
-                              conditionalPanel(
-                                condition = "output.showchecks",
-                                checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT)
-                                ),
-                              #checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT),
+                             conditionalPanel(
+                               condition = "output.showchecks",
+                               checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT)
+                             ),
+                             #checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT),
 
-                              sliderInput("psirange", "PSI values to consider:", value = c(1, 99), min = 0, max = 100, step=0.1),
-                              helpText((em("Consider only alternative splicing events with all PSI values within this range.")),
-                              h6(textOutput("textTotalNumberEvents")),
-                              # textOutput("textNumberEventsPerType"),
-                              # actionButton("filter", "Filter original table", icon = icon("filter"), class = "btn-success"),
-                              highchartOutput("eventsPiechart")
+                             sliderInput("psirange", "PSI values to consider:", value = c(1, 99), min = 0, max = 100, step=0.1),
+                             helpText((em("Consider only alternative splicing events with all PSI values within this range.")),
+                                      h6(textOutput("textTotalNumberEvents")),
+                                      # textOutput("textNumberEventsPerType"),
+                                      # actionButton("filter", "Filter original table", icon = icon("filter"), class = "btn-success"),
+                                      highchartOutput("eventsPiechart")
 
-                 )),
+                             )),
 
-                 mainPanel(
-                   shinycssloaders::withSpinner(plotOutput("plot", height = "1200px"), type = 8, color = "#FF9AA2", size = 2),
-                   # shinycssloaders::withSpinner(plotOutput("plot"), type = 8, color = "#FF9AA2", size = 2),
-                   #h6("NOTE: vast-tools tables consider PSI values as percent spliced-in values, i.e., in the [0;100] interval"),
-                   h6(textOutput("TextToolInfo")),
-                   #DTOutput("table")
-                   DTOutput("selected_file_table")
-                 )
+               mainPanel(
+                 shinycssloaders::withSpinner(plotOutput("plot", height = "1000px"), type = 8, color = "#FF9AA2", size = 2),
+                 # shinycssloaders::withSpinner(plotOutput("plot"), type = 8, color = "#FF9AA2", size = 2),
+                 #h6("NOTE: vast-tools tables consider PSI values as percent spliced-in values, i.e., in the [0;100] interval"),
+                 h6(textOutput("TextToolInfo")),
+                 #DTOutput("table")
+                 DTOutput("selected_file_table" )
                )
-      ),
+      )
+    ),
 
-      tabPanel("Group definition", icon = icon("gears"),
+    tabPanel("Group definition", icon = icon("gears"),
 
              sidebarLayout(fluid = TRUE,
 
-               sidebarPanel(
-                            selectInput("indbetaseventid", "Select alternative splicing event to plot:", choices = NULL),
-                            uiOutput("url"),
-
-                            #h5("Sample information"),
-
-                            h5(textOutput("samplesTabletext")),
-
-                            DTOutput("sampleTable"),
-
-                            h4("Organise samples into groups/conditions"),
-
-                            helpText(tags$ul(
-                              tags$li("one beta distribution will be estimated per sample"),
-                              tags$li("groups defined can be used for differential splicing analyses")
-                            )),
+                           sidebarPanel(
+                             selectInput("indbetaseventid", "Select alternative splicing event to plot:", choices = NULL),
+                             h6(textOutput("EventInfoWhippet")),
 
 
-                            # h5("Group creation"),
-                            #
-                            # helpText(em("Choose one option for group creation and check the resulting grouping below")),
+                             uiOutput("url"),
 
-                            tags$ol(
+                             #h5("Sample information"),
 
-                              tags$li(h5("Add/delete groups by sample selection:")),
+                             h5(textOutput("samplesTabletext")),
 
-                              textInput(inputId = "groupName", label = "Insert group name:", placeholder = "e.g. Control"),
-                              selectInput("groupSamples", "Choose samples in group:", choices = NULL, multiple = TRUE),
-                              colourInput("groupColor", "Select group color:", value = "#89C0AE"),
-                              actionButton("newGroup", "Create new group", icon = icon("layer-group"), class = "btn-secondary"),
+                             DTOutput("sampleTable"),
 
-                              tags$li(h5("Automatic group creation:")),
+                             h4("Organise samples into groups/conditions"),
 
-                              tags$ol(
-
-                                # tags$li(h6("Group samples based on a given feature")),
-                                # selectInput("groupingFeature", label = "Select feature to group samples by:", choices = c("organism_part", "developmental_stage", "sex")),
-                                # actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info"),
-
-                                tags$li(h6("Group samples based on sample name similarities")),
-                                actionButton("findGroups", "Automatic group(s)", icon = icon("wand-sparkles"), class = "btn-info"),
-
-#
-#                                  conditionalPanel(
-#                                   condition = 'input.psitable === NULL',
-#                                   tags$li(h6("Group samples based on a given feature")),
-#                                   selectInput("groupingFeature", label = "Select feature to group samples by:", choices = NULL),
-#                                   actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info")
-#                                 )
-#
-                                  tags$li(h6("Group samples based on a given feature")),
-                                  selectInput("groupingFeature", label = "Select feature to group samples by:", choices = NULL),
-                                  actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info")
+                             helpText(tags$ul(
+                               tags$li("one beta distribution will be estimated per sample"),
+                               tags$li("groups defined can be used for differential splicing analyses")
+                             )),
 
 
-                              )),
+                             # h5("Group creation"),
+                             #
+                             # helpText(em("Choose one option for group creation and check the resulting grouping below")),
 
-                            h5("Current groups defined"),
-                            DTOutput("groupsTable"),
-                            helpText(em("Choose one table row for group deletion")),
+                             tags$ol(
 
-                            actionButton("deleteGroups", "Delete group(s)", icon = icon("eraser"), class = "btn-danger")
+                               tags$li(h5("Add/delete groups by sample selection:")),
 
-               ),
+                               textInput(inputId = "groupName", label = "Insert group name:", placeholder = "e.g. Control"),
+                               selectInput("groupSamples", "Choose samples in group:", choices = NULL, multiple = TRUE),
+                               colourInput("groupColor", "Select group color:", value = "#89C0AE"),
+                               actionButton("newGroup", "Create new group", icon = icon("layer-group"), class = "btn-secondary"),
 
-               mainPanel(
-                 shinycssloaders::withSpinner(plotOutput("densities", height = "1200px"), type = 8, color = "#FF9AA2", size = 2)
-               )
+                               tags$li(h5("Automatic group creation:")),
+
+                               tags$ol(
+
+                                 # tags$li(h6("Group samples based on a given feature")),
+                                 # selectInput("groupingFeature", label = "Select feature to group samples by:", choices = c("organism_part", "developmental_stage", "sex")),
+                                 # actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info"),
+
+                                 tags$li(h6("Group samples based on sample name similarities")),
+                                 actionButton("findGroups", "Automatic group(s)", icon = icon("wand-sparkles"), class = "btn-info"),
+
+                                 #
+                                 #                                  conditionalPanel(
+                                 #                                   condition = 'input.psitable === NULL',
+                                 #                                   tags$li(h6("Group samples based on a given feature")),
+                                 #                                   selectInput("groupingFeature", label = "Select feature to group samples by:", choices = NULL),
+                                 #                                   actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info")
+                                 #                                 )
+                                 #
+                                 tags$li(h6("Group samples based on a given feature")),
+                                 selectInput("groupingFeature", label = "Select feature to group samples by:", choices = NULL),
+                                 actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info")
+
+
+                               )),
+
+                             h5("Current groups defined"),
+                             DTOutput("groupsTable"),
+                             helpText(em("Choose one table row for group deletion")),
+
+                             actionButton("deleteGroups", "Delete group(s)", icon = icon("eraser"), class = "btn-danger")
+
+                           ),
+
+                           mainPanel(
+                             shinycssloaders::withSpinner(plotOutput("densities", height = "1200px"), type = 8, color = "#FF9AA2", size = 2)
+                           )
              )
     ),
 
@@ -211,84 +233,84 @@ betASapp_ui <- function(){
 
              sidebarLayout(fluid = TRUE,
 
-               sidebarPanel(
-                            h4("Differential splicing in groups/conditions"),
-                            # "Perform differential alternative splicing analysis for all events",
-                            helpText(tags$ul(
-                              tags$li("All events from 'Import inclusion levels'"),
-                              tags$li("Groups created in 'Group definition'")
-                            )),
+                           sidebarPanel(
+                             h4("Differential splicing in groups/conditions"),
+                             # "Perform differential alternative splicing analysis for all events",
+                             helpText(tags$ul(
+                               tags$li("All events from 'Import inclusion levels'"),
+                               tags$li("Groups created in 'Group definition'")
+                             )),
 
-                 selectInput("groupA", "Choose group A:", NULL),
+                             selectInput("groupA", "Choose group A:", NULL),
 
-                 selectInput("groupB", "Choose group B:", NULL),
+                             selectInput("groupB", "Choose group B:", NULL),
 
-                 radioButtons("volcanoYAxis", label = "Choose significance statistic (Y-axis) to consider:", choices = yAxisStats),
+                             radioButtons("volcanoYAxis", label = "Choose significance statistic (Y-axis) to consider:", choices = yAxisStats),
 
-                 actionButton("rundiffbetas", "Run betAS", icon = icon("person-running"), class = "btn-info"),
-                 # Other cool icons: play | play-circle
+                             actionButton("rundiffbetas", "Run betAS", icon = icon("person-running"), class = "btn-info"),
+                             # Other cool icons: play | play-circle
 
-                 h5("Explore differential splicing at the event level:"),
-                 helpText(em("Brush over the plot for event selection")),
-                 DTOutput("brushed_data"),
-                 h6(""),
-                 textInput("eventidtoplot", "Alternative splicing event to plot:" ),
-                 #textInput("eventidtoplot", "Alternative splicing event to plot:", placeholder = "e.g. HsaEX0007927"),
+                             h5("Explore differential splicing at the event level:"),
+                             helpText(em("Brush over the plot for event selection")),
+                             DTOutput("brushed_data"),
+                             h6(""),
+                             textInput("eventidtoplot", "Alternative splicing event to plot:" ),
+                             #textInput("eventidtoplot", "Alternative splicing event to plot:", placeholder = "e.g. HsaEX0007927"),
 
-                 uiOutput("urlplot"),
-                 actionButton("plotEvent", "Plot considered event", icon = icon("mound"), class = "btn-secondary"),
-                 # textOutput("showMeEvent"),
-                 # plotOutput("densitiesSelectedEvent", height = "400px", width = "500px")
+                             uiOutput("urlplot"),
+                             actionButton("plotEvent", "Plot considered event", icon = icon("mound"), class = "btn-secondary"),
+                             # textOutput("showMeEvent"),
+                             # plotOutput("densitiesSelectedEvent", height = "400px", width = "500px")
 
-               ),
+                           ),
 
-               mainPanel(
+                           mainPanel(
 
-                   shinycssloaders::withSpinner(plotOutput("volcano",
-                                                           height = "900px",
-                                                           brush = brushOpts(id = "plot_brush")),
-                                                type = 8,
-                                                color = "#FF9AA2",
-                                                size = 2),
+                             shinycssloaders::withSpinner(plotOutput("volcano",
+                                                                     height = "900px",
+                                                                     brush = brushOpts(id = "plot_brush")),
+                                                          type = 8,
+                                                          color = "#FF9AA2",
+                                                          size = 2),
 
-                   fluidRow(
-                     plotOutput("densitiesSelectedEvent", height = "400px")
-                   ),
+                             fluidRow(
+                               plotOutput("densitiesSelectedEvent", height = "400px")
+                             ),
 
-                   fluidRow(
+                             fluidRow(
 
-                     column(4,
-                            h4("P(A - B) > x:"),
-                            h6("Probability that estimated PSI of one group is greater than the other by x.")),
+                               column(4,
+                                      h4("P(A - B) > x:"),
+                                      h6("Probability that estimated PSI of one group is greater than the other by x.")),
 
-                     column(4,
-                            h4("F-statistic:"),
-                            h6("Ratio between absolute differences 'between' and 'within' groups.")),
+                               column(4,
+                                      h4("F-statistic:"),
+                                      h6("Ratio between absolute differences 'between' and 'within' groups.")),
 
-                     column(4,
-                            h4("False discovery rate (FDR):"),
-                            h6("Probability of getting an absolute difference in PSI between groups greater than the observed, under the null hypothesis that all PSIs come from the same distribution."))
+                               column(4,
+                                      h4("False discovery rate (FDR):"),
+                                      h6("Probability of getting an absolute difference in PSI between groups greater than the observed, under the null hypothesis that all PSIs come from the same distribution."))
 
-                   ),
+                             ),
 
-                   fluidRow(
-                     column(4,
+                             fluidRow(
+                               column(4,
 
-                            plotOutput("PDiffEventPlot", height = "400px", width = "400px")),
+                                      plotOutput("PDiffEventPlot", height = "400px", width = "400px")),
 
-                     column(4,
+                               column(4,
 
-                            plotOutput("FstatEventPlot", height = "400px", width = "400px")),
+                                      plotOutput("FstatEventPlot", height = "400px", width = "400px")),
 
-                     column(4,
+                               column(4,
 
-                            plotOutput("FDREventPlot", height = "400px", width = "400px"))
+                                      plotOutput("FDREventPlot", height = "400px", width = "400px"))
 
-                     )
+                             )
 
-    ) # end mainPanel
+                           ) # end mainPanel
 
-    ) # end sidebarLayout
+             ) # end sidebarLayout
     ), # end tabPanel
 
     tabPanel("Differential alternative splicing (mutiple groups)", icon = icon("layer-group"),
@@ -349,20 +371,20 @@ betASapp_ui <- function(){
 
                                       plotOutput("FstatEventPlot_multgroup", height = "600px", width = "400px")
 
-                                      ),
+                               ),
 
                                column(9,
                                       shinycssloaders::withSpinner(plotOutput("violins_multgroup",
-                                                                     height = "600px"),
-                                                          type = 8,
-                                                          color = "#FF9AA2",
-                                                          size = 2)))
+                                                                              height = "600px"),
+                                                                   type = 8,
+                                                                   color = "#FF9AA2",
+                                                                   size = 2)))
 
                            )
              )
     )
 
-    ))
+  ))
 
 return(ui)
 
@@ -439,21 +461,21 @@ betASapp_server <- function(){
 
         } else {
 
-        if(length(grep(pattern = "[.]gz", x = input$psitable$datapath)) == 0){
+          if(length(grep(pattern = "[.]gz", x = input$psitable$datapath)) == 0){
 
-          loadingFile <- input$psitable$datapath
-        } else {
-          loadingFile <- gzfile(input$psitable$datapath)
-        }
+            loadingFile <- input$psitable$datapath
+          } else {
+            loadingFile <- gzfile(input$psitable$datapath)
+          }
 
-        loadingFile <- read.delim(loadingFile)
+          loadingFile <- read.delim(loadingFile)
 
         }
 
         return(loadingFile)
       }
 
-      })
+    })
 
     sampleTable <- reactive({
 
@@ -484,7 +506,44 @@ betASapp_server <- function(){
     })
 
 
-    output$filesinput <- renderTable(input$psitable$name)
+    #output$filesinput <- renderTable(input$psitable$name)
+
+
+
+
+
+    output$datasetInfo <- renderText({
+
+      req(sourcetool())
+      req(dataset())
+
+      if(is.null(input$psitable)){
+
+        if (sourcetool() == "vast-tools"){
+          url <-" https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/"
+          style <-  "style = 'font-size:14px; color: #000000' "
+          HTML(paste0("<p",style,",>You are using a subset of the <i>'Human RNA-seq time-series of the development of seven major organs'</i> public dataset (<a href='", url, "'>E-MTAB-6814</a>) as an example,
+                where the inclusion tables have been obtained using vast-tools.</p>"))
+
+        } else if (sourcetool() == "rMATS"){
+          url <- "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"
+          style <-  "style = 'font-size:14px; color: #000000' "
+          HTML(paste0("<p",style,",>You are using a subset of the <i>'Deep transcriptional profiling of longitudinal changes during neurogenesis and network
+          maturation in vivo'</i> public dataset (<a href='", url, "'>PRJNA185305</a>) as an example, where the inclusion tables have been obtained using rMATS.</p>"))
+
+        } else if (sourcetool() == "whippet"){
+          url <- "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"
+          style <-  "style = 'font-size:14px; color: #000000' "
+          HTML(paste0("<p",style,",>You are using a subset of the <i>'Deep transcriptional profiling of longitudinal changes during neurogenesis and network
+          maturation in vivo'</i> public dataset (<a href='", url, "'>PRJNA185305</a>) as an example, where the inclusion tables have been obtained using whippet. Browse through
+          the original filtered tables: </p>"))
+
+        }
+      }
+
+
+    })
+
 
     output$files <- renderDT({
 
@@ -493,8 +552,8 @@ betASapp_server <- function(){
       # Show input file names
       if(!is.null(input$psitable)){
 
-      datatable(data.frame(FileName=input$psitable$name,
-                                Size=paste0(input$psitable$size*10^(-6)," MB")), selection = list(mode = 'single', selected = c(1)))
+        datatable(data.frame(FileName=input$psitable$name,
+                             Size=paste0(input$psitable$size*10^(-6)," MB")), selection = list(mode = 'single', selected = c(1)))
 
       } else {
         if (sourcetool() == "whippet"){
@@ -519,15 +578,15 @@ betASapp_server <- function(){
     # })
 
     output$selected_file_table <- renderDT({
-       req(dataset())
+      req(dataset())
       req(selectAlternatives())
 
 
       if (sourcetool()=="whippet"){
         # if(!is.null(input$psitable)){
-          data <- dataset()[[input$files_rows_selected]]
-          events_to_show <- paste0(data$Gene,":",data$Node,":",data$Type) %in% psifiltdataset()$EVENT
-          data[events_to_show,]
+        data <- dataset()[[input$files_rows_selected]]
+        events_to_show <- paste0(data$Gene,":",data$Node,":",data$Type) %in% psifiltdataset()$EVENT
+        data[events_to_show,]
         # }
       }else if(sourcetool() == "rMATS"){
 
@@ -540,7 +599,7 @@ betASapp_server <- function(){
 
       }
 
-    }, rownames = FALSE)
+    }, rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE))
 
 
 
@@ -553,7 +612,7 @@ betASapp_server <- function(){
 
       req(sourcetool())
 
-        if(is.null(input$psitable) & sourcetool() %in% c("vast-tools","rMATS")){
+      if(is.null(input$psitable) & sourcetool() %in% c("vast-tools","rMATS")){
 
 
         print("Sample information")
@@ -562,7 +621,7 @@ betASapp_server <- function(){
 
     })
 
-#Check data format. Currently supports rMATS & vast-tools tables
+    #Check data format. Currently supports rMATS & vast-tools tables
 
     sourcetool <- reactive({
 
@@ -635,7 +694,7 @@ betASapp_server <- function(){
       req(sourcetool())
 
       if(sourcetool() == "vast-tools"){
-         FormattedTable <- getVastTools(dataset())
+        FormattedTable <- getVastTools(dataset())
 
       }
 
@@ -656,7 +715,7 @@ betASapp_server <- function(){
 
       req(GetTable())
 
-       if(sourcetool()=="vast-tools"){
+      if(sourcetool()=="vast-tools"){
         updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT)
       }else if(sourcetool()=="whippet"){
         updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = c("CE"),  choices = eventTypesWhippet)
@@ -800,8 +859,8 @@ betASapp_server <- function(){
 
         alternativeList <- alternativeWhippet(req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
 
-         if(nrow(alternativeList$PSI) == 0){
-         showNotification("There are no events with PSI values within such range.",
+        if(nrow(alternativeList$PSI) == 0){
+          showNotification("There are no events with PSI values within such range.",
                            closeButton = TRUE,
                            duration = 5,
                            type = c("error"))
@@ -837,7 +896,7 @@ betASapp_server <- function(){
     # create a reactive expression
     psidataset <- reactive({
 
-        filterTable()$PSI
+      filterTable()$PSI
 
     })
 
@@ -850,15 +909,15 @@ betASapp_server <- function(){
     # create a reactive expression
     psifiltdataset <- reactive({
 
-        req(selectAlternatives())
-        return(selectAlternatives()$PSI)
+      req(selectAlternatives())
+      return(selectAlternatives()$PSI)
 
     })
 
     qualfiltdataset <- reactive({
 
-        req(selectAlternatives())
-        return(selectAlternatives()$Qual)
+      req(selectAlternatives())
+      return(selectAlternatives()$Qual)
 
     })
 
@@ -997,7 +1056,7 @@ betASapp_server <- function(){
                          type = c("error"))
         return(NULL)
 
-        }else if(
+      }else if(
 
         yStat == "Pdiff (probability of differential splicing)"){
 
@@ -1200,19 +1259,19 @@ betASapp_server <- function(){
 
 
 
-#
-#     observeEvent(sourcetool(), {
-#
-#       if(is.null(sourcetool())){
-#
-#         showNotification("Please select the tool associated with loaded table.",
-#                          closeButton = TRUE,
-#                          duration = 5,
-#                          type = c("error"))
-#
-#       }
-#
-#     })
+    #
+    #     observeEvent(sourcetool(), {
+    #
+    #       if(is.null(sourcetool())){
+    #
+    #         showNotification("Please select the tool associated with loaded table.",
+    #                          closeButton = TRUE,
+    #                          duration = 5,
+    #                          type = c("error"))
+    #
+    #       }
+    #
+    #     })
 
 
 
@@ -1445,10 +1504,10 @@ betASapp_server <- function(){
 
       if(is.null(input$psitable)){
 
-       sampleTable()
+        sampleTable()
 
       }
-    }
+    }, options = list(pageLength = 10, scrollX = TRUE)
     #},
     #rownames = FALSE,
     #colnames = c("Run", "Age", "DevStage", "Organ", "Sex")
@@ -1500,9 +1559,29 @@ betASapp_server <- function(){
     selection = c("multiple"),
     rownames = FALSE)
 
+
+
+
+
+
+
+
+    output$EventInfoWhippet <- renderText({
+      req(sourcetool())
+
+      if (sourcetool() == "whippet"){
+
+      "Events should be in the format Gene:Node:Type"
+
+      }
+
+    })
+
+
+
     output$url <- renderUI({
       req(sourcetool())
-      if(is.null(input$psitable) & sourcetool() == "vast-tools"){
+      if(sourcetool() == "vast-tools"){
 
         event <- selectedeventID()
         url <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
@@ -1704,8 +1783,8 @@ betASapp_server <- function(){
 
       # brushedPoints(df = simplifiedTableVolcano(), input$plot_brush, xvar = "deltapsi", yvar = column)
       datatable(brushedPoints(df = simplifiedTableVolcano(), input$plot_brush),
-                    rownames = FALSE,
-                    colnames = colnameVector()) %>% formatRound(columns = c(3:4), digits = 3)
+                rownames = FALSE,
+                colnames = colnameVector()) %>% formatRound(columns = c(3:4), digits = 3)
 
     })
     # Required if using renderDT from shiny but with DT (to allow formatRound()); rownames/colnames are replaced by the parameters inside DT::datatable
@@ -1717,7 +1796,7 @@ betASapp_server <- function(){
       req(input$eventidtoplot)
       req(sourcetool())
 
-      if(is.null(input$psitable) & sourcetool() == "vast-tools"){
+      if(sourcetool() == "vast-tools"){
 
         event <- selectedeventIDDiff()
         url <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
@@ -2005,7 +2084,7 @@ betASapp_server <- function(){
       req(input$eventidtoplot_mult)
       req(sourcetool())
 
-      if(is.null(input$psitable) & sourcetool() == "vast-tools"){
+      if(sourcetool() == "vast-tools"){
 
         event <- selectedeventIDDiffMultiple()
         url <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
