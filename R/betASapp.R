@@ -131,7 +131,7 @@ betASapp_ui <- function(){
                              ),
                              #checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT),
 
-                             sliderInput("psirange", "PSI values to consider:", value = c(1, 99), min = 0, max = 100, step=0.1),
+                             sliderInput("psirange", "PSI values to consider:", value = c(1, 99), min = 0, max = 100, step=1),
                              helpText((em("Consider only alternative splicing events with all PSI values within this range.")),
                                       h6(textOutput("textTotalNumberEvents")),
                                       # textOutput("textNumberEventsPerType"),
@@ -910,7 +910,10 @@ betASapp_server <- function(){
     psifiltdataset <- reactive({
 
       req(selectAlternatives())
+
+
       return(selectAlternatives()$PSI)
+
 
     })
 
@@ -1028,8 +1031,7 @@ betASapp_server <- function(){
                                      interestColor = "#E69A9C",
                                      maxDevTable = maxDevSimulationN100,
                                      nsim = 1000)
-
-      return(eventList)
+       return(eventList)
 
     })
 
@@ -1169,6 +1171,8 @@ betASapp_server <- function(){
 
     })
 
+
+
     observe({updateSelectInput(inputId = "groupSamples", choices = colnames(psifiltdataset())[-c(1:6)])})
 
     observe({updateSelectInput(inputId = "indbetaseventid", choices = psifiltdataset()$EVENT)})
@@ -1194,6 +1198,7 @@ betASapp_server <- function(){
                        type = c("default"))
 
     })
+
 
 
 
@@ -1513,6 +1518,12 @@ betASapp_server <- function(){
     #colnames = c("Run", "Age", "DevStage", "Organ", "Sex")
     )
 
+
+
+
+
+
+
     output$groupsTable <- renderDT({
 
       if(length(values$groups)<1)return(NULL)
@@ -1584,8 +1595,10 @@ betASapp_server <- function(){
       if(sourcetool() == "vast-tools"){
 
         event <- selectedeventID()
-        url <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
-        HTML(paste0("<p>Check event details in <a href='", url, "'>VastDB (hg19)</a></p>"))
+        url19 <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
+        url38 <- paste0("https://vastdb.crg.eu/event/", event, "@hg38")
+
+        HTML(paste0("<p>Check event details in VastDB (<a href='", url19, "'>hg19</a> or <a href='", url38, "'>hg38</a>)</p>"))
 
       }
 
@@ -1799,8 +1812,11 @@ betASapp_server <- function(){
       if(sourcetool() == "vast-tools"){
 
         event <- selectedeventIDDiff()
-        url <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
-        HTML(paste0("<p>Check event details in <a href='", url, "'>VastDB (hg19)</a></p>"))
+
+        url19 <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
+        url38 <- paste0("https://vastdb.crg.eu/event/", event, "@hg38")
+
+        HTML(paste0("<p>Check event details in VastDB (<a href='", url19, "'>hg19</a> or <a href='", url38, "'>hg38</a>)</p>"))
 
       }
 
@@ -2087,8 +2103,10 @@ betASapp_server <- function(){
       if(sourcetool() == "vast-tools"){
 
         event <- selectedeventIDDiffMultiple()
-        url <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
-        HTML(paste0("<p>Check event details in <a href='", url, "'>VastDB (hg19)</a></p>"))
+        url19 <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
+        url38 <- paste0("https://vastdb.crg.eu/event/", event, "@hg38")
+
+        HTML(paste0("<p>Check event details in VastDB (<a href='", url19, "'>hg19</a> or <a href='", url38, "'>hg38</a>)</p>"))
 
       }
     })
