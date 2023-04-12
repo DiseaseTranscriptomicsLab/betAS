@@ -34,6 +34,7 @@ betASapp_ui <- function(){
   # defines user interface (ui)
   ui <- fluidPage(
 
+
     # tags$img(src="betasBanner.png", align = "right", height='80px', width='1000px'),
 
     # theme = bs_theme(bootswatch = "sketchy"),
@@ -98,8 +99,9 @@ betASapp_ui <- function(){
                                           # ),
 
                                           # helpText("(*) betAS currently supports inclusion level tables from: vast-tools (INCLUSION_LEVELS_FULL*.tab) and rMATS (*.MATS.JC.txt tables)"),
-                                          p("betAS currently supports inclusion level tables from vast-tools ",code("(INCLUSION_LEVELS_FULL*.tab)", style = "font-size:12px; color: #AAAAAA"),", rMATS ",code("(*.MATS.JC.txt)", style = "font-size:12px; color: #AAAAAA")," and whippet
-                                       ",code("(*.psi).", style = "font-size:12px; color: #AAAAAA"),"Only a single file is supported when using rMATS or vast-tools results. For whippet, please upload one file per sample.", style = "font-size:12px; color: #AAAAAA"),
+                                          p("betAS currently supports inclusion level tables from vast-tools ",code("(INCLUSION_LEVELS_FULL*.tab)", style = "font-size:12px; color: #AAAAAA"),
+                                            ", rMATS ",code("(*.MATS.JC.txt)", style = "font-size:12px; color: #AAAAAA")," and whippet",code("(*.psi).", style = "font-size:12px; color: #AAAAAA"),
+                                            "Only a single file is supported when using rMATS or vast-tools results. For whippet, please upload one file per sample.", style = "font-size:12px; color: #AAAAAA"),
 
 
                                           fileInput("psitable", NULL, placeholder = "No file selected (max. 100MB)", multiple=T), #accept = c(".tab",".txt",".psi",".gz")
@@ -108,284 +110,280 @@ betASapp_ui <- function(){
 
                                           h5(icon("file", style = "color: #000000"),"Your files:"),
 
+                                          uiOutput("datasetInfo"),
 
+                                          #tableOutput("filesinput"),
+                                          DTOutput("files"),
 
+                                          # helpText("(betAS currently supports inclusion level tables from: vast-tools)"),
+                                          #radioButtons("sourcetool", label = "Table source:", choices = availabletools, selected="vast-tools"),
 
+                                          hr(),
 
-                             uiOutput("datasetInfo"),
+                                          h5(icon("filter", style = "color: #000000", class="Light"),"Filter events from loaded table(s):"),
 
-                             #tableOutput("filesinput"),
-                             DTOutput("files"),
+                                          conditionalPanel(
+                                            condition = "output.showchecks",
+                                            checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT)
+                                          ),
+                                          #checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT),
 
-                             # helpText("(betAS currently supports inclusion level tables from: vast-tools)"),
-                             #radioButtons("sourcetool", label = "Table source:", choices = availabletools, selected="vast-tools"),
+                                          sliderInput("psirange", "PSI values to consider:", value = c(1, 99), min = 0, max = 100, step=1),
+                                          helpText((em("Consider only alternative splicing events with all PSI values within this range.")),
+                                                   h6(textOutput("textTotalNumberEvents")),
+                                                   # textOutput("textNumberEventsPerType"),
+                                                   # actionButton("filter", "Filter original table", icon = icon("filter"), class = "btn-success"),
+                                                   highchartOutput("eventsPiechart")
 
-                             hr(),
+                                          )),
 
-                             h5(icon("filter", style = "color: #000000", class="Light"),"Filter events from loaded table(s):"),
-
-                             conditionalPanel(
-                               condition = "output.showchecks",
-                               checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT)
-                             ),
-                             #checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT),
-
-                             sliderInput("psirange", "PSI values to consider:", value = c(1, 99), min = 0, max = 100, step=1),
-                             helpText((em("Consider only alternative splicing events with all PSI values within this range.")),
-                                      h6(textOutput("textTotalNumberEvents")),
-                                      # textOutput("textNumberEventsPerType"),
-                                      # actionButton("filter", "Filter original table", icon = icon("filter"), class = "btn-success"),
-                                      highchartOutput("eventsPiechart")
-
-                             )),
-
-               mainPanel(
-                 shinycssloaders::withSpinner(plotOutput("plot", height = "1000px"), type = 8, color = "#FF9AA2", size = 2),
-                 # shinycssloaders::withSpinner(plotOutput("plot"), type = 8, color = "#FF9AA2", size = 2),
-                 #h6("NOTE: vast-tools tables consider PSI values as percent spliced-in values, i.e., in the [0;100] interval"),
-                 h6(textOutput("TextToolInfo")),
-                 #DTOutput("table")
-                 DTOutput("selected_file_table" )
+                             mainPanel(
+                               shinycssloaders::withSpinner(plotOutput("plot", height = "1000px"), type = 8, color = "#FF9AA2", size = 2),
+                               # shinycssloaders::withSpinner(plotOutput("plot"), type = 8, color = "#FF9AA2", size = 2),
+                               #h6("NOTE: vast-tools tables consider PSI values as percent spliced-in values, i.e., in the [0;100] interval"),
+                               h6(textOutput("TextToolInfo")),
+                               #DTOutput("table")
+                               DTOutput("selected_file_table" )
+                             )
                )
-      )
-    ),
+      ),
 
-    tabPanel("Group definition", icon = icon("gears"),
+      tabPanel("Group definition", icon = icon("gears"),
 
-             sidebarLayout(fluid = TRUE,
+               sidebarLayout(fluid = TRUE,
 
-                           sidebarPanel(
-                             selectInput("indbetaseventid", "Select alternative splicing event to plot:", choices = NULL),
-                             h6(textOutput("EventInfoWhippet")),
-
-
-                             uiOutput("url"),
-
-                             #h5("Sample information"),
-
-                             h5(textOutput("samplesTabletext")),
-
-                             DTOutput("sampleTable"),
-
-                             h4("Organise samples into groups/conditions"),
-
-                             helpText(tags$ul(
-                               tags$li("one beta distribution will be estimated per sample"),
-                               tags$li("groups defined can be used for differential splicing analyses")
-                             )),
+                             sidebarPanel(
+                               selectInput("indbetaseventid", "Select alternative splicing event to plot:", choices = NULL),
+                               h6(textOutput("EventInfoWhippet")),
 
 
-                             # h5("Group creation"),
-                             #
-                             # helpText(em("Choose one option for group creation and check the resulting grouping below")),
+                               uiOutput("url"),
 
-                             tags$ol(
+                               #h5("Sample information"),
 
-                               tags$li(h5("Add/delete groups by sample selection:")),
+                               h5(textOutput("samplesTabletext")),
 
-                               textInput(inputId = "groupName", label = "Insert group name:", placeholder = "e.g. Control"),
-                               selectInput("groupSamples", "Choose samples in group:", choices = NULL, multiple = TRUE),
-                               colourInput("groupColor", "Select group color:", value = "#89C0AE"),
-                               actionButton("newGroup", "Create new group", icon = icon("layer-group"), class = "btn-secondary"),
+                               DTOutput("sampleTable"),
 
-                               tags$li(h5("Automatic group creation:")),
+                               h4("Organise samples into groups/conditions"),
+
+                               helpText(tags$ul(
+                                 tags$li("one beta distribution will be estimated per sample"),
+                                 tags$li("groups defined can be used for differential splicing analyses")
+                               )),
+
+
+                               # h5("Group creation"),
+                               #
+                               # helpText(em("Choose one option for group creation and check the resulting grouping below")),
 
                                tags$ol(
 
-                                 # tags$li(h6("Group samples based on a given feature")),
-                                 # selectInput("groupingFeature", label = "Select feature to group samples by:", choices = c("organism_part", "developmental_stage", "sex")),
-                                 # actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info"),
+                                 tags$li(h5("Add/delete groups by sample selection:")),
 
-                                 tags$li(h6("Group samples based on sample name similarities")),
-                                 actionButton("findGroups", "Automatic group(s)", icon = icon("wand-sparkles"), class = "btn-info"),
+                                 textInput(inputId = "groupName", label = "Insert group name:", placeholder = "e.g. Control"),
+                                 selectInput("groupSamples", "Choose samples in group:", choices = NULL, multiple = TRUE),
+                                 colourInput("groupColor", "Select group color:", value = "#89C0AE"),
+                                 actionButton("newGroup", "Create new group", icon = icon("layer-group"), class = "btn-secondary"),
 
-                                 #
-                                 #                                  conditionalPanel(
-                                 #                                   condition = 'input.psitable === NULL',
-                                 #                                   tags$li(h6("Group samples based on a given feature")),
-                                 #                                   selectInput("groupingFeature", label = "Select feature to group samples by:", choices = NULL),
-                                 #                                   actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info")
-                                 #                                 )
-                                 #
-                                 tags$li(h6("Group samples based on a given feature")),
-                                 selectInput("groupingFeature", label = "Select feature to group samples by:", choices = NULL),
-                                 actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info")
+                                 tags$li(h5("Automatic group creation:")),
+
+                                 tags$ol(
+
+                                   # tags$li(h6("Group samples based on a given feature")),
+                                   # selectInput("groupingFeature", label = "Select feature to group samples by:", choices = c("organism_part", "developmental_stage", "sex")),
+                                   # actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info"),
+
+                                   tags$li(h6("Group samples based on sample name similarities")),
+                                   actionButton("findGroups", "Automatic group(s)", icon = icon("wand-sparkles"), class = "btn-info"),
+
+                                   #
+                                   #                                  conditionalPanel(
+                                   #                                   condition = 'input.psitable === NULL',
+                                   #                                   tags$li(h6("Group samples based on a given feature")),
+                                   #                                   selectInput("groupingFeature", label = "Select feature to group samples by:", choices = NULL),
+                                   #                                   actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info")
+                                   #                                 )
+                                   #
+                                   tags$li(h6("Group samples based on a given feature")),
+                                   selectInput("groupingFeature", label = "Select feature to group samples by:", choices = NULL),
+                                   actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info")
 
 
+                                 )),
+
+                               h5("Current groups defined"),
+                               DTOutput("groupsTable"),
+                               helpText(em("Choose one table row for group deletion")),
+
+                               actionButton("deleteGroups", "Delete group(s)", icon = icon("eraser"), class = "btn-danger")
+
+                             ),
+
+                             mainPanel(
+                               shinycssloaders::withSpinner(plotOutput("densities", height = "1200px"), type = 8, color = "#FF9AA2", size = 2)
+                             )
+               )
+      ),
+
+      tabPanel("Differential alternative splicing", icon = icon("flag-checkered"),
+
+               sidebarLayout(fluid = TRUE,
+
+                             sidebarPanel(
+                               h4("Differential splicing in groups/conditions"),
+                               # "Perform differential alternative splicing analysis for all events",
+                               helpText(tags$ul(
+                                 tags$li("All events from 'Import inclusion levels'"),
+                                 tags$li("Groups created in 'Group definition'")
                                )),
 
-                             h5("Current groups defined"),
-                             DTOutput("groupsTable"),
-                             helpText(em("Choose one table row for group deletion")),
+                               selectInput("groupA", "Choose group A:", NULL),
 
-                             actionButton("deleteGroups", "Delete group(s)", icon = icon("eraser"), class = "btn-danger")
+                               selectInput("groupB", "Choose group B:", NULL),
 
-                           ),
+                               radioButtons("volcanoYAxis", label = "Choose significance statistic (Y-axis) to consider:", choices = yAxisStats),
 
-                           mainPanel(
-                             shinycssloaders::withSpinner(plotOutput("densities", height = "1200px"), type = 8, color = "#FF9AA2", size = 2)
-                           )
-             )
-    ),
+                               actionButton("rundiffbetas", "Run betAS", icon = icon("person-running"), class = "btn-info"),
+                               # Other cool icons: play | play-circle
 
-    tabPanel("Differential alternative splicing", icon = icon("flag-checkered"),
+                               h5("Explore differential splicing at the event level:"),
+                               helpText(em("Brush over the plot for event selection")),
+                               DTOutput("brushed_data"),
+                               h6(""),
+                               textInput("eventidtoplot", "Alternative splicing event to plot:" ),
+                               #textInput("eventidtoplot", "Alternative splicing event to plot:", placeholder = "e.g. HsaEX0007927"),
 
-             sidebarLayout(fluid = TRUE,
-
-                           sidebarPanel(
-                             h4("Differential splicing in groups/conditions"),
-                             # "Perform differential alternative splicing analysis for all events",
-                             helpText(tags$ul(
-                               tags$li("All events from 'Import inclusion levels'"),
-                               tags$li("Groups created in 'Group definition'")
-                             )),
-
-                             selectInput("groupA", "Choose group A:", NULL),
-
-                             selectInput("groupB", "Choose group B:", NULL),
-
-                             radioButtons("volcanoYAxis", label = "Choose significance statistic (Y-axis) to consider:", choices = yAxisStats),
-
-                             actionButton("rundiffbetas", "Run betAS", icon = icon("person-running"), class = "btn-info"),
-                             # Other cool icons: play | play-circle
-
-                             h5("Explore differential splicing at the event level:"),
-                             helpText(em("Brush over the plot for event selection")),
-                             DTOutput("brushed_data"),
-                             h6(""),
-                             textInput("eventidtoplot", "Alternative splicing event to plot:" ),
-                             #textInput("eventidtoplot", "Alternative splicing event to plot:", placeholder = "e.g. HsaEX0007927"),
-
-                             uiOutput("urlplot"),
-                             actionButton("plotEvent", "Plot considered event", icon = icon("mound"), class = "btn-secondary"),
-                             # textOutput("showMeEvent"),
-                             # plotOutput("densitiesSelectedEvent", height = "400px", width = "500px")
-
-                           ),
-
-                           mainPanel(
-
-                             shinycssloaders::withSpinner(plotOutput("volcano",
-                                                                     height = "900px",
-                                                                     brush = brushOpts(id = "plot_brush")),
-                                                          type = 8,
-                                                          color = "#FF9AA2",
-                                                          size = 2),
-
-                             fluidRow(
-                               plotOutput("densitiesSelectedEvent", height = "400px")
-                             ),
-
-                             fluidRow(
-
-                               column(4,
-                                      h4("P(A - B) > x:"),
-                                      h6("Probability that estimated PSI of one group is greater than the other by x.")),
-
-                               column(4,
-                                      h4("F-statistic:"),
-                                      h6("Ratio between absolute differences 'between' and 'within' groups.")),
-
-                               column(4,
-                                      h4("False discovery rate (FDR):"),
-                                      h6("Probability of getting an absolute difference in PSI between groups greater than the observed, under the null hypothesis that all PSIs come from the same distribution."))
+                               uiOutput("urlplot"),
+                               actionButton("plotEvent", "Plot considered event", icon = icon("mound"), class = "btn-secondary"),
+                               # textOutput("showMeEvent"),
+                               # plotOutput("densitiesSelectedEvent", height = "400px", width = "500px")
 
                              ),
 
-                             fluidRow(
-                               column(4,
+                             mainPanel(
 
-                                      plotOutput("PDiffEventPlot", height = "400px", width = "400px")),
+                               shinycssloaders::withSpinner(plotOutput("volcano",
+                                                                       height = "900px",
+                                                                       brush = brushOpts(id = "plot_brush")),
+                                                            type = 8,
+                                                            color = "#FF9AA2",
+                                                            size = 2),
 
-                               column(4,
+                               fluidRow(
+                                 plotOutput("densitiesSelectedEvent", height = "400px")
+                               ),
 
-                                      plotOutput("FstatEventPlot", height = "400px", width = "400px")),
+                               fluidRow(
 
-                               column(4,
+                                 column(4,
+                                        h4("P(A - B) > x:"),
+                                        h6("Probability that estimated PSI of one group is greater than the other by x.")),
 
-                                      plotOutput("FDREventPlot", height = "400px", width = "400px"))
+                                 column(4,
+                                        h4("F-statistic:"),
+                                        h6("Ratio between absolute differences 'between' and 'within' groups.")),
 
-                             )
-
-                           ) # end mainPanel
-
-             ) # end sidebarLayout
-    ), # end tabPanel
-
-    tabPanel("Differential alternative splicing (mutiple groups)", icon = icon("layer-group"),
-
-             sidebarLayout(fluid = TRUE,
-
-                           sidebarPanel(
-                             h4("Generalised differential alternative splicing across groups/conditions"),
-                             # "Perform differential alternative splicing analysis for all events",
-                             helpText(tags$ul(
-                               tags$li("All events from 'Import inclusion levels'"),
-                               tags$li("Groups created in 'Group definition'")
-                             )),
-
-                             h6(""),
-
-                             radioButtons("volcanoYAxis_mult", label = "Choose significance statistic (Y-axis) to consider:", choices = yAxisStats_multiple),
-                             actionButton("rundiffbetas_mult", "Run betAS (multiple groups)", icon = icon("person-running"), class = "btn-info"),
-
-                             h5("Current groups"),
-                             helpText(em("Defined groups can be edited in 'Group definition' tab")),
-                             DTOutput("groupsTableMultiple"),
-
-                             h6(""),
-
-                             h5("Explore differential splicing at the event level:"),
-                             helpText(em("Brush over the plot for event selection")),
-                             DTOutput("brushed_data_mult"),
-
-                             selectInput("eventidtoplot_mult", "Select alternative splicing event to plot:", choices = NULL),
-                             uiOutput("urlplot_mult"),
-
-                             h6(""),
-                             actionButton("plotEvent_mult", "Plot considered event", icon = icon("mound"), class = "btn-secondary"),
-
-                           ),
-
-                           mainPanel(
-
-                             shinycssloaders::withSpinner(plotOutput("volcano_mult",
-                                                                     height = "900px",
-                                                                     brush = brushOpts(id = "plot_brush_mult")),
-                                                          type = 8,
-                                                          color = "#FF9AA2",
-                                                          size = 2),
-
-                             fluidRow(
-
-                               column(3,
-                                      h5("Absolute differences 'between' and 'within' groups.")),
-
-                               column(9,
-                                      h5("PSI quantifications per sample across groups."))),
-
-                             fluidRow(
-
-                               column(3,
-
-                                      plotOutput("FstatEventPlot_multgroup", height = "600px", width = "400px")
+                                 column(4,
+                                        h4("False discovery rate (FDR):"),
+                                        h6("Probability of getting an absolute difference in PSI between groups greater than the observed, under the null hypothesis that all PSIs come from the same distribution."))
 
                                ),
 
-                               column(9,
-                                      shinycssloaders::withSpinner(plotOutput("violins_multgroup",
-                                                                              height = "600px"),
-                                                                   type = 8,
-                                                                   color = "#FF9AA2",
-                                                                   size = 2)))
+                               fluidRow(
+                                 column(4,
 
-                           )
-             )
-    )
+                                        plotOutput("PDiffEventPlot", height = "400px", width = "400px")),
 
-  ))
+                                 column(4,
 
-return(ui)
+                                        plotOutput("FstatEventPlot", height = "400px", width = "400px")),
+
+                                 column(4,
+
+                                        plotOutput("FDREventPlot", height = "400px", width = "400px"))
+
+                               )
+
+                             ) # end mainPanel
+
+               ) # end sidebarLayout
+      ), # end tabPanel
+
+      tabPanel("Differential alternative splicing (mutiple groups)", icon = icon("layer-group"),
+
+               sidebarLayout(fluid = TRUE,
+
+                             sidebarPanel(
+                               h4("Generalised differential alternative splicing across groups/conditions"),
+                               # "Perform differential alternative splicing analysis for all events",
+                               helpText(tags$ul(
+                                 tags$li("All events from 'Import inclusion levels'"),
+                                 tags$li("Groups created in 'Group definition'")
+                               )),
+
+                               h6(""),
+
+                               radioButtons("volcanoYAxis_mult", label = "Choose significance statistic (Y-axis) to consider:", choices = yAxisStats_multiple),
+                               actionButton("rundiffbetas_mult", "Run betAS (multiple groups)", icon = icon("person-running"), class = "btn-info"),
+
+                               h5("Current groups"),
+                               helpText(em("Defined groups can be edited in 'Group definition' tab")),
+                               DTOutput("groupsTableMultiple"),
+
+                               h6(""),
+
+                               h5("Explore differential splicing at the event level:"),
+                               helpText(em("Brush over the plot for event selection")),
+                               DTOutput("brushed_data_mult"),
+
+                               selectInput("eventidtoplot_mult", "Select alternative splicing event to plot:", choices = NULL),
+                               uiOutput("urlplot_mult"),
+
+                               h6(""),
+                               actionButton("plotEvent_mult", "Plot considered event", icon = icon("mound"), class = "btn-secondary"),
+
+                             ),
+
+                             mainPanel(
+
+                               shinycssloaders::withSpinner(plotOutput("volcano_mult",
+                                                                       height = "900px",
+                                                                       brush = brushOpts(id = "plot_brush_mult")),
+                                                            type = 8,
+                                                            color = "#FF9AA2",
+                                                            size = 2),
+
+                               fluidRow(
+
+                                 column(3,
+                                        h5("Absolute differences 'between' and 'within' groups.")),
+
+                                 column(9,
+                                        h5("PSI quantifications per sample across groups."))),
+
+                               fluidRow(
+
+                                 column(3,
+
+                                        plotOutput("FstatEventPlot_multgroup", height = "600px", width = "400px")
+
+                                 ),
+
+                                 column(9,
+                                        shinycssloaders::withSpinner(plotOutput("violins_multgroup",
+                                                                                height = "600px"),
+                                                                     type = 8,
+                                                                     color = "#FF9AA2",
+                                                                     size = 2)))
+
+                             )
+               )
+      )
+
+    ))
+
+  return(ui)
 
 }
 
@@ -445,6 +443,11 @@ betASapp_server <- function(){
 
         } else if (input$sourcetool == "whippet"){
 
+          showNotification("Please note that importing data may take a few minutes.",
+                           closeButton = TRUE,
+                           duration = 10,
+                           type = c("message"))
+
           testTable <- readRDS(file = "test/listdfs_WHippet.rds")
 
         }
@@ -454,6 +457,11 @@ betASapp_server <- function(){
       }else{
 
         if(length(input$psitable$datapath) > 1 & length(grep(pattern = "[.]psi", x = input$psitable$name)) != 0 ){
+
+          showNotification("Please note that importing data may take a few minutes.",
+                           closeButton = TRUE,
+                           duration = 10,
+                           type = c("message"))
 
           loadingFile <- lapply(as.list(input$psitable$datapath),fread)
           names(loadingFile) <- sapply(input$psitable$name, function(file) gsub("\\..*","",gsub(".*/","",file)))
@@ -551,17 +559,25 @@ betASapp_server <- function(){
       # Show input file names
       if(!is.null(input$psitable)){
 
-        datatable(data.frame(FileName=input$psitable$name,
-                             Size=paste0(input$psitable$size*10^(-6)," MB")), selection = list(mode = 'single', selected = c(1)))
+        dt <- data.frame(FileName=input$psitable$name,
+                             Size=paste0(input$psitable$size*10^(-6)," MB"))
 
       } else {
         if (sourcetool() == "whippet"){
-          datatable(data.frame(FileName=paste0("Example_Whippet_",GetTable()$Samples)), selection = list(mode = 'single', selected = c(1)))
+          dt <- data.frame(FileName=paste0("Example_Whippet_",GetTable()$Samples))
         } else {
-          datatable(data.frame(FileName=paste0("Example_",sourcetool())), selection = list(mode = 'single', selected = c(1)))
+          dt <- data.frame(FileName=paste0("Example_",sourcetool()))
         }
       }
+
+      datatable(dt, selection = list(mode = 'single', selected = c(1)))
+
     }, rownames = FALSE)
+
+
+
+
+
 
 
 
@@ -1030,7 +1046,7 @@ betASapp_server <- function(){
                                      interestColor = "#E69A9C",
                                      maxDevTable = maxDevSimulationN100,
                                      nsim = 1000)
-       return(eventList)
+      return(eventList)
 
     })
 
@@ -1581,7 +1597,7 @@ betASapp_server <- function(){
 
       if (sourcetool() == "whippet"){
 
-      "Events should be in the format Gene:Node:Type"
+        "Events should be in the format Gene:Node:Type"
 
       }
 
