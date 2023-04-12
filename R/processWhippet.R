@@ -4,35 +4,54 @@ getWhippet <- function(listIncTables){
   filterWhip <- list()
 
   listfiles <- lapply(listIncTables, function(sample) {
+
+    # Create column for eventID = GENE:NODE:TYPE
     sample$eventID <- paste0(sample$Gene, ":", sample$Node, ":", sample$Type)
+    # Extract inclusion reads based on Ninc ~ Binomial(n=Ntotal, p=PSI) (See supplementary material from Whippet paper https://doi.org/10.1016/j.molcel.2018.08.018)
     sample$Ninc <- sample$Psi*sample$Total_Reads
+    # Get exclusion reads based on Ntotal = Ninc + Nexc
     sample$Nexc <-sample$Total_Reads - sample$Ninc  # or sample$Ninc*(1/sample$Psi - 1)
+
+    # Create auxiliary column that will be needed for the final table
+    sample$length <- rep(0,nrow(sample))
+
+    # Keep only necessary columns
+    sample <- sample[,c(1,15,3,18,3,5,6,16,17)]
+    colnames(sample) <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX","PSI","INC","EXC")
+
     return(sample)
+
   })
 
+  # Change column names so that PSI, INC and EXC are unique for each sample. Will be useful to merge
+  newcolnames <- lapply(names(listfiles), function(x) paste0(c("PSI","INC","EXC"),".",x))
+  for(i in 1:length(listfiles)){
+    colnames(listfiles[[i]])[7:9] <- newcolnames[[i]]
+  }
 
-  # Use one of the samples to get the common columns
-  commonCols <- as.data.frame(cbind(listfiles[[1]]$Gene, listfiles[[1]]$eventID, listfiles[[1]]$Coord, rep(0, nrow(listfiles[[1]])), listfiles[[1]]$Coord, listfiles[[1]]$Type))
-  colnames(commonCols) <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX")
-
-  # lapply(listfiles, "[", 1: nrow(listfiles[[1]]) , c("Psi")) gets every Psi column for each data frame in the list; nrow(listfiles[[1]]) is used just to ensure
-  # that we select all rows, and only the psi column
-  # Assumptions: each sample has the same events, in the same order (which should be the case if Whippet is applied for all samples at the same time)
-
-  psis <- as.data.frame(lapply(lapply(listfiles, "[", , c("Psi")),cbind))*100
-
-  inc <- as.data.frame(lapply(lapply(listfiles, "[", , c("Ninc")),cbind))
-  exc <- as.data.frame(lapply(lapply(listfiles, "[", , c("Nexc")),cbind))
-
-  # qual matrix, which includes inc and exc counts
-  qualWhip <- cbind(commonCols,
-                    # Mimicking vast-tools INCLUSION table ".Q" columns to facilitate the compatibility with other betAS functions
-                    matrix(paste0("A,A,0=0=0,A,",commonCols$COMPLEX,"@", as.matrix(inc) , ",", as.matrix(exc) ), nrow = nrow(commonCols)))
-  colnames(qualWhip) <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX",paste0(names(listfiles),".Q"))
+  # Merge all tables; might take a while, but ensures that the universe of events is the same
+  mergeTable <- as.data.frame(Reduce(function(dtf1, dtf2) merge(dtf1, dtf2,
+                                                                by.x=c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX"),
+                                                                by.y=c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX"),
+                                                                all = TRUE),
+                                     listfiles))
 
   # psi matrix
-  psiWhip <- cbind(commonCols,psis)
-  colnames(psiWhip) <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX",names(listfiles))
+  colpsis <- grep("PSI.",colnames(mergeTable))
+  psiWhip <- mergeTable[,c(1:6,colpsis)]
+  colpsis <- grep("PSI.",colnames(psiWhip))
+  psiWhip[,colpsis] <- psiWhip[,colpsis]*100
+  colnames(psiWhip)[colpsis] <- gsub("PSI.","",colnames(psiWhip)[colpsis])
+
+  # qual matrix, which includes inc and exc counts
+
+  inc <- as.matrix(mergeTable[,c(grep("INC.",colnames(mergeTable)))])
+  exc <- as.matrix(mergeTable[,c(grep("EXC.",colnames(mergeTable)))])
+
+  qualWhip <- cbind(mergeTable[,c(1:6)],
+                    # Mimicking vast-tools INCLUSION table ".Q" columns to facilitate the compatibility with other betAS functions
+                    matrix(paste0("A,A,0=0=0,A,",mergeTable$COMPLEX,"@", inc , ",", exc ), nrow = nrow(mergeTable[,c(1:6)])))
+  colnames(qualWhip) <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX",paste0(names(listfiles),".Q"))
 
 
   filterWhip[[1]] <- psiWhip

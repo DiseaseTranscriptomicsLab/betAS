@@ -11,7 +11,7 @@
 # @examples
 individualBetas_nofitting_incr <- function(table, cols, indpoints, maxdevRefTable){
 
-  indBetas <- list()
+    indBetas <- list()
 
   # .Q columns to consider
   quals <- table[1,cols]

@@ -67,24 +67,24 @@ altPsi <- alternativeVastTools(test, minPsi = 5, maxPsi = 95)
 cat(paste0("Alternative events: ", nrow(altPsi$PSI)))
 
 # Prepare "Big picture plot"
-
-bigPicturePlot <- function(table){
-
-  transf <- reshape2::melt(table[,-c(1,3:6)], id.vars = c("EVENT"))
-
-  plot <- ggplot(data = transf,
-         aes(x = value,
-             group = variable,
-             color = variable,
-             fill = variable)) +
-    geom_density(show.legend = FALSE,
-                 alpha = 0.5) +
-    scale_x_continuous(breaks = seq(0,100, 25), limits = c(0,100)) +
-    facet_wrap(. ~ variable, ncol = 4) +
-    theme_minimal()
-
-  return(plot)
-}
+#
+# bigPicturePlot <- function(table){
+#
+#   transf <- reshape2::melt(table[,-c(1,3:6)], id.vars = c("EVENT"))
+#
+#   plot <- ggplot(data = transf,
+#          aes(x = value,
+#              group = variable,
+#              color = variable,
+#              fill = variable)) +
+#     geom_density(show.legend = FALSE,
+#                  alpha = 0.5) +
+#     scale_x_continuous(breaks = seq(0,100, 25), limits = c(0,100)) +
+#     facet_wrap(. ~ variable, ncol = 4) +
+#     theme_minimal()
+#
+#   return(plot)
+# }
 
 transf <- reshape2::melt(altPsi$PSI[,-c(1,3:6)], id.vars = c("EVENT"))
 colors <- colorRampPalette(c("#55CC9D","#F2969A"))(32)
@@ -367,7 +367,7 @@ files <- paste0("/mnt/scratch/home/mariana/Projects/betAS/Whippet/",list.files(f
 listfiles <- lapply(files,fread)
 names(listfiles) <- sapply(files, function(file) gsub("\\..*","",gsub(".*/","",file)))
 
-saveRDS(object = listfiles, file = "test/listdfs_WHippet.rds")
+#saveRDS(object = listfiles, file = "test/listdfs_WHippet.rds")
 whip1 <- getWhippet(listfiles)
 
 filtwhip1 <- filterWhippet(whip1, names(whip1$EventsPerType))
@@ -378,9 +378,26 @@ altfiltwhip1 <- alternativeWhippet(filtwhip1,1,99)
 metadatawhippet <- readRDS("test/samplesTable_rMATS.rds")
 metadatawhippet <- metadatawhippet[,-1]
 metadatawhippet
-saveRDS(object = metadatawhippet, file = "test/samplesTable_Whippet.rds")
+#saveRDS(object = metadatawhippet, file = "test/samplesTable_Whippet.rds")
 
 
-testonesamp <- readRDS("test/INCLUSION_LEVELS_FULL-hg19-98-v251.rds")
-testonesamp <- testonesamp[,c(1:8)]
-saveRDS(testonesamp, "test/testVT_onesamp.tab")
+#testonesamp <- readRDS("test/INCLUSION_LEVELS_FULL-hg19-98-v251.rds")
+#testonesamp <- testonesamp[,c(1:8)]
+#saveRDS(testonesamp, "test/testVT_onesamp.tab")
+
+
+# Testing rMATS functions ----------------------------------------------------
+testTable <- read.delim(file = "test/SE.MATS.JC.txt")
+testTable <- getrMATS(testTable)
+testTable <- filterrMATS(testTable)
+testTable <- alternativerMATS(testTable, minPsi=1, maxPsi=100)
+
+maxDevSimulationN100  <- readRDS("test/xintercepts_100incr_100cov_100trials.rds")
+row=5
+columns=c(7,8,9,10)
+npoints=500
+
+individualBetas_nofitting_incr(table = testTable$Qual[row,],
+                               cols = columns,
+                               indpoints = npoints,
+                               maxdevRefTable = maxDevSimulationN100)

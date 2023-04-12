@@ -171,7 +171,6 @@ filterrMATS <- function(RMlist){
 #
 # @examples
 alternativerMATS <- function(filteredRMList, minPsi, maxPsi){
-
   alternativeRM <- list()
 
   psiTable <- filteredRMList$PSI

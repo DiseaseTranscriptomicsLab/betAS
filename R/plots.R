@@ -235,7 +235,8 @@ plotIndividualDensities <- function(eventID, npoints, psitable, qualtable, colsA
 #' plotIndividualDensitiesList(eventID = "HsaEX0019479", npoints = 500, psitable = psiTable, qualtable = qualTable, groupList = testGroups, maxDevTable = maxDevSimulationN100)
 plotIndividualDensitiesList <- function(eventID, npoints, psitable, qualtable, groupList, maxDevTable){
 
-  row <- which(psitable$EVENT == eventID)
+
+   row <- which(psitable$EVENT == eventID)
 
   # Data-frame containing emitted points, sample names and group names
   densities_df  <- data.frame("points" = numeric(), "samples" = character())
@@ -539,11 +540,6 @@ plotVolcano <- function(betasTable, labA, labB, basalColor, interestColor){
   maxDeltaPsi <- max(abs(betasTable$deltapsi))
   pos         <- which(abs(refSeq-maxDeltaPsi)==min(abs(refSeq-maxDeltaPsi)))
   refScale    <- refSeq[pos+1]
-
-  print(refSeq)
-  print(maxDeltaPsi)
-  print(pos)
-  print(refScale)
 
   ggplot(betasTable,
          aes(x = deltapsi,
