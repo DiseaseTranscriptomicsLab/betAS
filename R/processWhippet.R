@@ -1,3 +1,10 @@
+# Format *.psi.gz tables (whippet) for quantified PSIs, for further analyses
+# @param incTable list of whippet's *.psi.gz tables, one per sample
+#
+# @return List with: 1) filtered table PSI columns, 2) filtered table "Qual" columns including inc and exc, 3) table with number of events per type and 4) Samples
+# @export
+#
+# @examples
 
 getWhippet <- function(listIncTables){
 
@@ -65,8 +72,16 @@ getWhippet <- function(listIncTables){
 }
 
 
+# Filter whippet tables for quality (NAs) and event type
+# Filter table from whippet to remove events containing NAs in at least one sample
+# @param WhippetList list containing PSI and Qual tables, as well as event and samples, obtained with getWhippet()
+# @param types (character) whippet's Type column letter code for alternative event types (CE,AA,AD,IR,TS,TE,AF,AL,BS) as described in https://github.com/timbitz/Whippet.jl
+#
+# @return List with: 1) filtered table PSI columns, 2) filtered table Qual columns, 3) table with number of events per type and 4) Samples (based on colnames)
+# @export
+#
+# @examples
 
-# to filter based on event type
 filterWhippet <- function(WhippetList, types){
 
   filterWhippet <- WhippetList
@@ -98,6 +113,17 @@ filterWhippet <- function(WhippetList, types){
   return(filterWhippet)
 
 }
+
+# Filter PSI table (whippet) by alternativity
+# Filter previously filtered PSI table from whippet to consider only events with PSIs between (and including) minPsi and maxPSI.
+# @param filteredWhippetList List containing PSI and Qual (whippet) tables, obtained with filterWhippet()
+# @param minPsi (numeric) Minimum PSI to consider
+# @param maxPsi (numeric) Maximum PSI to consider
+#
+# @return List with: 1) filtered table PSI columns, 2) filtered table "Qual" columns, including inc and exc, 3) table with number of events per type and 4) Samples
+# @export
+#
+# @examples
 
 
 alternativeWhippet <- function(filteredWhippetList, minPsi, maxPsi){

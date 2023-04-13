@@ -170,6 +170,8 @@ filterrMATS <- function(RMlist){
 # @export
 #
 # @examples
+
+
 alternativerMATS <- function(filteredRMList, minPsi, maxPsi){
   alternativeRM <- list()
 
