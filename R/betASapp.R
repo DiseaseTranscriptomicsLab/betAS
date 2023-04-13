@@ -428,6 +428,16 @@ betASapp_server <- function(){
     #   if (input$dark_mode) dark else light
     # ))
 
+
+    # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    # A. Import Inclusion Levels -----------------------------------------------
+    # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+    ## Functions ---------------------------------------------------------------
+
+
+
     # Loaded main original table
     dataset <- reactive({
 
@@ -513,128 +523,7 @@ betASapp_server <- function(){
     })
 
 
-    #output$filesinput <- renderTable(input$psitable$name)
 
-
-
-
-
-    output$datasetInfo <- renderText({
-
-      req(sourcetool())
-      req(dataset())
-
-      if(is.null(input$psitable)){
-
-        if (sourcetool() == "vast-tools"){
-          url <-" https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/"
-          style <-  "style = 'font-size:14px; color: #000000' "
-          HTML(paste0("<p",style,",>You are using a subset of the <i>'Human RNA-seq time-series of the development of seven major organs'</i> public dataset (<a href='", url, "'>E-MTAB-6814</a>) as an example,
-                where the inclusion tables have been obtained using vast-tools.</p>"))
-
-        } else if (sourcetool() == "rMATS"){
-          url <- "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"
-          style <-  "style = 'font-size:14px; color: #000000' "
-          HTML(paste0("<p",style,",>You are using a subset of the <i>'Deep transcriptional profiling of longitudinal changes during neurogenesis and network
-          maturation in vivo'</i> public dataset (<a href='", url, "'>PRJNA185305</a>) as an example, where the inclusion tables have been obtained using rMATS.</p>"))
-
-        } else if (sourcetool() == "whippet"){
-          url <- "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"
-          style <-  "style = 'font-size:14px; color: #000000' "
-          HTML(paste0("<p",style,",>You are using a subset of the <i>'Deep transcriptional profiling of longitudinal changes during neurogenesis and network
-          maturation in vivo'</i> public dataset (<a href='", url, "'>PRJNA185305</a>) as an example, where the inclusion tables have been obtained using whippet. Browse through
-          the original filtered tables: </p>"))
-
-        }
-      }
-
-
-    })
-
-
-    output$files <- renderDT({
-
-      req(sourcetool())
-
-      # Show input file names
-      if(!is.null(input$psitable)){
-
-        dt <- data.frame(FileName=input$psitable$name,
-                             Size=paste0(input$psitable$size*10^(-6)," MB"))
-
-      } else {
-        if (sourcetool() == "whippet"){
-          dt <- data.frame(FileName=paste0("Example_Whippet_",GetTable()$Samples))
-        } else {
-          dt <- data.frame(FileName=paste0("Example_",sourcetool()))
-        }
-      }
-
-      datatable(dt, selection = list(mode = 'single', selected = c(1)))
-
-    }, rownames = FALSE)
-
-
-
-
-
-
-
-
-
-    #select a row in DT files and display the corresponding table
-    # output$selected_file_table <- renderDT({
-    #   req(input$psitable)
-    #   req(input$files_rows_selected)
-    #
-    #   all_files()[[
-    #     input$psitable$name[[input$files_rows_selected]]
-    #   ]]
-    # })
-
-    output$selected_file_table <- renderDT({
-      req(dataset())
-      req(selectAlternatives())
-
-
-      if (sourcetool()=="whippet"){
-        # if(!is.null(input$psitable)){
-        data <- dataset()[[input$files_rows_selected]]
-        events_to_show <- paste0(data$Gene,":",data$Node,":",data$Type) %in% psifiltdataset()$EVENT
-        data[events_to_show,]
-        # }
-      }else if(sourcetool() == "rMATS"){
-
-        eventIDs <- psifiltdataset()$EVENT
-        dataset()[dataset()$ID %in% eventIDs,]
-
-      } else if (sourcetool() == "vast-tools"){
-
-        psifiltdataset()
-
-      }
-
-    }, rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE))
-
-
-
-
-
-
-
-
-    output$samplesTabletext <- renderText({
-
-      req(sourcetool())
-
-      if(is.null(input$psitable) & sourcetool() %in% c("vast-tools","rMATS")){
-
-
-        print("Sample information")
-
-      }
-
-    })
 
     #Check data format. Currently supports rMATS & vast-tools tables
 
@@ -684,23 +573,6 @@ betASapp_server <- function(){
 
     })
 
-
-    # Auxiliary variable to show or not the event types to filter (rMATS tables cannot be filtered by event type, as they only have one)
-    output$showchecks <- reactive({
-
-      req(sourcetool())
-
-      if (sourcetool() %in% c("vast-tools","whippet")){
-
-        return(TRUE)
-
-      }else{
-
-        return(FALSE)
-
-      }
-    })
-    outputOptions(output, 'showchecks', suspendWhenHidden=FALSE)
 
 
     GetTable <- reactive({
@@ -943,6 +815,145 @@ betASapp_server <- function(){
       return(nrow(psifiltdataset()))
     })
 
+
+
+
+    eventNumberPerType <- reactive({
+
+      selTypes  <- input$types
+      toPrint   <- selTypes
+      printed   <- c()
+      message   <- character()
+      while(length(printed) < length(selTypes)){
+        type  <- toPrint[1]
+
+        if(type == "EX") selectedEventTypes <- c("C1", "C2", "C3", "S", "MIC")
+        if(type == "IR") selectedEventTypes <- c("IR-C", "IR-S")
+        if(type == "Altss") selectedEventTypes <- c("Alt3", "Alt5")
+
+        count <- length(which(psifiltdataset()$COMPLEX %in% selectedEventTypes))
+
+        message <- paste0(message, type, ": ", count, " ")
+        printed <- c(printed, type)
+        toPrint <- toPrint[-c(1)]
+      }
+
+      return(message)
+
+    })
+
+
+    ## Outputs -----------------------------------------------------------------
+
+    #output$filesinput <- renderTable(input$psitable$name)
+
+
+
+
+    output$datasetInfo <- renderText({
+
+      req(sourcetool())
+      req(dataset())
+
+      if(is.null(input$psitable)){
+
+        if (sourcetool() == "vast-tools"){
+          url <-" https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/"
+          style <-  "style = 'font-size:14px; color: #000000' "
+          HTML(paste0("<p",style,",>You are using a subset of the <i>'Human RNA-seq time-series of the development of seven major organs'</i> public dataset (<a href='", url, "'>E-MTAB-6814</a>) as an example,
+                where the inclusion tables have been obtained using vast-tools.</p>"))
+
+        } else if (sourcetool() == "rMATS"){
+          url <- "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"
+          style <-  "style = 'font-size:14px; color: #000000' "
+          HTML(paste0("<p",style,",>You are using a subset of the <i>'Deep transcriptional profiling of longitudinal changes during neurogenesis and network
+          maturation in vivo'</i> public dataset (<a href='", url, "'>PRJNA185305</a>) as an example, where the inclusion tables have been obtained using rMATS.</p>"))
+
+        } else if (sourcetool() == "whippet"){
+          url <- "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"
+          style <-  "style = 'font-size:14px; color: #000000' "
+          HTML(paste0("<p",style,",>You are using a subset of the <i>'Deep transcriptional profiling of longitudinal changes during neurogenesis and network
+          maturation in vivo'</i> public dataset (<a href='", url, "'>PRJNA185305</a>) as an example, where the inclusion tables have been obtained using whippet. Browse through
+          the original filtered tables: </p>"))
+
+        }
+      }
+
+
+    })
+
+
+    output$files <- renderDT({
+
+      req(sourcetool())
+
+      # Show input file names
+      if(!is.null(input$psitable)){
+
+        dt <- data.frame(FileName=input$psitable$name,
+                         Size=paste0(input$psitable$size*10^(-6)," MB"))
+
+      } else {
+        if (sourcetool() == "whippet"){
+          dt <- data.frame(FileName=paste0("Example_Whippet_",GetTable()$Samples))
+        } else {
+          dt <- data.frame(FileName=paste0("Example_",sourcetool()))
+        }
+      }
+
+      datatable(dt, selection = list(mode = 'single', selected = c(1)))
+
+    }, rownames = FALSE)
+
+
+
+    output$selected_file_table <- renderDT({
+      req(dataset())
+      req(selectAlternatives())
+
+
+      if (sourcetool()=="whippet"){
+        # if(!is.null(input$psitable)){
+        data <- dataset()[[input$files_rows_selected]]
+        events_to_show <- paste0(data$Gene,":",data$Node,":",data$Type) %in% psifiltdataset()$EVENT
+        data[events_to_show,]
+        # }
+      }else if(sourcetool() == "rMATS"){
+
+        eventIDs <- psifiltdataset()$EVENT
+        dataset()[dataset()$ID %in% eventIDs,]
+
+      } else if (sourcetool() == "vast-tools"){
+
+        psifiltdataset()
+
+      }
+
+    }, rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE))
+
+
+
+    # Auxiliary variable to show or not the event types to filter (rMATS tables cannot be filtered by event type, as they only have one)
+    output$showchecks <- reactive({
+
+      req(sourcetool())
+
+      if (sourcetool() %in% c("vast-tools","whippet")){
+
+        return(TRUE)
+
+      }else{
+
+        return(FALSE)
+
+      }
+    })
+    outputOptions(output, 'showchecks', suspendWhenHidden=FALSE)
+
+
+
+
+
     output$textTotalNumberEvents <- renderText({
 
       # req(selectAlternatives())
@@ -970,29 +981,7 @@ betASapp_server <- function(){
 
     })
 
-    eventNumberPerType <- reactive({
 
-      selTypes  <- input$types
-      toPrint   <- selTypes
-      printed   <- c()
-      message   <- character()
-      while(length(printed) < length(selTypes)){
-        type  <- toPrint[1]
-
-        if(type == "EX") selectedEventTypes <- c("C1", "C2", "C3", "S", "MIC")
-        if(type == "IR") selectedEventTypes <- c("IR-C", "IR-S")
-        if(type == "Altss") selectedEventTypes <- c("Alt3", "Alt5")
-
-        count <- length(which(psifiltdataset()$COMPLEX %in% selectedEventTypes))
-
-        message <- paste0(message, type, ": ", count, " ")
-        printed <- c(printed, type)
-        toPrint <- toPrint[-c(1)]
-      }
-
-      return(message)
-
-    })
 
     output$textNumberEventsPerType <- renderText({
 
@@ -1001,6 +990,73 @@ betASapp_server <- function(){
       eventNumberPerType()
 
     })
+
+
+
+
+    output$eventsPiechart <- renderHighchart({
+
+      req(selectAlternatives())
+
+      preparePieForVastToolsCOMPLEX(psifiltdataset())
+
+    })
+
+
+
+    output$TextToolInfo <- renderText({
+
+      if(sourcetool() %in% c("rMATS","whippet")){
+
+        paste0("NOTE: ", sourcetool()," tables consider inclusion levels in the [0;1] interval")
+
+      } else if (sourcetool() == "vast-tools"){
+
+        "NOTE: vast-tools tables consider PSI values as percent spliced-in values, i.e., in the [0;100] interval"
+
+      }
+
+    })
+
+
+
+    # output$table <- renderDT({
+    #
+    #   req(selectAlternatives())
+    #
+    #   if(sourcetool() == "rMATS"){
+    #
+    #     eventIDs <- psifiltdataset()$EVENT
+    #     dataset()[dataset()$ID %in% eventIDs,]
+    #
+    #   } else if (sourcetool() == "vast-tools"){
+    #
+    #     psifiltdataset()
+    #
+    #   }
+    #
+    # }, rownames = FALSE)
+
+
+    output$plot <- renderPlot({
+
+      req(selectAlternatives())
+
+      bigPicturePlot(psifiltdataset())
+
+    })
+
+
+
+
+
+    # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    # B. Group Definition ------------------------------------------------------
+    # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+    ## Functions ---------------------------------------------------------------
+
 
     selectedeventID <- reactive({
       return(input$indbetaseventid)
@@ -1050,141 +1106,10 @@ betASapp_server <- function(){
 
     })
 
-    betasTableVolcano <- reactive({
-
-      req(input$rundiffbetas)
-
-      input$rundiffbetas
-
-      isolate({
-
-        groupA <- input$groupA
-        groupB <- input$groupB
-        yStat <- input$volcanoYAxis
-
-      })
 
 
-      if(is.null(groupA) || is.null(groupB) || is.null(yStat))return(NULL)else if(groupA == groupB){
-
-        showNotification("Please select two distict groups for differential splicing analysis",
-                         closeButton = TRUE,
-                         duration = 5,
-                         type = c("error"))
-        return(NULL)
-
-      }else if(
-
-        yStat == "Pdiff (probability of differential splicing)"){
-
-        samplesA <- values$groups[[groupA]]$samples
-        colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
-
-        samplesB <- values$groups[[groupB]]$samples
-        colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
-
-        table <- prepareTableVolcano(psitable = isolate(psifiltdataset()),
-                                     qualtable = isolate(qualfiltdataset()),
-                                     npoints = 500,
-                                     colsA = colsGroupA,
-                                     colsB = colsGroupB,
-                                     labA = groupA,
-                                     labB = groupB,
-                                     basalColor = "#89C0AE",
-                                     # interestColor = "#EE805B", #orange
-                                     interestColor = "#E69A9C", #pink
-                                     maxDevTable = maxDevSimulationN100)
-
-      }else if(
-
-        yStat == "F-statistic (median(|between|)/median(|within|))"){
-
-        showNotification("Please note that F-statistic quantifications may take a few minutes.",
-                         closeButton = TRUE,
-                         duration = 10,
-                         type = c("message"))
-
-        samplesA <- values$groups[[groupA]]$samples
-        colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
-
-        samplesB <- values$groups[[groupB]]$samples
-        colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
-
-        table <- prepareTableVolcanoFstat(psitable = isolate(psifiltdataset()),
-                                          qualtable = isolate(qualfiltdataset()),
-                                          npoints = 500,
-                                          colsA = colsGroupA,
-                                          colsB = colsGroupB,
-                                          labA = groupA,
-                                          labB = groupB,
-                                          basalColor = "#89C0AE",
-                                          interestColor = "#E69A9C",
-                                          maxDevTable = maxDevSimulationN100)
-
-      }else if(
-
-        yStat == "False discovery rate (FDR)"){
-
-        samplesA <- values$groups[[groupA]]$samples
-        colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
-
-        samplesB <- values$groups[[groupB]]$samples
-        colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
-
-        table <- prepareTableVolcanoFDR(psitable = isolate(psifiltdataset()),
-                                        qualtable = isolate(qualfiltdataset()),
-                                        npoints = 500,
-                                        colsA = colsGroupA,
-                                        colsB = colsGroupB,
-                                        labA = groupA,
-                                        labB = groupB,
-                                        basalColor = "#89C0AE",
-                                        interestColor = "#E69A9C",
-                                        maxDevTable = maxDevSimulationN100,
-                                        nsim = 100)
-
-      }
-
-      return(table)
-
-    })
-
-    simplifiedTableVolcano <- reactive({
-
-      req(betasTableVolcano())
-
-      isolate({
-
-        groupA <- input$groupA
-        groupB <- input$groupB
-        yStat <- input$volcanoYAxis
-
-      })
-
-      if(is.null(groupA) || is.null(groupB) || is.null(yStat))return(NULL)else if(
-
-        yStat == "Pdiff (probability of differential splicing)"){
-        column  <- 'Pdiff'
-
-      }else if(
-
-        yStat == "F-statistic (median(|between|)/median(|within|))"){
-        column <- 'Fstat'
 
 
-      }else if(
-
-        yStat == "False discovery rate (FDR)"){
-        column <- "invertedFDR"
-
-      }
-
-      simplifiedTable <- betasTableVolcano()
-      simplifiedTable <- simplifiedTable[,match(c("EVENT", "GENE", "deltapsi", column), colnames(simplifiedTable))]
-
-      return(simplifiedTable)
-
-    })
 
 
 
@@ -1430,6 +1355,587 @@ betASapp_server <- function(){
 
     })
 
+
+    ## Outputs -----------------------------------------------------------------
+
+
+
+
+    output$samplesTabletext <- renderText({
+
+      req(sourcetool())
+
+      if(is.null(input$psitable) & sourcetool() %in% c("vast-tools","rMATS")){
+
+
+        print("Sample information")
+
+      }
+
+    })
+
+
+
+    output$EventInfoWhippet <- renderText({
+      req(sourcetool())
+
+      if (sourcetool() == "whippet"){
+
+        "Events should be in the format Gene:Node:Type"
+
+      }
+
+    })
+
+
+    output$url <- renderUI({
+      req(sourcetool())
+      if(sourcetool() == "vast-tools"){
+
+        event <- selectedeventID()
+        url19 <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
+        url38 <- paste0("https://vastdb.crg.eu/event/", event, "@hg38")
+
+        HTML(paste0("<p>Check event details in VastDB (<a href='", url19, "'>hg19</a> or <a href='", url38, "'>hg38</a>)</p>"))
+
+      }
+
+
+    })
+
+    output$sampleTable <- renderDT({
+
+      if(is.null(input$psitable)){
+
+        sampleTable()
+
+      }
+    }, options = list(pageLength = 10, scrollX = TRUE)
+    #},
+    #rownames = FALSE,
+    #colnames = c("Run", "Age", "DevStage", "Organ", "Sex")
+    )
+
+
+    output$groupsTable <- renderDT({
+
+      if(length(values$groups)<1)return(NULL)
+
+      table <- c()
+      for(i in 1:length(values$groups)){
+
+        group <- c("Name" = values$groups[[i]]$name,
+                   "Samples" = paste0(values$groups[[i]]$samples, collapse = " "),
+                   "Color" = values$groups[[i]]$color)
+
+        table <- rbind(table, group)
+
+      }
+
+      rownames(table) <- NULL
+
+      return(table)
+
+    },
+    selection = c("multiple"),
+    rownames = FALSE)
+
+
+    output$densities <- renderPlot({
+
+      if(length(values$groups)<1)return(NULL)
+
+      # plotIndividualDensities(eventID = "HsaEX0055568",
+      #                         npoints = 500,
+      #                         psitable = psidataset(),
+      #                         qualtable = qualdataset(),
+      #                         colsA = values$groups[[1]]$samples,
+      #                         colsB = values$groups[[2]]$samples,
+      #                         labA = values$groups[[1]]$name,
+      #                         labB = values$groups[[2]]$name,
+      #                         colorA = values$groups[[1]]$color,
+      #                         colorB =  values$groups[[2]]$color,
+      #                         maxDevTable = maxDevSimulationN100)
+
+      plotIndividualDensitiesList(eventID = selectedeventID(),
+                                  npoints = 500,
+                                  psitable = psifiltdataset(),
+                                  qualtable = qualfiltdataset(),
+                                  groupList = values$groups,
+                                  maxDevTable = maxDevSimulationN100)
+
+    })
+
+
+    # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    # C. Differential alternative splicing -------------------------------------
+    # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+    ## Functions ---------------------------------------------------------------
+
+
+    betasTableVolcano <- reactive({
+
+      req(input$rundiffbetas)
+
+      input$rundiffbetas
+
+      isolate({
+
+        groupA <- input$groupA
+        groupB <- input$groupB
+        yStat <- input$volcanoYAxis
+
+      })
+
+
+      if(is.null(groupA) || is.null(groupB) || is.null(yStat))return(NULL)else if(groupA == groupB){
+
+        showNotification("Please select two distict groups for differential splicing analysis",
+                         closeButton = TRUE,
+                         duration = 5,
+                         type = c("error"))
+        return(NULL)
+
+      }else if(
+
+        yStat == "Pdiff (probability of differential splicing)"){
+
+        samplesA <- values$groups[[groupA]]$samples
+        colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
+
+        samplesB <- values$groups[[groupB]]$samples
+        colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
+
+        table <- prepareTableVolcano(psitable = isolate(psifiltdataset()),
+                                     qualtable = isolate(qualfiltdataset()),
+                                     npoints = 500,
+                                     colsA = colsGroupA,
+                                     colsB = colsGroupB,
+                                     labA = groupA,
+                                     labB = groupB,
+                                     basalColor = "#89C0AE",
+                                     # interestColor = "#EE805B", #orange
+                                     interestColor = "#E69A9C", #pink
+                                     maxDevTable = maxDevSimulationN100)
+
+      }else if(
+
+        yStat == "F-statistic (median(|between|)/median(|within|))"){
+
+        showNotification("Please note that F-statistic quantifications may take a few minutes.",
+                         closeButton = TRUE,
+                         duration = 10,
+                         type = c("message"))
+
+        samplesA <- values$groups[[groupA]]$samples
+        colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
+
+        samplesB <- values$groups[[groupB]]$samples
+        colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
+
+        table <- prepareTableVolcanoFstat(psitable = isolate(psifiltdataset()),
+                                          qualtable = isolate(qualfiltdataset()),
+                                          npoints = 500,
+                                          colsA = colsGroupA,
+                                          colsB = colsGroupB,
+                                          labA = groupA,
+                                          labB = groupB,
+                                          basalColor = "#89C0AE",
+                                          interestColor = "#E69A9C",
+                                          maxDevTable = maxDevSimulationN100)
+
+      }else if(
+
+        yStat == "False discovery rate (FDR)"){
+
+        samplesA <- values$groups[[groupA]]$samples
+        colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
+
+        samplesB <- values$groups[[groupB]]$samples
+        colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
+
+        table <- prepareTableVolcanoFDR(psitable = isolate(psifiltdataset()),
+                                        qualtable = isolate(qualfiltdataset()),
+                                        npoints = 500,
+                                        colsA = colsGroupA,
+                                        colsB = colsGroupB,
+                                        labA = groupA,
+                                        labB = groupB,
+                                        basalColor = "#89C0AE",
+                                        interestColor = "#E69A9C",
+                                        maxDevTable = maxDevSimulationN100,
+                                        nsim = 100)
+
+      }
+
+      return(table)
+
+    })
+
+    simplifiedTableVolcano <- reactive({
+
+      req(betasTableVolcano())
+
+      isolate({
+
+        groupA <- input$groupA
+        groupB <- input$groupB
+        yStat <- input$volcanoYAxis
+
+      })
+
+      if(is.null(groupA) || is.null(groupB) || is.null(yStat))return(NULL)else if(
+
+        yStat == "Pdiff (probability of differential splicing)"){
+        column  <- 'Pdiff'
+
+      }else if(
+
+        yStat == "F-statistic (median(|between|)/median(|within|))"){
+        column <- 'Fstat'
+
+
+      }else if(
+
+        yStat == "False discovery rate (FDR)"){
+        column <- "invertedFDR"
+
+      }
+
+      simplifiedTable <- betasTableVolcano()
+      simplifiedTable <- simplifiedTable[,match(c("EVENT", "GENE", "deltapsi", column), colnames(simplifiedTable))]
+
+      return(simplifiedTable)
+
+    })
+
+    ## Outputs -----------------------------------------------------------------
+
+
+    output$brushed_data <- renderDT({
+
+      req(input$plot_brush)
+      req(colnameVector())
+
+      # brushedPoints(df = simplifiedTableVolcano(), input$plot_brush, xvar = "deltapsi", yvar = column)
+      datatable(brushedPoints(df = simplifiedTableVolcano(), input$plot_brush),
+                rownames = FALSE,
+                colnames = colnameVector()) %>% formatRound(columns = c(3:4), digits = 3)
+
+    })
+    # Required if using renderDT from shiny but with DT (to allow formatRound()); rownames/colnames are replaced by the parameters inside DT::datatable
+    # rownames = FALSE,
+    # colnames = colnameVector())
+
+    output$urlplot <- renderUI({
+
+      req(input$eventidtoplot)
+      req(sourcetool())
+
+      if(sourcetool() == "vast-tools"){
+
+        event <- selectedeventIDDiff()
+
+        url19 <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
+        url38 <- paste0("https://vastdb.crg.eu/event/", event, "@hg38")
+
+        HTML(paste0("<p>Check event details in VastDB (<a href='", url19, "'>hg19</a> or <a href='", url38, "'>hg38</a>)</p>"))
+
+      }
+
+    })
+
+    # output$showMeEvent <- renderText({
+    #
+    # paste0("You have selected ", input$brushed_data_rows_selected$EVENT)
+    #
+    # })
+
+    output$densitiesSelectedEvent <- renderPlot({
+
+      input$rundiffbetas
+
+      req(betasTableVolcano())
+      req(selectedeventIDDiff())
+      req(input$plotEvent)
+
+      isolate({
+
+        groupA <- input$groupA
+        groupB <- input$groupB
+        yStat <- input$volcanoYAxis
+
+      })
+
+      if(is.null(groupA) || is.null(groupB) || is.null(yStat))return(NULL)
+
+      samplesA <- values$groups[[groupA]]$samples
+      colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
+
+      samplesB <- values$groups[[groupB]]$samples
+      colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
+
+      # plotIndividualDensities(eventID = "HsaEX0055568",
+      #                         npoints = 500,
+      #                         psitable = psifiltdataset(),
+      #                         qualtable = qualfiltdataset(),
+      #                         colsA = values$groups[[1]]$samples,
+      #                         colsB = values$groups[[2]]$samples,
+      #                         labA = values$groups[[1]]$name,
+      #                         labB = values$groups[[2]]$name,
+      #                         colorA = values$groups[[1]]$color,
+      #                         colorB =  values$groups[[2]]$color,
+      #                         maxDevTable = maxDevSimulationN100)
+
+      plotIndividualDensitiesList(eventID = selectedeventIDDiff(),
+                                  npoints = 500,
+                                  psitable = psifiltdataset(),
+                                  qualtable = qualfiltdataset(),
+                                  groupList = values$groups[c(groupA, groupB)],
+                                  maxDevTable = maxDevSimulationN100)
+
+    })
+
+
+
+    output$volcano <- renderPlot({
+
+      input$rundiffbetas
+
+      req(betasTableVolcano())
+      req(simplifiedTableVolcano())
+
+      isolate({
+
+        groupA <- input$groupA
+        groupB <- input$groupB
+        yStat <- input$volcanoYAxis
+
+      })
+
+
+      if(is.null(groupA) || is.null(groupB) || is.null(yStat))return(NULL)else if(
+
+        yStat == "Pdiff (probability of differential splicing)"){
+
+        samplesA <- values$groups[[groupA]]$samples
+        colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
+
+        samplesB <- values$groups[[groupB]]$samples
+        colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
+
+        plotVolcano(betasTable = isolate(betasTableVolcano()),
+                    labA = groupA,
+                    labB = groupB,
+                    basalColor = "#89C0AE",
+                    # interestColor = "#EE805B", #orange
+                    interestColor = "#E69A9C")
+
+      }else if(
+
+        yStat == "F-statistic (median(|between|)/median(|within|))"){
+
+        samplesA <- values$groups[[groupA]]$samples
+        colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
+
+        samplesB <- values$groups[[groupB]]$samples
+        colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
+
+        plotVolcanoFstat(betasTable = isolate(betasTableVolcano()),
+                         labA = groupA,
+                         labB = groupB,
+                         basalColor = "#89C0AE",
+                         # interestColor = "#EE805B", #orange
+                         interestColor = "#E69A9C")
+
+      }else if(
+
+        yStat == "False discovery rate (FDR)"){
+
+        samplesA <- values$groups[[groupA]]$samples
+        colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
+
+        samplesB <- values$groups[[groupB]]$samples
+        colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
+
+        plotVolcanoFDR(betasTable = isolate(betasTableVolcano()),
+                       labA = groupA,
+                       labB = groupB,
+                       basalColor = "#89C0AE",
+                       # interestColor = "#EE805B", #orange
+                       interestColor = "#E69A9C")
+
+      }
+
+    })
+
+
+    output$PDiffEventPlot <- renderPlot({
+
+      input$rundiffbetas
+
+      req(betasTableVolcano())
+      req(selectedeventIDDiff())
+      req(selectedEventTable())
+      req(input$plotEvent)
+
+
+      isolate({
+
+        groupA <- input$groupA
+        groupB <- input$groupB
+
+      })
+
+      if(is.null(groupA) || is.null(groupB))return(NULL)
+
+      samplesA <- values$groups[[groupA]]$samples
+      colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
+
+      samplesB <- values$groups[[groupB]]$samples
+      colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
+
+      plotPDiffFromEventObjList(eventObjList = isolate(selectedEventTable()))
+
+    })
+
+    output$FstatEventPlot <- renderPlot({
+
+      input$rundiffbetas
+
+      req(betasTableVolcano())
+      req(selectedeventIDDiff())
+      req(selectedEventTable())
+      req(input$plotEvent)
+
+
+      isolate({
+
+        groupA <- input$groupA
+        groupB <- input$groupB
+
+      })
+
+      if(is.null(groupA) || is.null(groupB))return(NULL)
+
+      samplesA <- values$groups[[groupA]]$samples
+      colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
+
+      samplesB <- values$groups[[groupB]]$samples
+      colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
+
+      plotFstatFromEventObjList(eventObjList = isolate(selectedEventTable()))
+
+    })
+
+    output$FDREventPlot <- renderPlot({
+
+      input$rundiffbetas
+
+      req(betasTableVolcano())
+      req(selectedeventIDDiff())
+      req(selectedEventTable())
+      req(input$plotEvent)
+
+
+      isolate({
+
+        groupA <- input$groupA
+        groupB <- input$groupB
+
+      })
+
+      if(is.null(groupA) || is.null(groupB))return(NULL)
+
+      samplesA <- values$groups[[groupA]]$samples
+      colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
+
+      samplesB <- values$groups[[groupB]]$samples
+      colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
+
+      plotFDRFromEventObjList(eventObjList = isolate(selectedEventTable()))
+
+    })
+
+
+    colnameVector <- reactive({
+
+      req(input$plot_brush)
+      # req(input$volcanoYAxis())
+      req(betasTableVolcano())
+      req(simplifiedTableVolcano())
+
+      isolate({
+
+        groupA <- input$groupA
+        groupB <- input$groupB
+        yStat   <- input$volcanoYAxis
+
+      })
+
+      if(yStat == "Pdiff (probability of differential splicing)"){
+
+        column <- "Pdiff"
+        colnameVector <- c("Event ID" = "EVENT", "Gene" = "GENE", "dPSI" = "deltapsi", "Pdiff" = "Pdiff")
+
+      }else if(
+
+        yStat == "F-statistic (median(|between|)/median(|within|))"){
+
+        column <- "Fstat"
+        colnameVector <- c("Event ID" = "EVENT", "Gene" = "GENE", "dPSI" = "deltapsi", "F-stat" = "Fstat")
+
+      }else if(
+
+        yStat == "False discovery rate (FDR)"){
+
+        column <- "invertedFDR"
+        colnameVector <- c("Event ID" = "EVENT", "Gene" = "GENE", "dPSI" = "deltapsi", "1-FDR" = "invertedFDR")
+
+      }
+
+      colnameVector
+
+    })
+
+
+
+
+
+    output$densitiesTest <- renderPlot({
+
+      req(selectedEventTable())
+
+      isolate({
+
+        groupA <- input$groupA
+        groupB <- input$groupB
+
+      })
+
+      if(is.null(groupA) || is.null(groupB))return(NULL)
+
+      samplesA <- values$groups[[groupA]]$samples
+      colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
+
+      samplesB <- values$groups[[groupB]]$samples
+      colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
+
+
+      plotDensitiesFromEventObjList(eventObjList = isolate(selectedEventTable()))
+
+    })
+
+    # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    # D. Differential alternative splicing (multiple groups) -------------------
+    # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+    ## Functions ---------------------------------------------------------------
+
+
     betasTableVolcanoMultiple <- reactive({
 
       req(input$rundiffbetas_mult)
@@ -1520,47 +2026,43 @@ betASapp_server <- function(){
 
     })
 
-    output$sampleTable <- renderDT({
-
-      if(is.null(input$psitable)){
-
-        sampleTable()
-
-      }
-    }, options = list(pageLength = 10, scrollX = TRUE)
-    #},
-    #rownames = FALSE,
-    #colnames = c("Run", "Age", "DevStage", "Organ", "Sex")
-    )
 
 
+    colnameVector_mult <- reactive({
 
+      req(input$plot_brush_mult)
+      # req(input$volcanoYAxis())
+      req(betasTableVolcanoMultiple())
+      req(simplifiedTableVolcanoMultiple())
 
+      isolate({
 
+        yStat   <- input$volcanoYAxis_mult
 
+      })
 
-    output$groupsTable <- renderDT({
+      if(yStat == "Pdiff (probability that |between| > |within|)"){
 
-      if(length(values$groups)<1)return(NULL)
+        column <- "Pdiff"
+        colnameVector <- c("Event ID" = "EVENT", "Gene" = "GENE", "dPSI(between to within)" = "deltaAbsolute", "Pdiff" = "Pdiff")
 
-      table <- c()
-      for(i in 1:length(values$groups)){
+      }else if(
 
-        group <- c("Name" = values$groups[[i]]$name,
-                   "Samples" = paste0(values$groups[[i]]$samples, collapse = " "),
-                   "Color" = values$groups[[i]]$color)
+        yStat == "F-statistic (median(|between|)/median(|within|))"){
 
-        table <- rbind(table, group)
+        column <- "Fstat"
+        colnameVector <- c("Event ID" = "EVENT", "Gene" = "GENE", "dPSI(between to within)" = "deltaAbsolute", "F-stat" = "Fstat")
 
       }
 
-      rownames(table) <- NULL
+      colnameVector
 
-      return(table)
+    })
 
-    },
-    selection = c("multiple"),
-    rownames = FALSE)
+
+    ## Outputs -----------------------------------------------------------------
+
+
 
     output$groupsTableMultiple <- renderDT({
 
@@ -1587,417 +2089,6 @@ betASapp_server <- function(){
 
 
 
-
-
-
-
-
-    output$EventInfoWhippet <- renderText({
-      req(sourcetool())
-
-      if (sourcetool() == "whippet"){
-
-        "Events should be in the format Gene:Node:Type"
-
-      }
-
-    })
-
-
-
-    output$url <- renderUI({
-      req(sourcetool())
-      if(sourcetool() == "vast-tools"){
-
-        event <- selectedeventID()
-        url19 <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
-        url38 <- paste0("https://vastdb.crg.eu/event/", event, "@hg38")
-
-        HTML(paste0("<p>Check event details in VastDB (<a href='", url19, "'>hg19</a> or <a href='", url38, "'>hg38</a>)</p>"))
-
-      }
-
-
-    })
-
-    output$eventsPiechart <- renderHighchart({
-
-      req(selectAlternatives())
-
-      preparePieForVastToolsCOMPLEX(psifiltdataset())
-
-    })
-
-    output$plot <- renderPlot({
-
-      req(selectAlternatives())
-
-      bigPicturePlot(psifiltdataset())
-
-    })
-
-    output$TextToolInfo <- renderText({
-
-      if(sourcetool() %in% c("rMATS","whippet")){
-
-        paste0("NOTE: ", sourcetool()," tables consider inclusion levels in the [0;1] interval")
-
-      } else if (sourcetool() == "vast-tools"){
-
-        "NOTE: vast-tools tables consider PSI values as percent spliced-in values, i.e., in the [0;100] interval"
-
-      }
-
-    })
-
-    output$table <- renderDT({
-
-      req(selectAlternatives())
-
-      if(sourcetool() == "rMATS"){
-
-        eventIDs <- psifiltdataset()$EVENT
-        dataset()[dataset()$ID %in% eventIDs,]
-
-      } else if (sourcetool() == "vast-tools"){
-
-        psifiltdataset()
-
-      }
-
-    }, rownames = FALSE)
-
-    output$densities <- renderPlot({
-
-      if(length(values$groups)<1)return(NULL)
-
-      # plotIndividualDensities(eventID = "HsaEX0055568",
-      #                         npoints = 500,
-      #                         psitable = psidataset(),
-      #                         qualtable = qualdataset(),
-      #                         colsA = values$groups[[1]]$samples,
-      #                         colsB = values$groups[[2]]$samples,
-      #                         labA = values$groups[[1]]$name,
-      #                         labB = values$groups[[2]]$name,
-      #                         colorA = values$groups[[1]]$color,
-      #                         colorB =  values$groups[[2]]$color,
-      #                         maxDevTable = maxDevSimulationN100)
-
-      plotIndividualDensitiesList(eventID = selectedeventID(),
-                                  npoints = 500,
-                                  psitable = psifiltdataset(),
-                                  qualtable = qualfiltdataset(),
-                                  groupList = values$groups,
-                                  maxDevTable = maxDevSimulationN100)
-
-    })
-
-
-    output$volcano <- renderPlot({
-
-      input$rundiffbetas
-
-      req(betasTableVolcano())
-      req(simplifiedTableVolcano())
-
-      isolate({
-
-        groupA <- input$groupA
-        groupB <- input$groupB
-        yStat <- input$volcanoYAxis
-
-      })
-
-
-      if(is.null(groupA) || is.null(groupB) || is.null(yStat))return(NULL)else if(
-
-        yStat == "Pdiff (probability of differential splicing)"){
-
-        samplesA <- values$groups[[groupA]]$samples
-        colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
-
-        samplesB <- values$groups[[groupB]]$samples
-        colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
-
-        plotVolcano(betasTable = isolate(betasTableVolcano()),
-                    labA = groupA,
-                    labB = groupB,
-                    basalColor = "#89C0AE",
-                    # interestColor = "#EE805B", #orange
-                    interestColor = "#E69A9C")
-
-      }else if(
-
-        yStat == "F-statistic (median(|between|)/median(|within|))"){
-
-        samplesA <- values$groups[[groupA]]$samples
-        colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
-
-        samplesB <- values$groups[[groupB]]$samples
-        colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
-
-        plotVolcanoFstat(betasTable = isolate(betasTableVolcano()),
-                         labA = groupA,
-                         labB = groupB,
-                         basalColor = "#89C0AE",
-                         # interestColor = "#EE805B", #orange
-                         interestColor = "#E69A9C")
-
-      }else if(
-
-        yStat == "False discovery rate (FDR)"){
-
-        samplesA <- values$groups[[groupA]]$samples
-        colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
-
-        samplesB <- values$groups[[groupB]]$samples
-        colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
-
-        plotVolcanoFDR(betasTable = isolate(betasTableVolcano()),
-                       labA = groupA,
-                       labB = groupB,
-                       basalColor = "#89C0AE",
-                       # interestColor = "#EE805B", #orange
-                       interestColor = "#E69A9C")
-
-      }
-
-    })
-
-    colnameVector <- reactive({
-
-      req(input$plot_brush)
-      # req(input$volcanoYAxis())
-      req(betasTableVolcano())
-      req(simplifiedTableVolcano())
-
-      isolate({
-
-        groupA <- input$groupA
-        groupB <- input$groupB
-        yStat   <- input$volcanoYAxis
-
-      })
-
-      if(yStat == "Pdiff (probability of differential splicing)"){
-
-        column <- "Pdiff"
-        colnameVector <- c("Event ID" = "EVENT", "Gene" = "GENE", "dPSI" = "deltapsi", "Pdiff" = "Pdiff")
-
-      }else if(
-
-        yStat == "F-statistic (median(|between|)/median(|within|))"){
-
-        column <- "Fstat"
-        colnameVector <- c("Event ID" = "EVENT", "Gene" = "GENE", "dPSI" = "deltapsi", "F-stat" = "Fstat")
-
-      }else if(
-
-        yStat == "False discovery rate (FDR)"){
-
-        column <- "invertedFDR"
-        colnameVector <- c("Event ID" = "EVENT", "Gene" = "GENE", "dPSI" = "deltapsi", "1-FDR" = "invertedFDR")
-
-      }
-
-      colnameVector
-
-    })
-
-    output$brushed_data <- renderDT({
-
-      req(input$plot_brush)
-      req(colnameVector())
-
-      # brushedPoints(df = simplifiedTableVolcano(), input$plot_brush, xvar = "deltapsi", yvar = column)
-      datatable(brushedPoints(df = simplifiedTableVolcano(), input$plot_brush),
-                rownames = FALSE,
-                colnames = colnameVector()) %>% formatRound(columns = c(3:4), digits = 3)
-
-    })
-    # Required if using renderDT from shiny but with DT (to allow formatRound()); rownames/colnames are replaced by the parameters inside DT::datatable
-    # rownames = FALSE,
-    # colnames = colnameVector())
-
-    output$urlplot <- renderUI({
-
-      req(input$eventidtoplot)
-      req(sourcetool())
-
-      if(sourcetool() == "vast-tools"){
-
-        event <- selectedeventIDDiff()
-
-        url19 <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
-        url38 <- paste0("https://vastdb.crg.eu/event/", event, "@hg38")
-
-        HTML(paste0("<p>Check event details in VastDB (<a href='", url19, "'>hg19</a> or <a href='", url38, "'>hg38</a>)</p>"))
-
-      }
-
-    })
-
-    # output$showMeEvent <- renderText({
-    #
-    # paste0("You have selected ", input$brushed_data_rows_selected$EVENT)
-    #
-    # })
-
-    output$densitiesSelectedEvent <- renderPlot({
-
-      input$rundiffbetas
-
-      req(betasTableVolcano())
-      req(selectedeventIDDiff())
-      req(input$plotEvent)
-
-      isolate({
-
-        groupA <- input$groupA
-        groupB <- input$groupB
-        yStat <- input$volcanoYAxis
-
-      })
-
-      if(is.null(groupA) || is.null(groupB) || is.null(yStat))return(NULL)
-
-      samplesA <- values$groups[[groupA]]$samples
-      colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
-
-      samplesB <- values$groups[[groupB]]$samples
-      colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
-
-      # plotIndividualDensities(eventID = "HsaEX0055568",
-      #                         npoints = 500,
-      #                         psitable = psifiltdataset(),
-      #                         qualtable = qualfiltdataset(),
-      #                         colsA = values$groups[[1]]$samples,
-      #                         colsB = values$groups[[2]]$samples,
-      #                         labA = values$groups[[1]]$name,
-      #                         labB = values$groups[[2]]$name,
-      #                         colorA = values$groups[[1]]$color,
-      #                         colorB =  values$groups[[2]]$color,
-      #                         maxDevTable = maxDevSimulationN100)
-
-      plotIndividualDensitiesList(eventID = selectedeventIDDiff(),
-                                  npoints = 500,
-                                  psitable = psifiltdataset(),
-                                  qualtable = qualfiltdataset(),
-                                  groupList = values$groups[c(groupA, groupB)],
-                                  maxDevTable = maxDevSimulationN100)
-
-    })
-
-    output$densitiesTest <- renderPlot({
-
-      req(selectedEventTable())
-
-      isolate({
-
-        groupA <- input$groupA
-        groupB <- input$groupB
-
-      })
-
-      if(is.null(groupA) || is.null(groupB))return(NULL)
-
-      samplesA <- values$groups[[groupA]]$samples
-      colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
-
-      samplesB <- values$groups[[groupB]]$samples
-      colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
-
-
-      plotDensitiesFromEventObjList(eventObjList = isolate(selectedEventTable()))
-
-    })
-
-    output$PDiffEventPlot <- renderPlot({
-
-      input$rundiffbetas
-
-      req(betasTableVolcano())
-      req(selectedeventIDDiff())
-      req(selectedEventTable())
-      req(input$plotEvent)
-
-
-      isolate({
-
-        groupA <- input$groupA
-        groupB <- input$groupB
-
-      })
-
-      if(is.null(groupA) || is.null(groupB))return(NULL)
-
-      samplesA <- values$groups[[groupA]]$samples
-      colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
-
-      samplesB <- values$groups[[groupB]]$samples
-      colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
-
-      plotPDiffFromEventObjList(eventObjList = isolate(selectedEventTable()))
-
-    })
-
-    output$FstatEventPlot <- renderPlot({
-
-      input$rundiffbetas
-
-      req(betasTableVolcano())
-      req(selectedeventIDDiff())
-      req(selectedEventTable())
-      req(input$plotEvent)
-
-
-      isolate({
-
-        groupA <- input$groupA
-        groupB <- input$groupB
-
-      })
-
-      if(is.null(groupA) || is.null(groupB))return(NULL)
-
-      samplesA <- values$groups[[groupA]]$samples
-      colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
-
-      samplesB <- values$groups[[groupB]]$samples
-      colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
-
-      plotFstatFromEventObjList(eventObjList = isolate(selectedEventTable()))
-
-    })
-
-    output$FDREventPlot <- renderPlot({
-
-      input$rundiffbetas
-
-      req(betasTableVolcano())
-      req(selectedeventIDDiff())
-      req(selectedEventTable())
-      req(input$plotEvent)
-
-
-      isolate({
-
-        groupA <- input$groupA
-        groupB <- input$groupB
-
-      })
-
-      if(is.null(groupA) || is.null(groupB))return(NULL)
-
-      samplesA <- values$groups[[groupA]]$samples
-      colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
-
-      samplesB <- values$groups[[groupB]]$samples
-      colsGroupB <- match(samplesB, colnames(isolate(psifiltdataset())))
-
-      plotFDRFromEventObjList(eventObjList = isolate(selectedEventTable()))
-
-    })
 
     # Outputs from "multiple group" tab
 
@@ -2035,37 +2126,6 @@ betASapp_server <- function(){
         plotVolcano_MultipleGroups_Fstat(betasTable = isolate(betasTableVolcanoMultiple()))
 
       }
-
-    })
-
-    colnameVector_mult <- reactive({
-
-      req(input$plot_brush_mult)
-      # req(input$volcanoYAxis())
-      req(betasTableVolcanoMultiple())
-      req(simplifiedTableVolcanoMultiple())
-
-      isolate({
-
-        yStat   <- input$volcanoYAxis_mult
-
-      })
-
-      if(yStat == "Pdiff (probability that |between| > |within|)"){
-
-        column <- "Pdiff"
-        colnameVector <- c("Event ID" = "EVENT", "Gene" = "GENE", "dPSI(between to within)" = "deltaAbsolute", "Pdiff" = "Pdiff")
-
-      }else if(
-
-        yStat == "F-statistic (median(|between|)/median(|within|))"){
-
-        column <- "Fstat"
-        colnameVector <- c("Event ID" = "EVENT", "Gene" = "GENE", "dPSI(between to within)" = "deltaAbsolute", "F-stat" = "Fstat")
-
-      }
-
-      colnameVector
 
     })
 
@@ -2125,6 +2185,9 @@ betASapp_server <- function(){
 
       }
     })
+
+
+
 
   }
 
