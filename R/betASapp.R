@@ -100,11 +100,11 @@ betASapp_ui <- function(){
 
                                           # helpText("(*) betAS currently supports inclusion level tables from: vast-tools (INCLUSION_LEVELS_FULL*.tab) and rMATS (*.MATS.JC.txt tables)"),
                                           p("betAS currently supports inclusion level tables from vast-tools ",code("(INCLUSION_LEVELS_FULL*.tab)", style = "font-size:12px; color: #AAAAAA"),
-                                            ", rMATS ",code("(*.MATS.JC.txt)", style = "font-size:12px; color: #AAAAAA")," and whippet",code("(*.psi).", style = "font-size:12px; color: #AAAAAA"),
+                                            ", rMATS ",code("(*.MATS.JC.txt)", style = "font-size:12px; color: #AAAAAA")," and whippet",code("(*.psi.gz).", style = "font-size:12px; color: #AAAAAA"),
                                             "Only a single file is supported when using rMATS or vast-tools results. For whippet, please upload one file per sample.", style = "font-size:12px; color: #AAAAAA"),
 
 
-                                          fileInput("psitable", NULL, placeholder = "No file selected (max. 100MB)", multiple=T), #accept = c(".tab",".txt",".psi",".gz")
+                                          fileInput("psitable", NULL, placeholder = "No file selected (max. 100MB)", multiple=T, accept = c(".tab",".txt",".psi",".gz")), #accept = c(".tab",".txt",".psi",".gz")
 
                                           hr(),
 
@@ -197,17 +197,17 @@ betASapp_ui <- function(){
                                    tags$li(h6("Group samples based on sample name similarities")),
                                    actionButton("findGroups", "Automatic group(s)", icon = icon("wand-sparkles"), class = "btn-info"),
 
-                                   #
-                                   #                                  conditionalPanel(
-                                   #                                   condition = 'input.psitable === NULL',
-                                   #                                   tags$li(h6("Group samples based on a given feature")),
-                                   #                                   selectInput("groupingFeature", label = "Select feature to group samples by:", choices = NULL),
-                                   #                                   actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info")
-                                   #                                 )
-                                   #
-                                   tags$li(h6("Group samples based on a given feature")),
-                                   selectInput("groupingFeature", label = "Select feature to group samples by:", choices = NULL),
-                                   actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info")
+
+                                   conditionalPanel(
+                                     condition = 'output.showGroupingFeatureOption',
+                                     tags$li(h6("Group samples based on a given feature")),
+                                     selectInput("groupingFeature", label = "Select feature to group samples by:", choices = NULL),
+                                     actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info")
+                                   )
+
+                                   # tags$li(h6("Group samples based on a given feature")),
+                                   # selectInput("groupingFeature", label = "Select feature to group samples by:", choices = NULL),
+                                   # actionButton("findGroupsBasedSampleTable", label = "Feature-associated group(s)", icon = icon("robot"), class = "btn-info")
 
 
                                  )),
@@ -565,6 +565,11 @@ betASapp_server <- function(){
 
       }else{
 
+        showNotification("The provided data is not supported by betAS.",
+                         closeButton = TRUE,
+                         duration = 10,
+                         type = c("error"))
+
         return(NULL)
 
       }
@@ -600,6 +605,7 @@ betASapp_server <- function(){
 
     observeEvent(sourcetool(),{
 
+      req(sourcetool())
       req(GetTable())
 
       if(sourcetool()=="vast-tools"){
@@ -908,8 +914,10 @@ betASapp_server <- function(){
 
 
     output$selected_file_table <- renderDT({
+
       req(dataset())
       req(selectAlternatives())
+      req(sourcetool())
 
 
       if (sourcetool()=="whippet"){
@@ -955,6 +963,8 @@ betASapp_server <- function(){
 
 
     output$textTotalNumberEvents <- renderText({
+
+      req(sourcetool())
 
       # req(selectAlternatives())
       if (sourcetool() %in% c("vast-tools","whippet")){
@@ -1005,6 +1015,8 @@ betASapp_server <- function(){
 
 
     output$TextToolInfo <- renderText({
+
+      req(sourcetool())
 
       if(sourcetool() %in% c("rMATS","whippet")){
 
@@ -1166,20 +1178,20 @@ betASapp_server <- function(){
     #                            value = nextSuggestedColor())
     # })
 
-    observeEvent(input$psitable, {
-
-      req(dataset())
-      req(sampleTable())
-      # req(input$findGroupsBasedSampleTable)
-      # req(input$groupingFeatures)
-
-      if(is.null(input$psitable)){
-
-        updateSelectInput(inputId = "groupingFeature", choices = NULL)
-
-      }
-
-    })
+    # observeEvent(input$psitable, {
+    #
+    #   req(dataset())
+    #   req(sampleTable())
+    #   # req(input$findGroupsBasedSampleTable)
+    #   # req(input$groupingFeatures)
+    #
+    #   if(is.null(input$psitable)){
+    #
+    #     updateSelectInput(inputId = "groupingFeature", choices = NULL)
+    #
+    #   }
+    #
+    # })
 
 
     observeEvent(sourcetool(), {
@@ -1192,9 +1204,9 @@ betASapp_server <- function(){
 
         updateSelectInput(inputId = "groupingFeature", choices = c("organism_part", "developmental_stage", "sex"))
 
-      } else if (!is.null(input$psitable)){
-
-        updateSelectInput(inputId = "groupingFeature", choices = "" )
+      # } else if (!is.null(input$psitable)){
+      #
+      #   updateSelectInput(inputId = "groupingFeature", choices = "" )
 
       }
 
@@ -1250,7 +1262,6 @@ betASapp_server <- function(){
     })
 
     observeEvent(input$findGroups, {
-
       req(dataset())
       req(input$findGroups)
 
@@ -1271,24 +1282,24 @@ betASapp_server <- function(){
 
         groupNames  <- agrep(pattern = not_grouped[1], x = not_grouped, value = TRUE)
 
-        if(length(groupNames) == 1 | length(groupNames) == length(names)){
+        # if(length(groupNames) == 1 | length(groupNames) == length(names)){
+        #
+        # }else{
 
-        }else{
+        checked     <- c(checked, groupNames)
+        not_grouped <- not_grouped[-c(match(groupNames, not_grouped))]
 
-          checked     <- c(checked, groupNames)
-          not_grouped <- not_grouped[-c(match(groupNames, not_grouped))]
+        # Assign new group
+        currentNames <- names(values$groups)
+        values$groups[[length(values$groups)+1]] <- list(name = used_groups[1],
+                                                         samples = groupNames,
+                                                         color = random_colors[1])
+        names(values$groups) <- make.unique(c(currentNames, used_groups[1]))
 
-          # Assign new group
-          currentNames <- names(values$groups)
-          values$groups[[length(values$groups)+1]] <- list(name = used_groups[1],
-                                                           samples = groupNames,
-                                                           color = random_colors[1])
-          names(values$groups) <- make.unique(c(currentNames, used_groups[1]))
-
-          random_colors <- random_colors[-1]
-          used_groups   <- used_groups[-1]
-
-        }
+        random_colors <- random_colors[-1]
+        used_groups   <- used_groups[-1]
+        #
+        #         }
 
       }
 
@@ -1354,6 +1365,8 @@ betASapp_server <- function(){
                        type = c("default"))
 
     })
+
+
 
 
     ## Outputs -----------------------------------------------------------------
@@ -1466,6 +1479,22 @@ betASapp_server <- function(){
 
     })
 
+
+    # auxiliary variable to show (or not) option to group based on variable (currently not supported by betAS for user-input data)
+
+    output$showGroupingFeatureOption <- reactive({
+
+      if (is.null(input$psitable)){
+
+        return(TRUE)
+
+      }else{
+
+        return(FALSE)
+
+      }
+    })
+    outputOptions(output, 'showGroupingFeatureOption', suspendWhenHidden=FALSE)
 
     # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     # C. Differential alternative splicing -------------------------------------
