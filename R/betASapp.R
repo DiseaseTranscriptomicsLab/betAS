@@ -860,20 +860,20 @@ betASapp_server <- function(){
         if (sourcetool() == "vast-tools"){
           url <-" https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/"
           style <-  "style = 'font-size:14px; color: #000000' "
-          HTML(paste0("<p",style,",>You are using a subset of the <i>'Human RNA-seq time-series of the development of seven major organs'</i> public dataset (<a href='", url, "'>E-MTAB-6814</a>) as an example,
+          HTML(paste0("<p",style,",>You are using a subset of the <i>'Human RNA-seq time-series of the development of seven major organs'</i> public dataset (<a target='_blank' href='", url, "'>E-MTAB-6814</a>) as an example,
                 where the inclusion tables have been obtained using vast-tools.</p>"))
 
         } else if (sourcetool() == "rMATS"){
           url <- "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"
           style <-  "style = 'font-size:14px; color: #000000' "
           HTML(paste0("<p",style,",>You are using a subset of the <i>'Deep transcriptional profiling of longitudinal changes during neurogenesis and network
-          maturation in vivo'</i> public dataset (<a href='", url, "'>PRJNA185305</a>) as an example, where the inclusion tables have been obtained using rMATS.</p>"))
+          maturation in vivo'</i> public dataset (<a target='_blank' href='", url, "'>PRJNA185305</a>) as an example, where the inclusion tables have been obtained using rMATS.</p>"))
 
         } else if (sourcetool() == "whippet"){
           url <- "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"
           style <-  "style = 'font-size:14px; color: #000000' "
           HTML(paste0("<p",style,",>You are using a subset of the <i>'Deep transcriptional profiling of longitudinal changes during neurogenesis and network
-          maturation in vivo'</i> public dataset (<a href='", url, "'>PRJNA185305</a>) as an example, where the inclusion tables have been obtained using whippet. Browse through
+          maturation in vivo'</i> public dataset (<a target='_blank' href='", url, "'>PRJNA185305</a>) as an example, where the inclusion tables have been obtained using whippet. Browse through
           the original filtered tables: </p>"))
 
         }
@@ -1396,7 +1396,7 @@ betASapp_server <- function(){
         url19 <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
         url38 <- paste0("https://vastdb.crg.eu/event/", event, "@hg38")
 
-        HTML(paste0("<p>Check event details in VastDB (<a href='", url19, "'>hg19</a> or <a href='", url38, "'>hg38</a>)</p>"))
+        HTML(paste0("<p>Check event details in VastDB (<a target='_blank' href='", url19, "'>hg19</a> or <a href='", url38, "'>hg38</a>)</p>"))
 
       }
 
@@ -1641,7 +1641,7 @@ betASapp_server <- function(){
         url19 <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
         url38 <- paste0("https://vastdb.crg.eu/event/", event, "@hg38")
 
-        HTML(paste0("<p>Check event details in VastDB (<a href='", url19, "'>hg19</a> or <a href='", url38, "'>hg38</a>)</p>"))
+        HTML(paste0("<p>Check event details in VastDB (<a target='_blank' href='", url19, "'>hg19</a> or <a href='", url38, "'>hg38</a>)</p>"))
 
       }
 
@@ -2181,7 +2181,7 @@ betASapp_server <- function(){
         url19 <- paste0("https://vastdb.crg.eu/event/", event, "@hg19")
         url38 <- paste0("https://vastdb.crg.eu/event/", event, "@hg38")
 
-        HTML(paste0("<p>Check event details in VastDB (<a href='", url19, "'>hg19</a> or <a href='", url38, "'>hg38</a>)</p>"))
+        HTML(paste0("<p>Check event details in VastDB (<a target='_blank' href='", url19, "'>hg19</a> or <a href='", url38, "'>hg38</a>)</p>"))
 
       }
     })
