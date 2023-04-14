@@ -251,7 +251,7 @@ betASapp_ui <- function(){
                                helpText(em("Brush over the plot for event selection")),
                                DTOutput("brushed_data"),
                                h6(""),
-                               textInput("eventidtoplot", "Alternative splicing event to plot:" ),
+                               selectInput("eventidtoplot", "Alternative splicing event to plot:" , choices = NULL),
                                #textInput("eventidtoplot", "Alternative splicing event to plot:", placeholder = "e.g. HsaEX0007927"),
 
                                uiOutput("urlplot"),
@@ -271,41 +271,45 @@ betASapp_ui <- function(){
                                                             size = 2),
 
                                fluidRow(
-                                 plotOutput("densitiesSelectedEvent", height = "400px")
+                                 shinycssloaders::withSpinner(plotOutput("densitiesSelectedEvent", height = "400px"), type = 8, color = "#FF9AA2", size = 2)
                                ),
 
+                               conditionalPanel(
+                                 condition = 'output.showIndividualEventPlots',
+
+                                 fluidRow(
+
+                                   column(4,
+                                          h4("P(A - B) > x:"),
+                                          h6("Probability that estimated PSI of one group is greater than the other by x.")),
+
+                                   column(4,
+                                          h4("F-statistic:"),
+                                          h6("Ratio between absolute differences 'between' and 'within' groups.")),
+
+                                   column(4,
+                                          h4("False discovery rate (FDR):"),
+                                          h6("Probability of getting an absolute difference in PSI between groups greater than the observed, under the null hypothesis that all PSIs come from the same distribution."))
+
+                                 )),
+
                                fluidRow(
-
-                                 column(4,
-                                        h4("P(A - B) > x:"),
-                                        h6("Probability that estimated PSI of one group is greater than the other by x.")),
-
-                                 column(4,
-                                        h4("F-statistic:"),
-                                        h6("Ratio between absolute differences 'between' and 'within' groups.")),
-
-                                 column(4,
-                                        h4("False discovery rate (FDR):"),
-                                        h6("Probability of getting an absolute difference in PSI between groups greater than the observed, under the null hypothesis that all PSIs come from the same distribution."))
-
-                               ),
-
-                               fluidRow(
                                  column(4,
 
-                                        plotOutput("PDiffEventPlot", height = "400px", width = "400px")),
+                                        shinycssloaders::withSpinner(plotOutput("PDiffEventPlot", height = "400px", width = "400px"), type = 8, color = "#FF9AA2", size = 2)),
 
                                  column(4,
 
-                                        plotOutput("FstatEventPlot", height = "400px", width = "400px")),
+                                        shinycssloaders::withSpinner(plotOutput("FstatEventPlot", height = "400px", width = "400px"), type = 8, color = "#FF9AA2", size = 2)),
 
                                  column(4,
 
-                                        plotOutput("FDREventPlot", height = "400px", width = "400px"))
+                                        shinycssloaders::withSpinner(plotOutput("FDREventPlot", height = "400px", width = "400px"), type = 8, color = "#FF9AA2", size = 2))
 
                                )
 
                              ) # end mainPanel
+
 
                ) # end sidebarLayout
       ), # end tabPanel
@@ -353,14 +357,15 @@ betASapp_ui <- function(){
                                                             type = 8,
                                                             color = "#FF9AA2",
                                                             size = 2),
-
+                               conditionalPanel(
+                                 condition = 'output.showIndividualEventPlots',
                                fluidRow(
 
                                  column(3,
                                         h5("Absolute differences 'between' and 'within' groups.")),
 
                                  column(9,
-                                        h5("PSI quantifications per sample across groups."))),
+                                        h5("PSI quantifications per sample across groups.")))),
 
                                fluidRow(
 
@@ -718,7 +723,7 @@ betASapp_server <- function(){
 
       if(sourcetool() == "vast-tools"){
 
-        alternativeList <- alternativeVastTools(req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
+        alternativeList <- alternativeVastTools(filterTable(), minPsi = input$psirange[1], maxPsi = input$psirange[2])
 
         if(nrow(alternativeList$PSI) == 0){
 
@@ -909,7 +914,7 @@ betASapp_server <- function(){
 
       datatable(dt, selection = list(mode = 'single', selected = c(1)))
 
-    }, rownames = FALSE)
+    }, rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE))
 
 
 
@@ -945,6 +950,7 @@ betASapp_server <- function(){
     output$showchecks <- reactive({
 
       req(sourcetool())
+      req(selectAlternatives())
 
       if (sourcetool() %in% c("vast-tools","whippet")){
 
@@ -965,6 +971,7 @@ betASapp_server <- function(){
     output$textTotalNumberEvents <- renderText({
 
       req(sourcetool())
+      req(selectAlternatives())
 
       # req(selectAlternatives())
       if (sourcetool() %in% c("vast-tools","whippet")){
@@ -1204,9 +1211,9 @@ betASapp_server <- function(){
 
         updateSelectInput(inputId = "groupingFeature", choices = c("organism_part", "developmental_stage", "sex"))
 
-      # } else if (!is.null(input$psitable)){
-      #
-      #   updateSelectInput(inputId = "groupingFeature", choices = "" )
+        # } else if (!is.null(input$psitable)){
+        #
+        #   updateSelectInput(inputId = "groupingFeature", choices = "" )
 
       }
 
@@ -1365,6 +1372,22 @@ betASapp_server <- function(){
                        type = c("default"))
 
     })
+
+
+
+
+
+    observeEvent(dataset(), {
+
+      req(dataset())
+      req(sampleTable())
+      req(sourcetool())
+
+      values$groups <- NULL
+
+
+    })
+
 
 
 
@@ -1639,6 +1662,20 @@ betASapp_server <- function(){
       return(simplifiedTable)
 
     })
+
+
+    observe({updateSelectInput(inputId = "eventidtoplot", choices = psifiltdataset()$EVENT )})
+    #
+    # observeEvent(dataset(), {
+    #
+    #   req(dataset())
+    #
+    #   updateTextInput(session, "eventidtoplot", "Alternative splicing event to plot:", value = "")
+    #
+    # })
+
+
+
 
     ## Outputs -----------------------------------------------------------------
 
@@ -1957,6 +1994,31 @@ betASapp_server <- function(){
 
     })
 
+
+
+    # Auxiliary variable to show individual event plots only if a given event is selected
+    output$showIndividualEventPlots <- reactive({
+
+      req(betasTableVolcano())
+      req(selectedeventIDDiff())
+      req(selectedEventTable())
+      req(input$plotEvent)
+
+      if (!is.null(input$plotEvent)){
+
+        return(TRUE)
+
+      }else{
+
+        return(FALSE)
+
+      }
+    })
+    outputOptions(output, 'showIndividualEventPlots', suspendWhenHidden=FALSE)
+
+
+
+
     # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     # D. Differential alternative splicing (multiple groups) -------------------
     # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2174,6 +2236,8 @@ betASapp_server <- function(){
 
     output$violins_multgroup <- renderPlot({
 
+      req(input$plotEvent_mult)
+
       # req(input$eventidtoplot_mult)
       # req(input$plotEvent)
 
@@ -2190,6 +2254,7 @@ betASapp_server <- function(){
 
     output$FstatEventPlot_multgroup <- renderPlot({
 
+      req(input$plotEvent_mult)
       # req(input$eventidtoplot_mult)
       # req(input$plotEvent_mult)
 

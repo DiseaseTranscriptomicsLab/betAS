@@ -1,3 +1,33 @@
+# Tests for minimal coverage based (vast-tools')
+# Checks if "Qual" columns from vast-tools' INCLUSION table are classified at least as "VLOW" based on score 2 (https://github.com/vastgroup/vast-tools)
+# @param quals Set of "Qual" columns from vast-tools' INCLUSION table (one per sample) for a given event
+#
+# @return TRUE if all samples have minimal coverage.
+# @export
+#
+# @examples
+RM_all_minReads <- function(quals){
+
+
+  # Number of samples
+  n <- length(quals)
+
+  # Split string by "@" and keep the second element: "inc,exc"
+  string <- as.character(unlist(quals))
+  split <- unlist(strsplit(toString(unlist(string)), split = "[,@]"))
+
+  # Inc reads are the 6th score in each sample; Exc reads the last and 7th
+  inc <- as.numeric(as.vector(split[seq(from = 6, to = 7*n, by = 7)]))
+  exc <- as.numeric(as.vector(split[seq(from = 7, to = 7*n, by = 7)]))
+
+  test <- length(which(inc + exc >= 1)) == n
+
+  return(test)
+
+}
+
+
+
 # Format *.MATS.JC.txt table (rMATS) for quantified PSIs, for further analyses
 # @param incTable rMATS' *.MATS.JC.txt table
 #
@@ -149,6 +179,14 @@ filterrMATS <- function(RMlist){
   psiRM          <- psiRM[which(psiRM$AnyNA == FALSE),]
   psiRM          <- psiRM[,-c(ncol(psiRM))]
   qualRM         <- qualRM[match(psiRM$EVENT, qualRM$EVENT),]
+
+
+
+  # Calculate coverage/balance (use .Q columns)
+  qualRM$AllminReads <- apply(qualRM[,grep("[.]Q", colnames(qualRM))], 1, RM_all_minReads)
+  qualRM             <- qualRM[which(qualRM$AllminReads == TRUE),]
+  psiRM              <- psiRM[match(qualRM$EVENT, psiRM$EVENT),]
+
 
   filterRM[[1]] <- psiRM
   filterRM[[2]] <- qualRM

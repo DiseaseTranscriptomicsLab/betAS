@@ -63,7 +63,9 @@ bigPicturePlot <- function(table){
     theme_betAS() +
     theme(axis.text.y = element_text(size = 10),
           axis.text.x = element_text(size = 10),
-          strip.text = element_text(size = 14))
+          strip.text = element_text(size = 14),
+          plot.title = element_text(hjust = 0.5)) +
+    ggtitle("PSI distribution per sample")
 
   return(plot)
 

@@ -393,7 +393,7 @@ testTable <- filterrMATS(testTable)
 testTable <- alternativerMATS(testTable, minPsi=1, maxPsi=100)
 
 maxDevSimulationN100  <- readRDS("test/xintercepts_100incr_100cov_100trials.rds")
-row=5
+row=1
 columns=c(7,8,9,10)
 npoints=500
 
@@ -401,3 +401,50 @@ individualBetas_nofitting_incr(table = testTable$Qual[row,],
                                cols = columns,
                                indpoints = npoints,
                                maxdevRefTable = maxDevSimulationN100)
+
+
+
+testTable
+
+RM_all_minReads()
+
+quals <- testTable$Qual[1,7:ncol(testTable$Qual)]
+
+# # Saving metadata for HS dataset (rMATS)
+# aux <- as.data.frame(fread("~/p16_ARF/Hernandez_Segura/metadata.txt"))
+# aux <- aux[match(unique(aux$`Comment[ENA_RUN]`), aux$`Comment[ENA_RUN]`),]
+# aux$sampleID <- paste0("G1_S",1:nrow(aux))
+# aux <- aux[,c("sampleID","Comment[ENA_RUN]","Factor Value[cell type]","Factor Value[irradiate]")]
+#
+# colnames(aux) <- c("sampleID","Run","CellType","Irradiate")
+# row.names(aux) <- 1:nrow(aux)
+# #three samples per condition
+# subsetsamplesidx <- c(1,2,3,31,39,50,55,63,74,4,9,18,5,6,7,32,33,34,56,57,58,8,10,11,38,40,41,62,64,65,12,13,14,45,46,47,69,70,71)
+# subsetsamplesidx <- subsetsamplesidx[order(subsetsamplesidx)]
+# aux <- aux[subsetsamplesidx,]
+# table(aux$CellType,aux$Irradiate)
+#
+# saveRDS(object = aux, file = "test/samplesTable_rMATS_HS.rds")
+#
+#
+#
+#
+# folder_CardosoMoreira <- "/mnt/nmorais-nfs/Backup_Unit/rsilva/RitaS_backup/Data/HernandezSegura/HernandezSeguraFASTQ/"
+#
+# files <- paste0("/mnt/nmorais-nfs/Backup_Unit/rsilva/RitaS_backup/Data/HernandezSegura/HernandezSeguraFASTQ/",list.files(folder_CardosoMoreira, pattern = "\\.fastq\\.gz$"))
+# files_1 <- files[grep("_1.fastq.gz",files)]
+# files_2 <- files[grep("_2.fastq.gz",files)]
+#
+# files_CardosoMoreira <- paste0(files_1,":",files_2)
+#
+#
+# files_CardosoMoreira <- unique(grep(paste(aux$Run,collapse="|"),
+#                         files_CardosoMoreira, value=TRUE))
+#
+#
+# files_CardosoMoreira <- paste(files_CardosoMoreira, sep="", collapse=",")
+#
+# write.table(files_CardosoMoreira, file = "/mnt/scratch/home/rsilva/betAS_tests/rMATS/HernandezSegura/group1.txt", sep = "\t",
+#             row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+
