@@ -22,6 +22,37 @@ VT_all_minVLOW_tags <- function(quals){
 
 }
 
+# Tests for minimal coverage based (vast-tools')
+# Checks if "Qual" columns from vast-tools' INCLUSION table have at least N reads in total (inc + exc)
+# @param quals Set of "Qual" columns from vast-tools' INCLUSION table (one per sample) for a given event
+# @param N minimum number of reads (inc + exc) for a given event in each sample
+#
+# @return TRUE if all samples have minimal coverage.
+# @export
+#
+# @examples
+VT_all_minReads <- function(quals, N){
+
+
+  # Number of samples
+  n <- length(quals)
+
+  # Split string by "@" and keep the second element: "inc,exc"
+  string <- as.character(unlist(quals))
+  split <- unlist(strsplit(toString(unlist(string)), split = "[,@]"))
+
+  # Inc reads are the 6th score in each sample; Exc reads the last and 7th
+  inc <- as.numeric(as.vector(split[seq(from = 6, to = 7*n, by = 7)]))
+  exc <- as.numeric(as.vector(split[seq(from = 7, to = 7*n, by = 7)]))
+
+  test <- length(which(inc + exc >= N)) == n
+
+  return(test)
+
+}
+
+
+
 
 # Format INCLUSION table (vast-tools) for further analyses
 # @param incTable vast-tools' INCLUSION table
@@ -64,13 +95,14 @@ getVastTools <- function(incTable){
 # Filter table from vast-tools to remove events containing NAs in at least one sample and those that do not have minimal coverage based on VT_all_minVLOW_tags() and split PSI and Qual tables
 # @param VTlist list containing PSI and Qual tables, as well as event and samples, obtained with getVastTools()
 # @param types (character) vast-tools' COMPLEX column letter code for alternative event types (Alt3, Alt5, ANN, C1, C2, C3, IR-C, IR-S, MIC or S) as described in https://github.com/vastgroup/vast-tools
+# @param N minimum number of reads (inc + exc) for a given event in each sample
 #
 # @return List with: 1) filtered table PSI columns, 2) filtered table Qual columns, 3) table with number of events per type and 4) Samples (based on colnames)
 # @export
 #
 # @examples
 
-filterVastTools <- function(VTlist, types){
+filterVastTools <- function(VTlist, types, N){
 
   filterVT <- VTlist
 
@@ -98,8 +130,12 @@ filterVastTools <- function(VTlist, types){
   # qualVAST          <- qualVAST[match(psiVAST$EVENT, qualVAST$EVENT),]
 
   # Calculate coverage/balance (use .Q columns)
-  qualVAST$AllminVLOW  <- apply(qualVAST[,grep("[.]Q", colnames(qualVAST))], 1, VT_all_minVLOW_tags)
-  qualVAST             <- qualVAST[which(qualVAST$AllminVLOW == TRUE),]
+  # qualVAST$AllminVLOW  <- apply(qualVAST[,grep("[.]Q", colnames(qualVAST))], 1, VT_all_minVLOW_tags)
+  #   qualVAST             <- qualVAST[which(qualVAST$AllminVLOW == TRUE),]
+  # psiVAST              <- psiVAST[match(qualVAST$EVENT, psiVAST$EVENT),]
+
+  qualVAST$AllminReads <-  apply(qualVAST[,grep("[.]Q", colnames(qualVAST))], 1, FUN = function(X) VT_all_minReads(X,N))
+  qualVAST             <- qualVAST[which(qualVAST$AllminReads == TRUE),]
   psiVAST              <- psiVAST[match(qualVAST$EVENT, psiVAST$EVENT),]
 
   # Remove columns added

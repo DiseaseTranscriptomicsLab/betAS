@@ -104,7 +104,7 @@ betASapp_ui <- function(){
                                             "Only a single file is supported when using rMATS or vast-tools results. For whippet, please upload one file per sample.", style = "font-size:12px; color: #AAAAAA"),
 
 
-                                          fileInput("psitable", NULL, placeholder = "No file selected (max. 100MB)", multiple=T, accept = c(".tab",".txt",".psi",".gz")), #accept = c(".tab",".txt",".psi",".gz")
+                                          fileInput("psitable", NULL, placeholder = "No file selected (max. 300MB)", multiple=T, accept = c(".tab",".txt",".psi",".gz")), #accept = c(".tab",".txt",".psi",".gz")
 
                                           hr(),
 
@@ -129,13 +129,19 @@ betASapp_ui <- function(){
                                           #checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT),
 
                                           sliderInput("psirange", "PSI values to consider:", value = c(1, 99), min = 0, max = 100, step=1),
-                                          helpText((em("Consider only alternative splicing events with all PSI values within this range.")),
+
+
+                                          helpText((em("Consider only alternative splicing events with all PSI values within this range."))),
+
+                                          numericInput("minNreads", "Minimum number of corrected reads per event:", 10, min = 0.5),
+                                          helpText((em("Alternative splicing events with less than this value in at least one sample will be filtered."))),
+
                                                    h6(textOutput("textTotalNumberEvents")),
                                                    # textOutput("textNumberEventsPerType"),
                                                    # actionButton("filter", "Filter original table", icon = icon("filter"), class = "btn-success"),
                                                    highchartOutput("eventsPiechart")
 
-                                          )),
+                                          ),
 
                              mainPanel(
                                shinycssloaders::withSpinner(plotOutput("plot", height = "1000px"), type = 8, color = "#FF9AA2", size = 2),
@@ -359,13 +365,13 @@ betASapp_ui <- function(){
                                                             size = 2),
                                conditionalPanel(
                                  condition = 'output.showIndividualEventPlots',
-                               fluidRow(
+                                 fluidRow(
 
-                                 column(3,
-                                        h5("Absolute differences 'between' and 'within' groups.")),
+                                   column(3,
+                                          h5("Absolute differences 'between' and 'within' groups.")),
 
-                                 column(9,
-                                        h5("PSI quantifications per sample across groups.")))),
+                                   column(9,
+                                          h5("PSI quantifications per sample across groups.")))),
 
                                fluidRow(
 
@@ -398,7 +404,7 @@ betASapp_server <- function(){
 
   # file size limit = 10MB
 
-  options(highcharter.theme = hc_theme_smpl(tooltip = list(valueDecimals = 2)), shiny.maxRequestSize = 100 * 1024^2)
+  options(highcharter.theme = hc_theme_smpl(tooltip = list(valueDecimals = 2)), shiny.maxRequestSize = 300 * 1024^2)
 
   # :::: Variables ::::
   # file                  <- "test/INCLUSION_LEVELS_FULL-Hsa32-hg19_to_test.tab.gz"
@@ -419,6 +425,8 @@ betASapp_server <- function(){
                              "Circular back-splicing (BS)"="BS")
   #eventTypesrMATS          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss", "Mutually Exclusive Exons (MXE)"="MXE")
 
+  # Minimum number of reads for each event in each sample; events with less than one read in at least one sample will be filtered out
+  minNreads              <-  1
 
   # simplify test table
   # colnames(testTable)   <- gsub(x = colnames(testTable), pattern = "Sample_IMR90_", replacement = "")
@@ -633,6 +641,7 @@ betASapp_server <- function(){
 
       req(sourcetool())
       req(GetTable())
+      req(input$minNreads)
 
       if(sourcetool() == "vast-tools"){
 
@@ -648,13 +657,13 @@ betASapp_server <- function(){
           showNotification("Please select at least one event type", duration = 5, type = c("error"))
           return(NULL)
         }
-        filteredList <- filterVastTools(GetTable(), types = selectedEventTypes)
+        filteredList <- filterVastTools(GetTable(), types = selectedEventTypes,N=input$minNreads)
 
       }
 
       if(sourcetool() == "rMATS"){
 
-        filteredList <- filterrMATS(GetTable())
+        filteredList <- filterrMATS(GetTable(),N=input$minNreads)
         # if(length(input$types) == 0){
         #   showNotification("Please select at least one event type", duration = 5, type = c("error"))
         #   return(NULL)
@@ -667,7 +676,7 @@ betASapp_server <- function(){
           showNotification("Please select at least one event type", duration = 5, type = c("error"))
           return(NULL)
         }
-        filteredList <- filterWhippet(GetTable(), types = selectedEventTypes)
+        filteredList <- filterWhippet(GetTable(), types = selectedEventTypes, N=input$minNreads)
 
       }
 
@@ -938,7 +947,8 @@ betASapp_server <- function(){
 
       } else if (sourcetool() == "vast-tools"){
 
-        psifiltdataset()
+        eventIDs <- psifiltdataset()$EVENT
+        dataset()[dataset()$EVENT %in% eventIDs,]
 
       }
 
@@ -2298,7 +2308,7 @@ betASapp_server <- function(){
 #' @export
 betASapp <- function(...){
 
-  options(shiny.maxRequestSize = 200*1024^2, shiny.error=NULL)
+  options(shiny.maxRequestSize = 100*1024^2, shiny.error=NULL)
 
   # construct and start a Shiny application from UI and server
   app <- shinyApp(betASapp_ui(), betASapp_server())

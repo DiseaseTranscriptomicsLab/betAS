@@ -1,12 +1,13 @@
-# Tests for minimal coverage based (vast-tools')
-# Checks if "Qual" columns from vast-tools' INCLUSION table are classified at least as "VLOW" based on score 2 (https://github.com/vastgroup/vast-tools)
-# @param quals Set of "Qual" columns from vast-tools' INCLUSION table (one per sample) for a given event
+# Tests for minimal coverage based (rMATS')
+# Checks if "Qual" columns from rMATS' INCLUSION table have at least N reads in total (inc + exc)
+# @param quals Set of "Qual" columns from rMATS' INCLUSION table (one per sample) for a given event
+# @param N minimum number of reads (inc + exc) for a given event in each sample
 #
 # @return TRUE if all samples have minimal coverage.
 # @export
 #
 # @examples
-RM_all_minReads <- function(quals){
+RM_all_minReads <- function(quals, N){
 
 
   # Number of samples
@@ -20,7 +21,7 @@ RM_all_minReads <- function(quals){
   inc <- as.numeric(as.vector(split[seq(from = 6, to = 7*n, by = 7)]))
   exc <- as.numeric(as.vector(split[seq(from = 7, to = 7*n, by = 7)]))
 
-  test <- length(which(inc + exc >= 1)) == n
+  test <- length(which(inc + exc >= N)) == n
 
   return(test)
 
@@ -51,6 +52,8 @@ getrMATS <- function(incTable){
     eventCols <- c("exonStart_0base", "exonEnd", "upstreamES", "upstreamEE", "downstreamES", "downstreamEE")
     # The inclusion form includes the target exon (exonStart_0base, exonEnd)
     eventCoordinates <- paste0(incTable$chr,":",incTable$exonStart_0base,"-",incTable$exonEnd)
+    li_factor <- 2
+    ls_factor <- 1
 
     # NOTE for "MXE" events:
     # reading tables using read.table(file, sep="\t", header=TRUE, quote=""), which is the case in the app, corrects colnames starting with numbers by adding an X
@@ -60,18 +63,25 @@ getrMATS <- function(incTable){
     # If the strand is +, then the inclusion form includes the 1st exon (1stExonStart_0base, 1stExonEnd) and skips the 2nd exon
     # If the strand is -, then the inclusion form includes the 2nd exon (2ndExonStart_0base, 2ndExonEnd) and skips the 1st exon
     eventCoordinates <- paste0(incTable$chr,":(1st)",incTable$X1stExonStart_0base,"-",incTable$X1stExonEnd,";(2nd)",incTable$X2ndExonStart_0base,"-",incTable$X2ndExonEnd)
+    li_factor <- 2
+    ls_factor <- 2
 
   } else if ("longExonStart_0base"  %in% colnames){
     eventType <- "Altss"
     eventCols <- c("longExonStart_0base", "longExonEnd", "shortES", "shortEE", "flankingES", "flankingEE")
     # The inclusion form includes the long exon (longExonStart_0base, longExonEnd) instead of the short exon (shortES shortEE)
     eventCoordinates <- paste0(incTable$chr,":",incTable$longExonStart_0base,"-",incTable$longExonEnd)
+    li_factor <- 2
+    ls_factor <- 1
 
   } else if ("riExonStart_0base"  %in% colnames){
     eventType <- "IR"
     eventCols <- c("riExonStart_0base", "riExonEnd", "upstreamES", "upstreamEE", "downstreamES", "downstreamEE")
     # The inclusion form includes (retains) the intron (upstreamEE, downstreamES)
     eventCoordinates <- paste0(incTable$chr,":",incTable$upstreamEE,"-",incTable$downstreamES)
+    li_factor <- 2
+    ls_factor <- 1
+
   } else {
     print("The provided file is not supported")
   }
@@ -101,8 +111,13 @@ getrMATS <- function(incTable){
     colnames(psiRM) <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX",Samples_Group1)
 
     # qualTable
-    inc <-  cbind(apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$IncFormLen)
-    exc <-  cbind(apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$SkipFormLen)
+    # inc <-  cbind(apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$IncFormLen)
+    # exc <-  cbind(apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$SkipFormLen)
+    # inc <-  cbind(apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)*(incTable$SkipFormLen/incTable$IncFormLen))
+    # exc <-  cbind(apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric))
+    inc <-  cbind(apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/li_factor)
+    exc <-  cbind(apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/ls_factor)
+
 
     qualRM <- cbind(commonCols,
                     # Mimicking vast-tools INCLUSION table ".Q" columns to facilitate the compatibility with other betAS functions
@@ -129,10 +144,22 @@ getrMATS <- function(incTable){
     colnames(psiRM) <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX",Samples_Group1,Samples_Group2)
 
     # qualTable
-    inc <-  cbind(apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$IncFormLen,
-                  apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_2, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$IncFormLen)
-    exc <-  cbind(apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$SkipFormLen,
-                  apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_2, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$SkipFormLen)
+    # inc <-  cbind(apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$IncFormLen,
+    #               apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_2, ",")),ncol=Nsamples_Group2,byrow=T), 2, as.numeric)/incTable$IncFormLen)
+    # exc <-  cbind(apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/incTable$SkipFormLen,
+    #               apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_2, ",")),ncol=Nsamples_Group2,byrow=T), 2, as.numeric)/incTable$SkipFormLen)
+
+    # inc <-  cbind(apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)*(incTable$SkipFormLen/incTable$IncFormLen),
+    #               apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_2, ",")),ncol=Nsamples_Group2,byrow=T), 2, as.numeric)*(incTable$SkipFormLen/incTable$IncFormLen))
+    # exc <-  cbind(apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric),
+    #               apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_2, ",")),ncol=Nsamples_Group2,byrow=T), 2, as.numeric))
+
+    # qualTable
+    inc <-  cbind(apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/li_factor,
+                  apply(matrix(unlist(strsplit(incTable$IJC_SAMPLE_2, ",")),ncol=Nsamples_Group2,byrow=T), 2, as.numeric)/li_factor)
+    exc <-  cbind(apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_1, ",")),ncol=Nsamples_Group1,byrow=T), 2, as.numeric)/ls_factor,
+                  apply(matrix(unlist(strsplit(incTable$SJC_SAMPLE_2, ",")),ncol=Nsamples_Group2,byrow=T), 2, as.numeric)/ls_factor)
+
 
     qualRM <- cbind(commonCols,
                     # Mimicking vast-tools INCLUSION table ".Q" columns to facilitate the compatibility with other betAS functions
@@ -159,6 +186,7 @@ getrMATS <- function(incTable){
 # Filter table from rMATS to remove events containing NAs in at least one sample and split PSI and Qual tables
 # Normalised inc and exc reads are obtained from "IJC" and "SJC" columns dividing junction counts by IncFormLen and SkipFormLen
 # @param RMlist list containing PSI and Qual tables, as well as event and samples, obtained with getVastTools()
+# @param N minimum number of reads (inc + exc) for a given event in each sample
 #
 # @return List with: 1) filtered table PSI columns, 2) filtered table "Qual" columns including inc and exc, 3) table with number of events per type and 4) Samples
 # @export
@@ -166,7 +194,7 @@ getrMATS <- function(incTable){
 # @examples
 
 
-filterrMATS <- function(RMlist){
+filterrMATS <- function(RMlist, N){
 
   filterRM <- RMlist
 
@@ -183,7 +211,7 @@ filterrMATS <- function(RMlist){
 
 
   # Calculate coverage/balance (use .Q columns)
-  qualRM$AllminReads <- apply(qualRM[,grep("[.]Q", colnames(qualRM))], 1, RM_all_minReads)
+  qualRM$AllminReads <- apply(qualRM[,grep("[.]Q", colnames(qualRM))], 1, FUN = function(X) RM_all_minReads(X,N))
   qualRM             <- qualRM[which(qualRM$AllminReads == TRUE),]
   psiRM              <- psiRM[match(qualRM$EVENT, psiRM$EVENT),]
 

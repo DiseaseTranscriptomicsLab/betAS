@@ -1,3 +1,34 @@
+# Tests for minimal coverage based (rMATS')
+# Checks if "Qual" columns from rMATS' INCLUSION table have at least N reads in total (inc + exc)
+# @param quals Set of "Qual" columns from rMATS' INCLUSION table (one per sample) for a given event
+# @param N minimum number of reads (inc + exc) for a given event in each sample
+#
+# @return TRUE if all samples have minimal coverage.
+# @export
+#
+# @examples
+Whippet_all_minReads <- function(quals, N){
+
+
+  # Number of samples
+  n <- length(quals)
+
+  # Split string by "@" and keep the second element: "inc,exc"
+  string <- as.character(unlist(quals))
+  split <- unlist(strsplit(toString(unlist(string)), split = "[,@]"))
+
+  # Inc reads are the 6th score in each sample; Exc reads the last and 7th
+  inc <- as.numeric(as.vector(split[seq(from = 6, to = 7*n, by = 7)]))
+  exc <- as.numeric(as.vector(split[seq(from = 7, to = 7*n, by = 7)]))
+
+  test <- length(which(inc + exc >= N)) == n
+
+  return(test)
+
+}
+
+
+
 # Format *.psi.gz tables (whippet) for quantified PSIs, for further analyses
 # @param incTable list of whippet's *.psi.gz tables, one per sample
 #
@@ -76,13 +107,14 @@ getWhippet <- function(listIncTables){
 # Filter table from whippet to remove events containing NAs in at least one sample
 # @param WhippetList list containing PSI and Qual tables, as well as event and samples, obtained with getWhippet()
 # @param types (character) whippet's Type column letter code for alternative event types (CE,AA,AD,IR,TS,TE,AF,AL,BS) as described in https://github.com/timbitz/Whippet.jl
+# @param N minimum number of reads (inc + exc) for a given event in each sample
 #
 # @return List with: 1) filtered table PSI columns, 2) filtered table Qual columns, 3) table with number of events per type and 4) Samples (based on colnames)
 # @export
 #
 # @examples
 
-filterWhippet <- function(WhippetList, types){
+filterWhippet <- function(WhippetList, types, N){
 
   filterWhippet <- WhippetList
 
@@ -103,6 +135,12 @@ filterWhippet <- function(WhippetList, types){
   # Consider exon skipping events only
   # psiVAST <- psiVAST[which(psiVAST$COMPLEX == "S"),]
   psiWhip <- psiWhip[which(psiWhip$COMPLEX %in% types),]
+
+  # Calculate coverage/balance (use .Q columns)
+  qualWhip$AllminReads <- apply(qualWhip[,grep("[.]Q", colnames(qualWhip))], 1, FUN = function(X) Whippet_all_minReads(X,N))
+  qualWhip             <- qualWhip[which(qualWhip$AllminReads == TRUE),]
+  psiWhip              <- psiWhip[match(qualWhip$EVENT, psiWhip$EVENT),]
+
 
   filterWhippet[[1]] <- psiWhip
   filterWhippet[[2]] <- qualWhip
