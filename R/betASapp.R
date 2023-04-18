@@ -77,9 +77,10 @@ betASapp_ui <- function(){
                                           #                                            choiceValues = availabletools),
                                           h5(icon("file-import", style = "color: #000000"),"Import data"),
 
-                                          selectInput("sourcetool", "Select example dataset:", choices = c("Example 1 (obtained using vast-tools)" = "vast-tools",
-                                                                                                           "Example 2 (obtained using rMATS)" = "rMATS",
-                                                                                                           "Example 3 (obtained using whippet)" = "whippet")),
+                                          selectInput("sourcetool", "Select example dataset:", choices = c("Dataset 1 (obtained using vast-tools)" = "vast-tools1",
+                                                                                                           "Dataset 2 (obtained using vast-tools)" = "vast-tools2",
+                                                                                                           "Dataset 2 (obtained using rMATS)" = "rMATS",
+                                                                                                           "Dataset 2 (obtained using whippet)" = "whippet")),
 
                                           # HTML(paste0("<p>Explore a vast-tools table for a subset of the publicly available dataset:",
                                           #             "<br>",
@@ -133,15 +134,22 @@ betASapp_ui <- function(){
 
                                           helpText((em("Consider only alternative splicing events with all PSI values within this range."))),
 
-                                          numericInput("minNreads", "Minimum number of corrected reads per event:", 10, min = 0.5),
-                                          helpText((em("Alternative splicing events with less than this value in at least one sample will be filtered."))),
+                                          numericInput("minNreads", "Minimum number of corrected reads per event:", 10, min = 1),
+                                          helpText((em("Alternative splicing events with less than this value in at least one sample will be filtered. Please do not consider less than one read."))),
 
-                                                   h6(textOutput("textTotalNumberEvents")),
-                                                   # textOutput("textNumberEventsPerType"),
-                                                   # actionButton("filter", "Filter original table", icon = icon("filter"), class = "btn-success"),
-                                                   highchartOutput("eventsPiechart")
 
-                                          ),
+                                          # tags$div(numericInput("minNreads", "Minimum number of corrected reads per event:", 10, min = 0.5),  style="display:inline-block"),
+                                          # tags$div(actionButton("buttonminreads", "Filter"),  style="display:inline-block"),
+                                          # verbatimTextOutput("test_box"),
+
+
+
+                                          h6(textOutput("textTotalNumberEvents")),
+                                          # textOutput("textNumberEventsPerType"),
+                                          # actionButton("filter", "Filter original table", icon = icon("filter"), class = "btn-success"),
+                                          highchartOutput("eventsPiechart")
+
+                             ),
 
                              mainPanel(
                                shinycssloaders::withSpinner(plotOutput("plot", height = "1000px"), type = 8, color = "#FF9AA2", size = 2),
@@ -426,8 +434,8 @@ betASapp_server <- function(){
   #eventTypesrMATS          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss", "Mutually Exclusive Exons (MXE)"="MXE")
 
   # Minimum number of reads for each event in each sample; events with less than one read in at least one sample will be filtered out
-  minNreads              <-  1
-
+  defaultminNreads              <-  10
+  #minNreads                     <-  10
   # simplify test table
   # colnames(testTable)   <- gsub(x = colnames(testTable), pattern = "Sample_IMR90_", replacement = "")
   # samples               <- colnames(testTable)[grep(x = colnames(testTable), pattern = "-Q")-1]
@@ -456,9 +464,14 @@ betASapp_server <- function(){
 
       if(is.null(input$psitable)){
 
-        if(input$sourcetool == "vast-tools"){
+        if(input$sourcetool == "vast-tools1"){
 
           testTable <- readRDS(file = "test/INCLUSION_LEVELS_FULL-hg19-98-v251.rds")
+
+        }else if(input$sourcetool == "vast-tools2"){
+
+          testTable <- readRDS(file = "test/INCLUSION_LEVELS_FULL-mm10-8-v251.rds")
+
 
         }else if(input$sourcetool == "rMATS"){
 
@@ -510,21 +523,27 @@ betASapp_server <- function(){
     sampleTable <- reactive({
 
       req(dataset())
-      req(sourcetool())
+      req(input$sourcetool)
 
-      if(is.null(input$psitable) & sourcetool() == "vast-tools"){
+      if(is.null(input$psitable) & input$sourcetool == "vast-tools1"){
 
         samplesTable <- readRDS(file = "test/samplesTable.rds")
 
         return(samplesTable)
 
-      } else if(is.null(input$psitable) & sourcetool() == "rMATS"){
+      } else if(is.null(input$psitable) & input$sourcetool == "vast-tools2"){
+
+        samplesTable <- readRDS(file = "test/samplesTable_Whippet.rds")
+
+        return(samplesTable)
+
+      } else if(is.null(input$psitable) & input$sourcetool == "rMATS"){
 
         samplesTable <- readRDS(file = "test/samplesTable_rMATS.rds")
 
         return(samplesTable)
 
-      } else if(is.null(input$psitable) & sourcetool() == "whippet"){
+      } else if(is.null(input$psitable) & input$sourcetool == "whippet"){
 
         samplesTable <- readRDS(file = "test/samplesTable_Whippet.rds")
 
@@ -634,14 +653,63 @@ betASapp_server <- function(){
 
 
 
+    observeEvent(dataset(), {
 
-    # 1. Filter table to remove events: with at least one NA, ANN and with at least one sample with less than VLOW quality
+      req(dataset())
+      req(sourcetool())
+
+      updateNumericInput(session, "minNreads", "Minimum number of corrected reads per event:", defaultminNreads, min = 1)
+
+    })
+#
+#     observeEvent(input$buttonminreads, {
+#
+#       print(input$buttonminreads)
+#       if(input$minNreads < 1){
+#
+#         showNotification("Value not supported. Please choose a number greater than 1.",
+#                          closeButton = TRUE,
+#                          duration = 5,
+#                          type = c("error"))
+#         return(NULL)
+#       }
+#     })
+
+    # minNreads <- eventReactive(input$buttonminreads,{
+    #   input$minNreads
+    # })
+
+    # minNreads <- reactiveValues(N = as.numeric(defaultminNreads))
+    #
+    # observeEvent(input$buttonminreads, {
+    #   req(input$minNreads)
+    #   minNreads$N <- input$minNreads
+    # })
+
+#     observeEvent(input$buttonminreads, {
+#
+#       req(dataset())
+#       req(sourcetool())
+#       req(input$buttonminreads)
+#
+#       minNreads() <- input$minNreads
+#
+#     })
+
+
+
+
+
+
+    # 1. Filter table to remove events
     #filterVastToolsTable <- reactive({
     filterTable <- reactive({
 
       req(sourcetool())
       req(GetTable())
       req(input$minNreads)
+      #req(input$buttonminreads)
+      #req(minNreads)
 
       if(sourcetool() == "vast-tools"){
 
@@ -877,23 +945,30 @@ betASapp_server <- function(){
 
       if(is.null(input$psitable)){
 
-        if (sourcetool() == "vast-tools"){
+        if (input$sourcetool == "vast-tools1"){
           url <-" https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/"
           style <-  "style = 'font-size:14px; color: #000000' "
-          HTML(paste0("<p",style,",>You are using a subset of the <i>'Human RNA-seq time-series of the development of seven major organs'</i> public dataset (<a target='_blank' href='", url, "'>E-MTAB-6814</a>) as an example,
+          HTML(paste0("<p",style,",>You are using a subset of the <i>'Human RNA-seq time-series of the development of seven major organs'</i> public human dataset (<a target='_blank' href='", url, "'>E-MTAB-6814</a>) as an example,
                 where the inclusion tables have been obtained using vast-tools.</p>"))
 
-        } else if (sourcetool() == "rMATS"){
+        } else if (input$sourcetool == "vast-tools2"){
           url <- "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"
           style <-  "style = 'font-size:14px; color: #000000' "
           HTML(paste0("<p",style,",>You are using a subset of the <i>'Deep transcriptional profiling of longitudinal changes during neurogenesis and network
-          maturation in vivo'</i> public dataset (<a target='_blank' href='", url, "'>PRJNA185305</a>) as an example, where the inclusion tables have been obtained using rMATS.</p>"))
+          maturation in vivo'</i> public mouse dataset (<a target='_blank' href='", url, "'>PRJNA185305</a>) as an example, where the inclusion tables have been obtained using vast-tools</p>"))
 
-        } else if (sourcetool() == "whippet"){
+
+        } else if (input$sourcetool == "rMATS"){
           url <- "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"
           style <-  "style = 'font-size:14px; color: #000000' "
           HTML(paste0("<p",style,",>You are using a subset of the <i>'Deep transcriptional profiling of longitudinal changes during neurogenesis and network
-          maturation in vivo'</i> public dataset (<a target='_blank' href='", url, "'>PRJNA185305</a>) as an example, where the inclusion tables have been obtained using whippet. Browse through
+          maturation in vivo'</i> public mouse dataset (<a target='_blank' href='", url, "'>PRJNA185305</a>) as an example, where the inclusion tables have been obtained using rMATS.</p>"))
+
+        } else if (input$sourcetool == "whippet"){
+          url <- "https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/"
+          style <-  "style = 'font-size:14px; color: #000000' "
+          HTML(paste0("<p",style,",>You are using a subset of the <i>'Deep transcriptional profiling of longitudinal changes during neurogenesis and network
+          maturation in vivo'</i> public mouse dataset (<a target='_blank' href='", url, "'>PRJNA185305</a>) as an example, where the inclusion tables have been obtained using whippet. Browse through
           the original filtered tables: </p>"))
 
         }
@@ -914,10 +989,18 @@ betASapp_server <- function(){
                          Size=paste0(input$psitable$size*10^(-6)," MB"))
 
       } else {
-        if (sourcetool() == "whippet"){
-          dt <- data.frame(FileName=paste0("Example_Whippet_",GetTable()$Samples))
-        } else {
-          dt <- data.frame(FileName=paste0("Example_",sourcetool()))
+        if (input$sourcetool == "whippet"){
+
+          dt <- data.frame(FileName=paste0("Example_Dataset2_Whippet_",GetTable()$Samples))
+
+        } else if (input$sourcetool %in% c("vast-tools2","rMATS")){
+
+          dt <- data.frame(FileName=paste0("Example_Dataset2_",sourcetool()))
+
+        }else if (input$sourcetool == "vast-tools1"){
+
+          dt <- data.frame(FileName=paste0("Example_Dataset1_",sourcetool()))
+
         }
       }
 
@@ -1075,7 +1158,9 @@ betASapp_server <- function(){
 
     })
 
-
+    # output$test_box <- renderText({
+    #   validate(need(input$minNreads > 1, "Please use a value greater or equal than 1"))
+    # })
 
 
 
@@ -1213,11 +1298,13 @@ betASapp_server <- function(){
 
     observeEvent(sourcetool(), {
 
-      if(is.null(input$psitable) & sourcetool() %in% c("rMATS","whippet")){
+      req(input$sourcetool)
+
+      if(is.null(input$psitable) & input$sourcetool %in% c("rMATS","whippet", "vast-tools2")){
 
         updateSelectInput(inputId = "groupingFeature", choices = c("CellType","Div"))
 
-      } else if (is.null(input$psitable) & sourcetool()=="vast-tools"){
+      } else if (is.null(input$psitable) & input$sourcetool=="vast-tools1"){
 
         updateSelectInput(inputId = "groupingFeature", choices = c("organism_part", "developmental_stage", "sex"))
 
@@ -1411,7 +1498,7 @@ betASapp_server <- function(){
 
       req(sourcetool())
 
-      if(is.null(input$psitable) & sourcetool() %in% c("vast-tools","rMATS")){
+      if(is.null(input$psitable)){
 
 
         print("Sample information")
