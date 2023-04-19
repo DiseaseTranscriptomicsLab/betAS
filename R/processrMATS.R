@@ -51,7 +51,7 @@ getrMATS <- function(incTable){
     eventType <- "EX"
     eventCols <- c("exonStart_0base", "exonEnd", "upstreamES", "upstreamEE", "downstreamES", "downstreamEE")
     # The inclusion form includes the target exon (exonStart_0base, exonEnd)
-    eventCoordinates <- paste0(incTable$chr,":",incTable$exonStart_0base,"-",incTable$exonEnd)
+    eventCoordinates <- paste0(incTable$chr,":",incTable$exonStart_0base + 1,"-",incTable$exonEnd)
     li_factor <- 2
     ls_factor <- 1
 
@@ -62,7 +62,7 @@ getrMATS <- function(incTable){
     eventCols <- c("X1stExonStart_0base", "X1stExonEnd", "X2ndExonStart_0base", "X2ndExonEnd", "upstreamES", "upstreamEE", "downstreamES", "downstreamEE")
     # If the strand is +, then the inclusion form includes the 1st exon (1stExonStart_0base, 1stExonEnd) and skips the 2nd exon
     # If the strand is -, then the inclusion form includes the 2nd exon (2ndExonStart_0base, 2ndExonEnd) and skips the 1st exon
-    eventCoordinates <- paste0(incTable$chr,":(1st)",incTable$X1stExonStart_0base,"-",incTable$X1stExonEnd,";(2nd)",incTable$X2ndExonStart_0base,"-",incTable$X2ndExonEnd)
+    eventCoordinates <- paste0(incTable$chr,":(1st)",incTable$X1stExonStart_0base + 1,"-",incTable$X1stExonEnd,";(2nd)",incTable$X2ndExonStart_0base + 1,"-",incTable$X2ndExonEnd)
     li_factor <- 2
     ls_factor <- 2
 
@@ -70,7 +70,7 @@ getrMATS <- function(incTable){
     eventType <- "Altss"
     eventCols <- c("longExonStart_0base", "longExonEnd", "shortES", "shortEE", "flankingES", "flankingEE")
     # The inclusion form includes the long exon (longExonStart_0base, longExonEnd) instead of the short exon (shortES shortEE)
-    eventCoordinates <- paste0(incTable$chr,":",incTable$longExonStart_0base,"-",incTable$longExonEnd)
+    eventCoordinates <- paste0(incTable$chr,":",incTable$longExonStart_0base + 1,"-",incTable$longExonEnd)
     li_factor <- 2
     ls_factor <- 1
 
