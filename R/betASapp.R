@@ -134,13 +134,16 @@ betASapp_ui <- function(){
 
                                           helpText((em("Consider only alternative splicing events with all PSI values within this range."))),
 
-                                          numericInput("minNreads", "Minimum number of corrected reads per event:", 10, min = 1),
-                                          helpText((em("Alternative splicing events with less than this value in at least one sample will be filtered. Please do not consider less than one read."))),
+                                          # numericInput("minNreads", "Minimum number of corrected reads per event:", 10, min = 1),
+                                          # helpText((em("Alternative splicing events with less than this value in at least one sample will be filtered. Please do not consider less than one read."))),
+                                          #
 
 
-                                          # tags$div(numericInput("minNreads", "Minimum number of corrected reads per event:", 10, min = 0.5),  style="display:inline-block"),
-                                          # tags$div(actionButton("buttonminreads", "Filter"),  style="display:inline-block"),
-                                          # verbatimTextOutput("test_box"),
+                                          p(" "),
+
+                                          tags$div(numericInput("minNreads", "Minimum number of corrected reads per event:", 10, min = 0.5, width= "100%"),  style="display:inline-block"),
+                                          tags$div(actionButton("buttonminreads", "Filter"),  style="display:inline-block"),
+                                          verbatimTextOutput("test_box"),
 
 
 
@@ -435,7 +438,7 @@ betASapp_server <- function(){
 
   # Minimum number of reads for each event in each sample; events with less than one read in at least one sample will be filtered out
   defaultminNreads              <-  10
-  #minNreads                     <-  10
+  minNreads                     <-  10
   # simplify test table
   # colnames(testTable)   <- gsub(x = colnames(testTable), pattern = "Sample_IMR90_", replacement = "")
   # samples               <- colnames(testTable)[grep(x = colnames(testTable), pattern = "-Q")-1]
@@ -557,7 +560,7 @@ betASapp_server <- function(){
 
 
 
-    #Check data format. Currently supports rMATS & vast-tools tables
+    #Check data format. Currently supports rMATS, vast-tools and whippet tables
 
     sourcetool <- reactive({
 
@@ -638,7 +641,7 @@ betASapp_server <- function(){
     observeEvent(sourcetool(),{
 
       req(sourcetool())
-      req(GetTable())
+      req(dataset())
 
       if(sourcetool()=="vast-tools"){
         updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT)
@@ -653,63 +656,66 @@ betASapp_server <- function(){
 
 
 
-    observeEvent(dataset(), {
 
-      req(dataset())
-      req(sourcetool())
+    observeEvent(dataset(), {
 
       updateNumericInput(session, "minNreads", "Minimum number of corrected reads per event:", defaultminNreads, min = 1)
 
     })
-#
-#     observeEvent(input$buttonminreads, {
-#
-#       print(input$buttonminreads)
-#       if(input$minNreads < 1){
-#
-#         showNotification("Value not supported. Please choose a number greater than 1.",
-#                          closeButton = TRUE,
-#                          duration = 5,
-#                          type = c("error"))
-#         return(NULL)
-#       }
-#     })
 
-    # minNreads <- eventReactive(input$buttonminreads,{
-    #   input$minNreads
-    # })
+    # auxiliary variable that changes whenever the dataset changes OR the user clicks on the button "Filter"
+     rendervar <- reactiveVal(1)
 
-    # minNreads <- reactiveValues(N = as.numeric(defaultminNreads))
-    #
-    # observeEvent(input$buttonminreads, {
-    #   req(input$minNreads)
-    #   minNreads$N <- input$minNreads
-    # })
+    # reactive value for minimum number of reads to be filtered
+    minNreads <- reactiveVal(defaultminNreads)
 
-#     observeEvent(input$buttonminreads, {
-#
-#       req(dataset())
-#       req(sourcetool())
-#       req(input$buttonminreads)
-#
-#       minNreads() <- input$minNreads
-#
-#     })
+    input_types <- reactiveVal(NULL)
+
+    observeEvent(dataset(), {
+
+      minNreads(defaultminNreads)
+
+      # because the update values are too slow, we need to initiate this variable
+      if (sourcetool() == "whippet"){
+          input_types("CE")
+      } else if (sourcetool() == "vast-tools"){
+         input_types(c("EX", "IR"))
+      }
+
+    })
+
+    observeEvent(input$types, {
+
+        input_types(input$types)
+
+    })
 
 
+    observeEvent(input$buttonminreads, {
 
 
+      minNreads(input$minNreads)
+
+
+    })
 
 
     # 1. Filter table to remove events
-    #filterVastToolsTable <- reactive({
-    filterTable <- reactive({
+
+    filterTable <- eventReactive({
+
+      #rendervar()
+      input$buttonminreads
+      input_types()
+      dataset()
+
+
+      }, {
 
       req(sourcetool())
       req(GetTable())
-      req(input$minNreads)
-      #req(input$buttonminreads)
-      #req(minNreads)
+      req(input_types())
+
 
       if(sourcetool() == "vast-tools"){
 
@@ -717,34 +723,32 @@ betASapp_server <- function(){
 
         selectedEventTypes <- c()
 
-        if("EX" %in% input$types) selectedEventTypes <- c("C1", "C2", "C3", "S", "MIC")
-        if("IR" %in% input$types & "IR" %in% presentEventTypes) selectedEventTypes <- c(selectedEventTypes, "IR")
-        if("IR" %in% input$types & "IR-S" %in% presentEventTypes) selectedEventTypes <- c(selectedEventTypes, "IR-C", "IR-S")
-        if("Altss" %in% input$types) selectedEventTypes <- c(selectedEventTypes, "Alt3", "Alt5")
+        if("EX" %in% input_types()) selectedEventTypes <- c("C1", "C2", "C3", "S", "MIC")
+        if("IR" %in% input_types() & "IR" %in% presentEventTypes) selectedEventTypes <- c(selectedEventTypes, "IR")
+        if("IR" %in% input_types() & "IR-S" %in% presentEventTypes) selectedEventTypes <- c(selectedEventTypes, "IR-C", "IR-S")
+        if("Altss" %in% input_types()) selectedEventTypes <- c(selectedEventTypes, "Alt3", "Alt5")
         if(length(selectedEventTypes) == 0){
           showNotification("Please select at least one event type", duration = 5, type = c("error"))
           return(NULL)
         }
-        filteredList <- filterVastTools(GetTable(), types = selectedEventTypes,N=input$minNreads)
+        filteredList <- filterVastTools(GetTable(), types = selectedEventTypes,N=minNreads())
 
       }
 
       if(sourcetool() == "rMATS"){
 
-        filteredList <- filterrMATS(GetTable(),N=input$minNreads)
-        # if(length(input$types) == 0){
-        #   showNotification("Please select at least one event type", duration = 5, type = c("error"))
-        #   return(NULL)
-        # }
+        filteredList <- filterrMATS(GetTable(),N=minNreads())
+
       } else if(sourcetool() == "whippet"){
 
-        selectedEventTypes <- input$types
+        selectedEventTypes <- input_types()
+        print(input_types())
 
         if(length(selectedEventTypes) == 0){
           showNotification("Please select at least one event type", duration = 5, type = c("error"))
           return(NULL)
         }
-        filteredList <- filterWhippet(GetTable(), types = selectedEventTypes, N=input$minNreads)
+        filteredList <- filterWhippet(GetTable(), types = selectedEventTypes, N= minNreads())
 
       }
 
@@ -754,44 +758,6 @@ betASapp_server <- function(){
     })
 
 
-
-
-    # eventTypesToConsider <- reactiveValues(types = list())
-    #
-    # observeEvent(sourcetool(), {
-    #
-    #   if(sourcetool() == "vast-tools"){
-    #
-    #     # eventTypesToConsider$types <- eventTypes
-    #     #updateRadioButtons(inputId = "sourcetool", label = "Table source:", selected = "vast-tools")
-    #
-    #   }
-    #
-    #   if(sourcetool() == "rMATS"){
-    #
-    #     eventTypesToConsider$types <- NULL
-    #
-    #   }
-    #
-    # })
-    #
-    # observe({updateCheckboxGroupInput(inputId = "types", choices = eventTypesToConsider$types)})
-    #
-
-
-
-    # filterRMATSTable <- reactive({
-    #
-    #   req(sourcetool())
-    #
-    #   if(sourcetool() == "rMATS"){
-    #
-    #     filteredList <- filterrMATS(dataset())
-    #     return(filteredList)
-    #
-    #   }
-    #
-    # })
 
     selectAlternatives <- reactive({
 
@@ -832,6 +798,8 @@ betASapp_server <- function(){
 
       if(sourcetool() == "whippet"){
 
+        print("entering the alternative part")
+        View(filterTable()$PSI)
         alternativeList <- alternativeWhippet(req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
 
         if(nrow(alternativeList$PSI) == 0){
@@ -884,10 +852,10 @@ betASapp_server <- function(){
     # create a reactive expression
     psifiltdataset <- reactive({
 
-      req(selectAlternatives())
+      #req(selectAlternatives())
 
-
-      return(selectAlternatives()$PSI)
+      selectAlternatives()$PSI
+      #return(selectAlternatives()$PSI)
 
 
     })
@@ -900,42 +868,43 @@ betASapp_server <- function(){
     })
 
     eventNumber <- reactive({
+
+      req(selectAlternatives())
+
       return(nrow(psifiltdataset()))
     })
 
 
 
 
-    eventNumberPerType <- reactive({
 
-      selTypes  <- input$types
-      toPrint   <- selTypes
-      printed   <- c()
-      message   <- character()
-      while(length(printed) < length(selTypes)){
-        type  <- toPrint[1]
-
-        if(type == "EX") selectedEventTypes <- c("C1", "C2", "C3", "S", "MIC")
-        if(type == "IR") selectedEventTypes <- c("IR-C", "IR-S")
-        if(type == "Altss") selectedEventTypes <- c("Alt3", "Alt5")
-
-        count <- length(which(psifiltdataset()$COMPLEX %in% selectedEventTypes))
-
-        message <- paste0(message, type, ": ", count, " ")
-        printed <- c(printed, type)
-        toPrint <- toPrint[-c(1)]
-      }
-
-      return(message)
-
-    })
+#
+#     eventNumberPerType <- reactive({
+#
+#       selTypes  <- input$types
+#       toPrint   <- selTypes
+#       printed   <- c()
+#       message   <- character()
+#       while(length(printed) < length(selTypes)){
+#         type  <- toPrint[1]
+#
+#         if(type == "EX") selectedEventTypes <- c("C1", "C2", "C3", "S", "MIC")
+#         if(type == "IR") selectedEventTypes <- c("IR-C", "IR-S")
+#         if(type == "Altss") selectedEventTypes <- c("Alt3", "Alt5")
+#
+#         count <- length(which(psifiltdataset()$COMPLEX %in% selectedEventTypes))
+#
+#         message <- paste0(message, type, ": ", count, " ")
+#         printed <- c(printed, type)
+#         toPrint <- toPrint[-c(1)]
+#       }
+#
+#       return(message)
+#
+#     })
 
 
     ## Outputs -----------------------------------------------------------------
-
-    #output$filesinput <- renderTable(input$psitable$name)
-
-
 
 
     output$datasetInfo <- renderText({
@@ -1004,9 +973,9 @@ betASapp_server <- function(){
         }
       }
 
-      datatable(dt, selection = list(mode = 'single', selected = c(1)))
+      datatable(dt, rownames=FALSE, selection = list(mode = 'single', selected = c(1)), options=list(pageLength = 10, scrollX = TRUE,dom = 't'))
 
-    }, rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE))
+    })
 
 
 
@@ -1016,21 +985,22 @@ betASapp_server <- function(){
       req(selectAlternatives())
       req(sourcetool())
 
+      selectAlternatives()
 
       if (sourcetool()=="whippet"){
         # if(!is.null(input$psitable)){
         data <- dataset()[[input$files_rows_selected]]
-        events_to_show <- paste0(data$Gene,":",data$Node,":",data$Type) %in% psifiltdataset()$EVENT
+        events_to_show <- paste0(data$Gene,":",data$Node,":",data$Type) %in% isolate(psifiltdataset())$EVENT
         data[events_to_show,]
         # }
       }else if(sourcetool() == "rMATS"){
 
-        eventIDs <- psifiltdataset()$EVENT
+        eventIDs <- isolate(psifiltdataset())$EVENT
         dataset()[dataset()$ID %in% eventIDs,]
 
       } else if (sourcetool() == "vast-tools"){
 
-        eventIDs <- psifiltdataset()$EVENT
+        eventIDs <- isolate(psifiltdataset())$EVENT
         dataset()[dataset()$EVENT %in% eventIDs,]
 
       }
@@ -1066,14 +1036,17 @@ betASapp_server <- function(){
       req(sourcetool())
       req(selectAlternatives())
 
+
+      dataset()
+
       # req(selectAlternatives())
       if (sourcetool() %in% c("vast-tools","whippet")){
 
-        paste0("You have selected ", eventNumber(), " events")
+        paste0("You have selected ", isolate(eventNumber()), " events")
 
       } else if (sourcetool() == "rMATS") {
 
-        rMATSEventType <- names(selectAlternatives()$EventsPerType)
+        rMATSEventType <- names(isolate(selectAlternatives())$EventsPerType)
 
         if (rMATSEventType == "EX") {
           rMATSEventTypeText <- "Exon Skipping"
@@ -1085,7 +1058,7 @@ betASapp_server <- function(){
           rMATSEventTypeText <- "Mutually Exclusive Exons"
         }
 
-        paste0("You have selected ", eventNumber(), " ", rMATSEventTypeText," events")
+        paste0("You have selected ", isolate(eventNumber()), " ", rMATSEventTypeText," events")
 
       }
 
@@ -1093,13 +1066,13 @@ betASapp_server <- function(){
 
 
 
-    output$textNumberEventsPerType <- renderText({
-
-      req(selectAlternatives())
-
-      eventNumberPerType()
-
-    })
+    # output$textNumberEventsPerType <- renderText({
+    #
+    #   req(selectAlternatives())
+    #
+    #   eventNumberPerType()
+    #
+    # })
 
 
 
@@ -1108,7 +1081,9 @@ betASapp_server <- function(){
 
       req(selectAlternatives())
 
-      preparePieForVastToolsCOMPLEX(psifiltdataset())
+      dataset()
+
+      preparePieForVastToolsCOMPLEX(isolate(psifiltdataset()))
 
     })
 
@@ -1154,13 +1129,15 @@ betASapp_server <- function(){
 
       req(selectAlternatives())
 
-      bigPicturePlot(psifiltdataset())
+      dataset()
+
+      bigPicturePlot(isolate(psifiltdataset()))
 
     })
 
-    # output$test_box <- renderText({
-    #   validate(need(input$minNreads > 1, "Please use a value greater or equal than 1"))
-    # })
+    output$test_box <- renderText({
+      validate(need(input$minNreads > 1, "Please use a value greater or equal than 1"))
+    })
 
 
 
