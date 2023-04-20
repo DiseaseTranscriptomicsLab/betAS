@@ -434,11 +434,19 @@ betASapp_server <- function(){
                              "Alternative First exon (AF)"="AF",
                              "Alternative Last exon (AL)"="AL",
                              "Circular back-splicing (BS)"="BS")
+
+  default_VT_events           <- c("EX", "IR")
+  default_Whippet_events      <- c("CE")
+
   #eventTypesrMATS          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss", "Mutually Exclusive Exons (MXE)"="MXE")
 
   # Minimum number of reads for each event in each sample; events with less than one read in at least one sample will be filtered out
   defaultminNreads              <-  10
-  minNreads                     <-  10
+  #minNreads                     <-  10
+
+
+
+
   # simplify test table
   # colnames(testTable)   <- gsub(x = colnames(testTable), pattern = "Sample_IMR90_", replacement = "")
   # samples               <- colnames(testTable)[grep(x = colnames(testTable), pattern = "-Q")-1]
@@ -637,6 +645,7 @@ betASapp_server <- function(){
     })
 
 
+    # Update choice values for inputs when the dataset changes
 
     observeEvent(sourcetool(),{
 
@@ -644,18 +653,11 @@ betASapp_server <- function(){
       req(dataset())
 
       if(sourcetool()=="vast-tools"){
-        updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT)
+        updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = default_VT_events,  choices = eventTypesVT)
       }else if(sourcetool()=="whippet"){
-        updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = c("CE"),  choices = eventTypesWhippet)
+        updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = default_Whippet_events,  choices = eventTypesWhippet)
       }
-      # else if (sourcetool() == "rMATS"){
-      #   eventsrMATS <- eventTypesrMATS[eventTypesrMATS %in% names(GetTable()$EventsPerType)]
-      #   updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = eventsrMATS,  choices = eventsrMATS)
-      # }
     })
-
-
-
 
     observeEvent(dataset(), {
 
@@ -663,60 +665,71 @@ betASapp_server <- function(){
 
     })
 
-    # auxiliary variable that changes whenever the dataset changes OR the user clicks on the button "Filter"
-     rendervar <- reactiveVal(1)
 
+    # Because the change using updates is not immediate, we have to initialize it in order to not use the values from the previous dataset
+    # auxiliary variable that changes whenever the dataset changes OR the user clicks on the button "Filter"
+
+    # to only render the plots when the user clicks on the Filter button OR the first time the dataset changes OR if the selected events change
+    rendervar <- reactiveVal(1)
     # reactive value for minimum number of reads to be filtered
     minNreads <- reactiveVal(defaultminNreads)
-
+    # reactive value for the default values for event types to consider
     input_types <- reactiveVal(NULL)
 
+
+
+    # defaults, when the dataset changes
     observeEvent(dataset(), {
+
+      render <- rendervar() + 1
+      rendervar(render)
 
       minNreads(defaultminNreads)
 
-      # because the update values are too slow, we need to initiate this variable
+      # because the update inputs are too slow, we need to initiate this variable
+      # default values for input$types
       if (sourcetool() == "whippet"){
-          input_types("CE")
+        input_types(default_Whippet_events)
       } else if (sourcetool() == "vast-tools"){
-         input_types(c("EX", "IR"))
+        input_types(default_VT_events)
       }
 
-    })
-
-    observeEvent(input$types, {
-
-        input_types(input$types)
 
     })
 
-
+    # update render variable when the user clicks on the Filter button
+    # Also update the value of the minimum reads to be filtered to the one in the input$minNreads field
     observeEvent(input$buttonminreads, {
 
+      render <- rendervar() + 1
+      rendervar(render)
 
       minNreads(input$minNreads)
 
+    })
+
+    # update render variable when the selected input types change
+    # Also update the value of the event types to be filtered to the ones in the input$types field
+    observeEvent(input$types, {
+
+      render <- rendervar() + 1
+      rendervar(render)
+      input_types(input$types)
 
     })
+
 
 
     # 1. Filter table to remove events
 
-    filterTable <- eventReactive({
-
-      #rendervar()
-      input$buttonminreads
-      input_types()
-      dataset()
-
-
-      }, {
+    filterTable <- eventReactive(rendervar(), {
 
       req(sourcetool())
       req(GetTable())
       req(input_types())
+      req(minNreads())
 
-
+      print("entering the filtering")
       if(sourcetool() == "vast-tools"){
 
         presentEventTypes <- names(GetTable()$EventsPerType)
@@ -759,7 +772,7 @@ betASapp_server <- function(){
 
 
 
-    selectAlternatives <- reactive({
+    selectAlternatives <- eventReactive(filterTable(), {
 
       req(sourcetool())
       req(filterTable())
