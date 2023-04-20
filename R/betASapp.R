@@ -102,7 +102,7 @@ betASapp_ui <- function(){
                                           # helpText("(*) betAS currently supports inclusion level tables from: vast-tools (INCLUSION_LEVELS_FULL*.tab) and rMATS (*.MATS.JC.txt tables)"),
                                           p("betAS currently supports inclusion level tables from vast-tools ",code("(INCLUSION_LEVELS_FULL*.tab)", style = "font-size:12px; color: #AAAAAA"),
                                             ", rMATS ",code("(*.MATS.JC.txt)", style = "font-size:12px; color: #AAAAAA")," and whippet",code("(*.psi.gz).", style = "font-size:12px; color: #AAAAAA"),
-                                            "Only a single file is supported when using rMATS or vast-tools results. For whippet, please upload one file per sample.", style = "font-size:12px; color: #AAAAAA"),
+                                            "Only a single file is supported when using rMATS or vast-tools results. For whippet, please upload one file per sample (at least two samples).", style = "font-size:12px; color: #AAAAAA"),
 
 
                                           fileInput("psitable", NULL, placeholder = "No file selected (max. 300MB)", multiple=T, accept = c(".tab",".txt",".psi",".gz")), #accept = c(".tab",".txt",".psi",".gz")
@@ -503,7 +503,7 @@ betASapp_server <- function(){
 
       }else{
 
-        if(length(input$psitable$datapath) > 1 & length(grep(pattern = "[.]psi", x = input$psitable$name)) != 0 ){
+        if(length(input$psitable$datapath) > 1 & length(grep(pattern = "[.]psi", x = input$psitable$name)) == length(input$psitable$datapath) ){
 
           showNotification("Please note that importing data may take a few minutes.",
                            closeButton = TRUE,
@@ -512,6 +512,22 @@ betASapp_server <- function(){
 
           loadingFile <- lapply(as.list(input$psitable$datapath),fread)
           names(loadingFile) <- sapply(input$psitable$name, function(file) gsub("\\..*","",gsub(".*/","",file)))
+
+        } else if (length(input$psitable$datapath) == 1 & length(grep(pattern = "[.]psi", x = input$psitable$name)) == length(input$psitable$datapath) ){
+
+          showNotification("Number of files not supported. Please select at least two files when using whippet inclusion tables.",
+                           closeButton = TRUE,
+                           duration = 10,
+                           type = c("error"))
+          return(NULL)
+
+        } else if (length(input$psitable$datapath) > 1 & length(grep(pattern = "[.]psi", x = input$psitable$name)) != length(input$psitable$datapath) ){
+
+          showNotification("Input files not supported. Please select files from only one tool.",
+                           closeButton = TRUE,
+                           duration = 10,
+                           type = c("error"))
+          return(NULL)
 
         } else {
 
@@ -586,7 +602,7 @@ betASapp_server <- function(){
       if (class(dataset())=="list"){
 
         # for Whippet, the output for dataset() is a list of the original inclusion tables (one per sample), which should all have the same column names
-        inputTablecols <- colnames(dataset()[[1]])
+        inputTablecols <- unique(lapply(dataset(), colnames))[[1]]
 
       } else {
 
@@ -608,7 +624,7 @@ betASapp_server <- function(){
 
       }else{
 
-        showNotification("The provided data is not supported by betAS.",
+        showNotification("The provided data is not supported by betAS. Please confirm that your data matches the input requirements.",
                          closeButton = TRUE,
                          duration = 10,
                          type = c("error"))
@@ -729,7 +745,6 @@ betASapp_server <- function(){
       req(input_types())
       req(minNreads())
 
-      print("entering the filtering")
       if(sourcetool() == "vast-tools"){
 
         presentEventTypes <- names(GetTable()$EventsPerType)
@@ -755,7 +770,6 @@ betASapp_server <- function(){
       } else if(sourcetool() == "whippet"){
 
         selectedEventTypes <- input_types()
-        print(input_types())
 
         if(length(selectedEventTypes) == 0){
           showNotification("Please select at least one event type", duration = 5, type = c("error"))
@@ -811,8 +825,6 @@ betASapp_server <- function(){
 
       if(sourcetool() == "whippet"){
 
-        print("entering the alternative part")
-        View(filterTable()$PSI)
         alternativeList <- alternativeWhippet(req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
 
         if(nrow(alternativeList$PSI) == 0){
@@ -891,30 +903,30 @@ betASapp_server <- function(){
 
 
 
-#
-#     eventNumberPerType <- reactive({
-#
-#       selTypes  <- input$types
-#       toPrint   <- selTypes
-#       printed   <- c()
-#       message   <- character()
-#       while(length(printed) < length(selTypes)){
-#         type  <- toPrint[1]
-#
-#         if(type == "EX") selectedEventTypes <- c("C1", "C2", "C3", "S", "MIC")
-#         if(type == "IR") selectedEventTypes <- c("IR-C", "IR-S")
-#         if(type == "Altss") selectedEventTypes <- c("Alt3", "Alt5")
-#
-#         count <- length(which(psifiltdataset()$COMPLEX %in% selectedEventTypes))
-#
-#         message <- paste0(message, type, ": ", count, " ")
-#         printed <- c(printed, type)
-#         toPrint <- toPrint[-c(1)]
-#       }
-#
-#       return(message)
-#
-#     })
+    #
+    #     eventNumberPerType <- reactive({
+    #
+    #       selTypes  <- input$types
+    #       toPrint   <- selTypes
+    #       printed   <- c()
+    #       message   <- character()
+    #       while(length(printed) < length(selTypes)){
+    #         type  <- toPrint[1]
+    #
+    #         if(type == "EX") selectedEventTypes <- c("C1", "C2", "C3", "S", "MIC")
+    #         if(type == "IR") selectedEventTypes <- c("IR-C", "IR-S")
+    #         if(type == "Altss") selectedEventTypes <- c("Alt3", "Alt5")
+    #
+    #         count <- length(which(psifiltdataset()$COMPLEX %in% selectedEventTypes))
+    #
+    #         message <- paste0(message, type, ": ", count, " ")
+    #         printed <- c(printed, type)
+    #         toPrint <- toPrint[-c(1)]
+    #       }
+    #
+    #       return(message)
+    #
+    #     })
 
 
     ## Outputs -----------------------------------------------------------------
