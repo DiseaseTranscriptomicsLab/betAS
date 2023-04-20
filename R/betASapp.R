@@ -105,7 +105,7 @@ betASapp_ui <- function(){
                                             "Only a single file is supported when using rMATS or vast-tools results. For whippet, please upload one file per sample (at least two samples).", style = "font-size:12px; color: #AAAAAA"),
 
 
-                                          fileInput("psitable", NULL, placeholder = "No file selected (max. 300MB)", multiple=T, accept = c(".tab",".txt",".psi",".gz")), #accept = c(".tab",".txt",".psi",".gz")
+                                          fileInput("psitable", NULL, placeholder = "No file selected (max. 100MB)", multiple=T, accept = c(".tab",".txt",".psi",".gz")), #accept = c(".tab",".txt",".psi",".gz")
 
                                           hr(),
 
@@ -415,7 +415,7 @@ betASapp_server <- function(){
 
   # file size limit = 10MB
 
-  options(highcharter.theme = hc_theme_smpl(tooltip = list(valueDecimals = 2)), shiny.maxRequestSize = 300 * 1024^2)
+  options(highcharter.theme = hc_theme_smpl(tooltip = list(valueDecimals = 2)), shiny.maxRequestSize = 100 * 1024^2)
 
   # :::: Variables ::::
   # file                  <- "test/INCLUSION_LEVELS_FULL-Hsa32-hg19_to_test.tab.gz"
