@@ -102,7 +102,8 @@ betASapp_ui <- function(){
                                           # helpText("(*) betAS currently supports inclusion level tables from: vast-tools (INCLUSION_LEVELS_FULL*.tab) and rMATS (*.MATS.JC.txt tables)"),
                                           p("betAS currently supports inclusion level tables from vast-tools ",code("(INCLUSION_LEVELS_FULL*.tab)", style = "font-size:12px; color: #AAAAAA"),
                                             ", rMATS ",code("(*.MATS.JC.txt)", style = "font-size:12px; color: #AAAAAA")," and whippet",code("(*.psi.gz).", style = "font-size:12px; color: #AAAAAA"),
-                                            "Only a single file is supported when using rMATS or vast-tools results. For whippet, please upload one file per sample (at least two samples).", style = "font-size:12px; color: #AAAAAA"),
+                                            "Only a single file is supported when using rMATS or vast-tools results. Results from vast-tools module",code("tidy", style = "font-size:12px; color: #AAAAAA"),"not supported.
+                                            For whippet, please upload one file per sample (at least two samples).", style = "font-size:12px; color: #AAAAAA"),
 
 
                                           fileInput("psitable", NULL, placeholder = "No file selected (max. 100MB)", multiple=T, accept = c(".tab",".txt",".psi",".gz")), #accept = c(".tab",".txt",".psi",".gz")
