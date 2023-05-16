@@ -4,6 +4,7 @@
 #' @importFrom colourpicker colourInput updateColourInput
 #' @importFrom DT renderDT DTOutput formatRound datatable
 #' @importFrom bslib bs_theme
+#' @importFrom data.table fread
 betASapp_ui <- function(){
   # :::: Variables ::::
   # tools           <- c("vast-tools", "MISO", "SUPPA", "Other")
@@ -376,7 +377,7 @@ betASapp_ui <- function(){
                                                             color = "#FF9AA2",
                                                             size = 2),
                                conditionalPanel(
-                                 condition = 'output.showIndividualEventPlots',
+                                 condition = 'output.showIndividualEventPlotsmult',
                                  fluidRow(
 
                                    column(3,
@@ -1438,11 +1439,13 @@ betASapp_server <- function(){
 
       }
 
-      sampleTable <- sampleTable()
+      sampleTable <- as.data.frame(sampleTable())
       columnToGroupBy <- match(input$groupingFeature, colnames(sampleTable))
+      #browser()
 
       groups <- unique(sampleTable[,columnToGroupBy])
       random_colors <- pastelColors
+
 
       for(g in groups){
 
@@ -2379,6 +2382,31 @@ betASapp_server <- function(){
 
       }
     })
+
+
+
+    # Auxiliary variable to show individual event plots only if a given event is selected
+    output$showIndividualEventPlotsmult <- reactive({
+
+      req(betasTableVolcanoMultiple())
+      req(selectedeventIDDiffMultiple())
+      req(selectedEventTableMultiple())
+      req(input$plotEvent_mult)
+
+      if (!is.null(input$plotEvent_mult)){
+
+        return(TRUE)
+
+      }else{
+
+        return(FALSE)
+
+      }
+    })
+    outputOptions(output, 'showIndividualEventPlotsmult', suspendWhenHidden=FALSE)
+
+
+
 
 
 
