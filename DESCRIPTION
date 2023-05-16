@@ -17,7 +17,7 @@ Description: betAS is a user-friendly R package that allows intuitive visualisat
     However, percent-spliced-in (PSI) values do not incorporate the number of reads supporting inclusion of a given AS event, even though this number of reads is the readout of RNA quantity in cells. The beta distribution, widely used to model proportions, is suitable to quantify inclusion levels using reads supporting exon inclusion/exclusion as surrogates for the distribution shape parameters. The distribution has as mean value the PSI ratio and is more narrowed when the number of reads is higher. By expanding previously developed work by others we introduce a computational pipeline based on individual-sample beta distributions and fitted-group beta distributions to accurately model inclusion levels and accommodate the respective magnitude of inclusion evidence to compare AS across different conditions. Also, our methodology allowed the definition of a significance metric associated to a given differential inclusion across conditions.
 License: MIT + file LICENSE
 Encoding: UTF-8
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 VignetteBuilder: knitr
 biocViews: Sequencing, AlternativeSplicing, DifferentialSplicing
 Imports:
