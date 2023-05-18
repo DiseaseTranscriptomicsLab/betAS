@@ -529,7 +529,8 @@ betASapp_server <- function(){
 
       # Whippet inclusion tables have the following columns: "Gene" "Node" "Coord" "Strand" "Type" "Psi" "CI_Width" "CI_Lo,Hi" "Total_Reads" "Complexity" "Entropy" "Inc_Paths" "Exc_Paths" "Edges"
       # Note: when using read.delim for importing the files, it changes all "," to "."; Meaning, "CI_Lo,Hi" changes to "CI_Lo.Hi"
-      requiredcols_whippet <- c("Gene", "Node", "Coord", "Strand", "Type" ,"Psi", "CI_Width", "CI_Lo.Hi", "Total_Reads", "Complexity", "Entropy" ,"Inc_Paths", "Exc_Paths")
+      # For sake of simplicity, we are not considering "CI_Lo,Hi" as mandatory
+      requiredcols_whippet <- c("Gene", "Node", "Coord", "Strand", "Type" ,"Psi", "CI_Width", "Total_Reads", "Complexity", "Entropy" ,"Inc_Paths", "Exc_Paths")
 
       if (class(dataset())=="list"){
 
