@@ -1,11 +1,9 @@
 #' @import shiny
 #' @import highcharter
 #' @import shinycssloaders
-#' @import R.utils
 #' @importFrom colourpicker colourInput updateColourInput
 #' @importFrom DT renderDT DTOutput formatRound datatable
 #' @importFrom bslib bs_theme
-#' @importFrom data.table fread
 betASapp_ui <- function(){
   # :::: Variables ::::
   availabletools      <- c("vast-tools", "rMATS","whippet")
@@ -432,15 +430,18 @@ betASapp_server <- function(){
         return(testTable)
 
       }else{
-
-        if(length(input$psitable$datapath) > 1 & length(grep(pattern = "[.]psi", x = input$psitable$name)) == length(input$psitable$datapath) ){
+         if(length(input$psitable$datapath) > 1 & length(grep(pattern = "[.]psi", x = input$psitable$name)) == length(input$psitable$datapath) ){
 
           showNotification("Please note that importing data may take a few minutes.",
                            closeButton = TRUE,
                            duration = 10,
                            type = c("message"))
 
-          loadingFile <- lapply(as.list(input$psitable$datapath),fread)
+          files <- as.list(input$psitable$datapath)
+          files[grep("[.]gz",files)] <- lapply(files[grep("[.]gz",files)],gzfile)
+          loadingFile <- lapply(files,read.delim)
+
+          #loadingFile <- lapply(as.list(input$psitable$datapath),fread)
           names(loadingFile) <- sapply(input$psitable$name, function(file) gsub("\\..*","",gsub(".*/","",file)))
 
         } else if (length(input$psitable$datapath) == 1 & length(grep(pattern = "[.]psi", x = input$psitable$name)) == length(input$psitable$datapath) ){
@@ -527,7 +528,8 @@ betASapp_server <- function(){
       requiredcols_rMATS <- c("ID","GeneID","geneSymbol","chr","strand","IJC_SAMPLE_1","SJC_SAMPLE_1","IJC_SAMPLE_2","SJC_SAMPLE_2")
 
       # Whippet inclusion tables have the following columns: "Gene" "Node" "Coord" "Strand" "Type" "Psi" "CI_Width" "CI_Lo,Hi" "Total_Reads" "Complexity" "Entropy" "Inc_Paths" "Exc_Paths" "Edges"
-      requiredcols_whippet <- c("Gene", "Node", "Coord", "Strand", "Type" ,"Psi", "CI_Width", "CI_Lo,Hi", "Total_Reads", "Complexity", "Entropy" ,"Inc_Paths", "Exc_Paths")
+      # Note: when using read.delim for importing the files, it changes all "," to "."; Meaning, "CI_Lo,Hi" changes to "CI_Lo.Hi"
+      requiredcols_whippet <- c("Gene", "Node", "Coord", "Strand", "Type" ,"Psi", "CI_Width", "CI_Lo.Hi", "Total_Reads", "Complexity", "Entropy" ,"Inc_Paths", "Exc_Paths")
 
       if (class(dataset())=="list"){
 
@@ -631,8 +633,7 @@ betASapp_server <- function(){
       rendervar(render)
 
       minNreads(defaultminNreads)
-
-      # because the update inputs are too slow, we need to initiate this variable
+       # because the update inputs are too slow, we need to initiate this variable
       # default values for input$types
       if (sourcetool() == "whippet"){
         input_types(default_Whippet_events)
@@ -940,21 +941,13 @@ betASapp_server <- function(){
     outputOptions(output, 'showchecks', suspendWhenHidden=FALSE)
 
 
+    output_textTotalNumberEvents <- reactiveVal("")
 
+    textTotalNumberEvents <- observeEvent(eventNumber(),{
 
-
-    output$textTotalNumberEvents <- renderText({
-
-      req(sourcetool())
-      req(selectAlternatives())
-
-
-      dataset()
-
-      # req(selectAlternatives())
       if (sourcetool() %in% c("vast-tools","whippet")){
 
-        paste0("You have selected ", isolate(eventNumber()), " events")
+        output_textTotalNumberEvents(paste0("You have selected ", isolate(eventNumber()), " events"))
 
       } else if (sourcetool() == "rMATS") {
 
@@ -970,10 +963,14 @@ betASapp_server <- function(){
           rMATSEventTypeText <- "Mutually Exclusive Exons"
         }
 
-        paste0("You have selected ", isolate(eventNumber()), " ", rMATSEventTypeText," events")
+        output_textTotalNumberEvents(paste0("You have selected ", isolate(eventNumber()), " ", rMATSEventTypeText," events"))
 
       }
 
+    })
+
+    output$textTotalNumberEvents <- renderText({
+      output_textTotalNumberEvents()
     })
 
 
