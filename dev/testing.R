@@ -3,7 +3,7 @@
 
 filterVT <- list()
 
-testTable <- read.table(gzfile("/home/mariana/betAS/test/INCLUSION_LEVELS_FULL-Hsa32-hg19_to_test.tab.gz"), sep="\t", header=TRUE, quote="")
+testTable <- readRDS("test/INCLUSION_LEVELS_FULL-hg19-98-v251.rds")
 # maxDevSimulationN100 <- readRDS(url("http://imm.medicina.ulisboa.pt/group/distrans/SharedFiles/Mariana/Splicing&SenescenceFLEX/xintercepts_100incr_100cov_100trials.R"))
 maxDevSimulationN100  <- readRDS("test/xintercepts_100incr_100cov_100trials.rds")
 
@@ -360,6 +360,30 @@ findGroupsVast <- function(table){
 
 
 
+example2 <- as.data.frame(read.delim("/home/rsilva/betAS_tests/INCLUSION_LEVELS_FULL-mm10-8-v251.tab"))
+
+example2$AnyNA    <- apply(example2, 1, anyNA)
+example2          <- example2[which(example2$AnyNA == FALSE),]
+example2          <- example2[,-c(ncol(example2))]
+
+
+# example2_filter <- getVastTools(example2)
+# example2_filter_psi <- example2_filter$PSI
+# example2_filter_reads <- example2_filter$Qual
+
+# example2_filter_psi$AnyNA    <- apply(example2_filter_psi, 1, anyNA)
+# example2_filter_psi          <- example2_filter_psi[which(example2_filter_psi$AnyNA == FALSE),]
+# example2_filter_psi          <- example2_filter_psi[,-c(ncol(example2_filter_psi))]
+# example2_filter_reads         <- example2_filter_reads[match(example2_filter_psi$EVENT, example2_filter_reads$EVENT),]
+
+
+#
+# example2_filter_reads$AllminReads <-  apply(example2_filter_reads[,grep("[.]Q", colnames(example2_filter_reads))], 1, FUN = function(X) VT_all_minReads(X,1))
+# example2_filter_reads             <- example2_filter_reads[which(example2_filter_reads$AllminReads == TRUE),]
+#
+
+saveRDS(example2, "test/INCLUSION_LEVELS_FULL-mm10-8-v251.rds")
+
 # Testing Whippet functions ----------------------------------------------------
 
 folder_Whippet <- "/mnt/scratch/home/mariana/Projects/betAS/Whippet/"
@@ -388,8 +412,8 @@ metadatawhippet
 
 # Testing rMATS functions ----------------------------------------------------
 testTable <- read.delim(file = "test/SE.MATS.JC.txt")
-testTable <- getrMATS(testTable)
-testTable <- filterrMATS(testTable)
+testTablepos <- getrMATS(testTable)
+testTable <- filterrMATS(testTable,5)
 testTable <- alternativerMATS(testTable, minPsi=1, maxPsi=100)
 
 maxDevSimulationN100  <- readRDS("test/xintercepts_100incr_100cov_100trials.rds")
