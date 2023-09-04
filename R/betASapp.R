@@ -577,18 +577,7 @@ betASapp_server <- function(){
       req(dataset())
       req(sourcetool())
 
-      if(sourcetool() == "vast-tools"){
-        FormattedTable <- getVastTools(dataset())
-
-      }
-
-      if(sourcetool() == "rMATS"){
-        FormattedTable <- getrMATS(dataset())
-      }
-
-      if(sourcetool() == "whippet"){
-        FormattedTable <- getWhippet(dataset())
-      }
+      FormattedTable <- getEvents(incTable=dataset(), tool=sourcetool())
       return(FormattedTable)
 
     })
@@ -696,29 +685,24 @@ betASapp_server <- function(){
         if("IR" %in% input_types() & "IR" %in% presentEventTypes) selectedEventTypes <- c(selectedEventTypes, "IR")
         if("IR" %in% input_types() & "IR-S" %in% presentEventTypes) selectedEventTypes <- c(selectedEventTypes, "IR-C", "IR-S")
         if("Altss" %in% input_types()) selectedEventTypes <- c(selectedEventTypes, "Alt3", "Alt5")
-        if(length(selectedEventTypes) == 0){
-          showNotification("Please select at least one event type", duration = 5, type = c("error"))
-          return(NULL)
-        }
-        filteredList <- filterVastTools(GetTable(), types = selectedEventTypes,N=minNreads())
 
-      }
+      } else if(sourcetool() == "rMATS"){
 
-      if(sourcetool() == "rMATS"){
-
-        filteredList <- filterrMATS(GetTable(),N=minNreads())
+        selectedEventTypes <- NULL
 
       } else if(sourcetool() == "whippet"){
 
         selectedEventTypes <- input_types()
 
-        if(length(selectedEventTypes) == 0){
-          showNotification("Please select at least one event type", duration = 5, type = c("error"))
-          return(NULL)
-        }
-        filteredList <- filterWhippet(GetTable(), types = selectedEventTypes, N= minNreads())
-
       }
+
+
+      if(length(selectedEventTypes) == 0 & sourcetool() != "rMATS"){
+        showNotification("Please select at least one event type", duration = 5, type = c("error"))
+        return(NULL)
+      }
+
+      filteredList <- filterEvents(ASList=GetTable(), types = selectedEventTypes, N= minNreads(), tool=sourcetool())
 
 
       return(filteredList)
@@ -732,53 +716,16 @@ betASapp_server <- function(){
       req(sourcetool())
       req(filterTable())
 
-      if(sourcetool() == "vast-tools"){
+      alternativeList <- alternativeEvents(ASListFiltered=req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2], tool = sourcetool())
 
-        alternativeList <- alternativeVastTools(filterTable(), minPsi = input$psirange[1], maxPsi = input$psirange[2])
-
-        if(nrow(alternativeList$PSI) == 0){
-
-          showNotification("There are no events with PSI values within such range.",
-                           closeButton = TRUE,
-                           duration = 5,
-                           type = c("error"))
-          return(NULL)
-
-        }
+      if(nrow(alternativeList$PSI) == 0){
+        showNotification("There are no events with PSI values within such range.",
+                         closeButton = TRUE,
+                         duration = 5,
+                         type = c("error"))
+        return(NULL)
 
       }
-
-      if(sourcetool() == "rMATS"){
-
-        alternativeList <- alternativerMATS(req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
-
-        if(nrow(alternativeList$PSI) == 0){
-
-          showNotification("There are no events with PSI values within such range.",
-                           closeButton = TRUE,
-                           duration = 5,
-                           type = c("error"))
-          return(NULL)
-
-        }
-
-      }
-
-      if(sourcetool() == "whippet"){
-
-        alternativeList <- alternativeWhippet(req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
-
-        if(nrow(alternativeList$PSI) == 0){
-          showNotification("There are no events with PSI values within such range.",
-                           closeButton = TRUE,
-                           duration = 5,
-                           type = c("error"))
-          return(NULL)
-
-        }
-
-      }
-
 
       return(alternativeList)
 
