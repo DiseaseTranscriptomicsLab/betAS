@@ -725,18 +725,21 @@ print("rendering filtertable")
                          duration = 10,
                          type = c("error")  )
 
-        tempEvent <- names(GetTable()$EventsPerType)[1]
+        tempEvents <- names(GetTable()$EventsPerType)
 
         if(sourcetool()=="vast-tools"){
 
-          if(tempEvent %in% c("C1", "C2", "C3", "S", "MIC")) tempEvent <- "EX"
-          if(tempEvent %in% c("IR-C", "IR-S", "IR")) tempEvent <- "IR"
-          if(tempEvent %in% c("Alt3", "Alt5")) tempEvent <- "Altss"
+          if(tempEvents %in% c("C1", "C2", "C3", "S", "MIC")) tempEvents <- "EX"
+          if(tempEvents %in% c("IR-C", "IR-S", "IR")) tempEvents <- c(tempEvents,"IR")
+          if(tempEvents %in% c("Alt3", "Alt5")) tempEvents <- c(tempEvents,"Altss")
 
-          updateCheckboxGroupInput(session, inputId = "types", selected = tempEvent,  choices = eventTypesVT)
+          # if the input dataset doesn't have the default events, consider that the dataset has not been updated, so that the input$types can be updated
+          dataset_updated(FALSE)
+          updateCheckboxGroupInput(session, inputId = "types", selected = tempEvents,  choices = eventTypesVT)
 
         }else if(sourcetool()=="whippet"){
-          updateCheckboxGroupInput(session, inputId = "types", selected = tempEvent,  choices = eventTypesWhippet)
+          dataset_updated(FALSE)
+          updateCheckboxGroupInput(session, inputId = "types", selected = tempEvents,  choices = eventTypesWhippet)
         }
 
         return(NULL)
@@ -899,7 +902,7 @@ print("rendering filtertable")
       if (sourcetool()=="whippet"){
         # if(!is.null(input$psitable)){
         data <- dataset()[[input$files_rows_selected]]
-        events_to_show <- paste0(data$Gene,":",data$Node,":",data$Type) %in% isolate(psifiltdataset())$EVENT
+        events_to_show <- paste0(data$Gene,":",data$Node,":",data$Type) %in% psifiltdataset()$EVENT
         data[events_to_show,]
         # }
       }else if(sourcetool() == "rMATS"){
