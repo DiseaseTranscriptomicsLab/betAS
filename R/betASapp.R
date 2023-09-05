@@ -372,7 +372,7 @@ betASapp_server <- function(){
                              "Alternative Last exon (AL)"="AL",
                              "Circular back-splicing (BS)"="BS")
 
-  default_VT_events           <- c("EX", "IR")
+  default_VT_events           <- c("EX")
   default_Whippet_events      <- c("CE")
 
   # Minimum number of reads for each event in each sample; events with less than one read in at least one sample will be filtered out
@@ -396,7 +396,12 @@ betASapp_server <- function(){
 
     ## Functions ---------------------------------------------------------------
 
+    # auxiliary variable used to render the main plot of the shiny app
+    # as the plot is rendered whenever a dataset is updated we need to ensure that
+    # the density plots are only rendered after the default parameters are all defined
+    # i.e., to not be rendered twice when the dataset & tool change
 
+    dataset_updated <- reactiveVal(FALSE)
 
     # Loaded main original table
     dataset <- reactive({
@@ -619,8 +624,7 @@ betASapp_server <- function(){
     # defaults, when the dataset changes
     observeEvent(dataset(), {
 
-      render <- rendervar() + 1
-      rendervar(render)
+      dataset_updated(TRUE)
 
       minNreads(defaultminNreads)
        # because the update inputs are too slow, we need to initiate this variable
@@ -631,6 +635,10 @@ betASapp_server <- function(){
         input_types(default_VT_events)
       }
 
+      render <- rendervar() + 1
+      rendervar(render)
+
+      print("render: dataset")
 
     })
 
@@ -642,6 +650,7 @@ betASapp_server <- function(){
       rendervar(render)
 
       minNreads(input$minNreads)
+      print("render: button")
 
     })
 
@@ -649,11 +658,32 @@ betASapp_server <- function(){
     # Also update the value of the event types to be filtered to the ones in the input$types field
     observeEvent(input$types, {
 
+      if(is.null(input$types) & sourcetool() != "rMATS"){
+        showNotification("Please select at least one event type. Updating to default events.", duration = 10, type = c("error"))
+
+        if(sourcetool()=="vast-tools"){
+          updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = default_VT_events,  choices = eventTypesVT)
+        }else if(sourcetool()=="whippet"){
+          updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = default_Whippet_events,  choices = eventTypesWhippet)
+        }
+
+        return(NULL)
+      }
+
+      if (dataset_updated()) {
+        dataset_updated(FALSE)
+        return(NULL) # Exit this observer early if dataset was just updated
+      }
+
       render <- rendervar() + 1
       rendervar(render)
       input_types(input$types)
+      print("render: event types")
 
-    })
+      print(paste0("selected events: ", length(input$types)))
+
+
+    }, ignoreNULL = FALSE)
 
     # update render variable when the selected input types change
     # Also update the value of the event types to be filtered to the ones in the input$types field
@@ -661,6 +691,7 @@ betASapp_server <- function(){
 
       render <- rendervar() + 1
       rendervar(render)
+      print("render: psi range")
 
     })
 
@@ -697,10 +728,6 @@ betASapp_server <- function(){
       }
 
 
-      if(length(selectedEventTypes) == 0 & sourcetool() != "rMATS"){
-        showNotification("Please select at least one event type", duration = 5, type = c("error"))
-        return(NULL)
-      }
 
       filteredList <- filterEvents(ASList=GetTable(), types = selectedEventTypes, N= minNreads(), tool=sourcetool())
 
@@ -719,10 +746,13 @@ betASapp_server <- function(){
       alternativeList <- alternativeEvents(ASListFiltered=req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2], tool = sourcetool())
 
       if(nrow(alternativeList$PSI) == 0){
-        showNotification("There are no events with PSI values within such range.",
+        showNotification("There are no PSI values for the events selected within such range. Returning to default values.",
                          closeButton = TRUE,
                          duration = 5,
                          type = c("error"))
+
+
+
         return(NULL)
 
       }
