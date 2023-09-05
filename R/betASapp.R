@@ -731,6 +731,11 @@ betASapp_server <- function(){
 
       filteredList <- filterEvents(ASList=GetTable(), types = selectedEventTypes, N= minNreads(), tool=sourcetool())
 
+      # if (! selectedevents %in% names(filteredList$EventsPerType)){
+      #   no event found. please
+      # }
+
+
 
       return(filteredList)
 
@@ -746,12 +751,12 @@ betASapp_server <- function(){
       alternativeList <- alternativeEvents(ASListFiltered=req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2], tool = sourcetool())
 
       if(nrow(alternativeList$PSI) == 0){
-        showNotification("There are no PSI values for the events selected within such range. Returning to default values.",
+        showNotification("There are no PSI values for the events selected within such range. Updating PSI range to all possible values.",
                          closeButton = TRUE,
                          duration = 5,
                          type = c("error"))
 
-
+        updateSliderInput(inputId = "psirange", value = c(0, 100))
 
         return(NULL)
 
