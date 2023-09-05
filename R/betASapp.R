@@ -72,7 +72,7 @@ betASapp_ui <- function(){
                                                                                                            "Dataset 2 (obtained using rMATS)" = "rMATS",
                                                                                                            "Dataset 2 (obtained using whippet)" = "whippet")),
                                           "Alternatively, upload table with inclusion level quantification (e.g. PSI):",
-                                           p("betAS currently supports inclusion level tables from vast-tools ",code("(INCLUSION_LEVELS_FULL*.tab)", style = "font-size:12px; color: #AAAAAA"),
+                                          p("betAS currently supports inclusion level tables from vast-tools ",code("(INCLUSION_LEVELS_FULL*.tab)", style = "font-size:12px; color: #AAAAAA"),
                                             ", rMATS ",code("(*.MATS.JC.txt)", style = "font-size:12px; color: #AAAAAA")," and whippet",code("(*.psi.gz).", style = "font-size:12px; color: #AAAAAA"),
                                             "Only a single file is supported when using rMATS or vast-tools results. Results from vast-tools module",code("tidy", style = "font-size:12px; color: #AAAAAA"),"not supported.
                                             For whippet, please upload one file per sample (at least two samples).", style = "font-size:12px; color: #AAAAAA"),
@@ -94,7 +94,7 @@ betASapp_ui <- function(){
 
                                           conditionalPanel(
                                             condition = "output.showchecks",
-                                            checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX", "IR"),  choices = eventTypesVT)
+                                            checkboxGroupInput("types", label = "Event types to consider:", selected = c("EX"),  choices = eventTypesVT)
                                           ),
                                           sliderInput("psirange", "PSI values to consider:", value = c(1, 99), min = 0, max = 100, step=1),
 
@@ -435,7 +435,7 @@ betASapp_server <- function(){
         return(testTable)
 
       }else{
-         if(length(input$psitable$datapath) > 1 & length(grep(pattern = "[.]psi", x = input$psitable$name)) == length(input$psitable$datapath) ){
+        if(length(input$psitable$datapath) > 1 & length(grep(pattern = "[.]psi", x = input$psitable$name)) == length(input$psitable$datapath) ){
 
           showNotification("Please note that importing data may take a few minutes.",
                            closeButton = TRUE,
@@ -591,7 +591,6 @@ betASapp_server <- function(){
     # Update choice values for inputs when the dataset changes
 
     observeEvent(sourcetool(),{
-
       req(sourcetool())
       req(dataset())
 
@@ -617,7 +616,7 @@ betASapp_server <- function(){
     # reactive value for minimum number of reads to be filtered
     minNreads <- reactiveVal(defaultminNreads)
     # reactive value for the default values for event types to consider
-    input_types <- reactiveVal(NULL)
+    input_types <- reactiveVal(default_VT_events)
 
 
 
@@ -627,7 +626,7 @@ betASapp_server <- function(){
       dataset_updated(TRUE)
 
       minNreads(defaultminNreads)
-       # because the update inputs are too slow, we need to initiate this variable
+      # because the update inputs are too slow, we need to initiate this variable
       # default values for input$types
       if (sourcetool() == "whippet"){
         input_types(default_Whippet_events)
@@ -658,7 +657,11 @@ betASapp_server <- function(){
     # Also update the value of the event types to be filtered to the ones in the input$types field
     observeEvent(input$types, {
 
+      print("apparently the input$types changed")
+      print(input$types)
+      # if no event is selected, change to one of the default ones
       if(is.null(input$types) & sourcetool() != "rMATS"){
+
         showNotification("Please select at least one event type. Updating to default events.", duration = 10, type = c("error"))
 
         if(sourcetool()=="vast-tools"){
@@ -670,37 +673,26 @@ betASapp_server <- function(){
         return(NULL)
       }
 
+      # to prevent filterTable() to update twice, as the input types will change when changing tool (and, thus, dataset)
       if (dataset_updated()) {
+        print("update dataset to FALSE")
         dataset_updated(FALSE)
         return(NULL) # Exit this observer early if dataset was just updated
       }
 
+      print("render: event types")
+      input_types(input$types)
       render <- rendervar() + 1
       rendervar(render)
-      input_types(input$types)
-      print("render: event types")
-
-      print(paste0("selected events: ", length(input$types)))
-
 
     }, ignoreNULL = FALSE)
-
-    # update render variable when the selected input types change
-    # Also update the value of the event types to be filtered to the ones in the input$types field
-    observeEvent(input$psirange, {
-
-      render <- rendervar() + 1
-      rendervar(render)
-      print("render: psi range")
-
-    })
-
 
 
     # 1. Filter table to remove events
 
     filterTable <- eventReactive(rendervar(), {
 
+print("rendering filtertable")
       req(sourcetool())
       req(GetTable())
       req(input_types())
@@ -708,13 +700,10 @@ betASapp_server <- function(){
 
       if(sourcetool() == "vast-tools"){
 
-        presentEventTypes <- names(GetTable()$EventsPerType)
-
         selectedEventTypes <- c()
 
         if("EX" %in% input_types()) selectedEventTypes <- c("C1", "C2", "C3", "S", "MIC")
-        if("IR" %in% input_types() & "IR" %in% presentEventTypes) selectedEventTypes <- c(selectedEventTypes, "IR")
-        if("IR" %in% input_types() & "IR-S" %in% presentEventTypes) selectedEventTypes <- c(selectedEventTypes, "IR-C", "IR-S")
+        if("IR" %in% input_types()) selectedEventTypes <- c(selectedEventTypes, "IR-C", "IR-S", "IR") # different versions of VT handle intron retention events differently
         if("Altss" %in% input_types()) selectedEventTypes <- c(selectedEventTypes, "Alt3", "Alt5")
 
       } else if(sourcetool() == "rMATS"){
@@ -727,14 +716,32 @@ betASapp_server <- function(){
 
       }
 
-
-
       filteredList <- filterEvents(ASList=GetTable(), types = selectedEventTypes, N= minNreads(), tool=sourcetool())
 
-      # if (! selectedevents %in% names(filteredList$EventsPerType)){
-      #   no event found. please
-      # }
+      # if none of the checked events are in the filtered data, update the event to one that exists, in order to prevent the APP from crashing
+      if (all(! selectedEventTypes %in% names(filteredList$EventsPerType)) & sourcetool() != "rMATS"){
+        showNotification(HTML("There are no events. <br> Please confirm in the piechart below <br> if these events exist in your dataset. <br> Updating data to consider at least one event."),
+                         closeButton = TRUE,
+                         duration = 10,
+                         type = c("error")  )
 
+        tempEvent <- names(GetTable()$EventsPerType)[1]
+
+        if(sourcetool()=="vast-tools"){
+
+          if(tempEvent %in% c("C1", "C2", "C3", "S", "MIC")) tempEvent <- "EX"
+          if(tempEvent %in% c("IR-C", "IR-S", "IR")) tempEvent <- "IR"
+          if(tempEvent %in% c("Alt3", "Alt5")) tempEvent <- "Altss"
+
+          updateCheckboxGroupInput(session, inputId = "types", selected = tempEvent,  choices = eventTypesVT)
+
+        }else if(sourcetool()=="whippet"){
+          updateCheckboxGroupInput(session, inputId = "types", selected = tempEvent,  choices = eventTypesWhippet)
+        }
+
+        return(NULL)
+
+      }
 
 
       return(filteredList)
@@ -743,14 +750,20 @@ betASapp_server <- function(){
 
 
 
-    selectAlternatives <- eventReactive(filterTable(), {
+    selectAlternatives <- reactive({
 
       req(sourcetool())
-      req(filterTable())
+
+      # This will make sure that selectAlternatives is updated whenever input$psirange changes
+      input$psirange
+
+      # This will make sure that selectAlternatives is also updated when filterTable changes
+      isolate(filterTable())
 
       alternativeList <- alternativeEvents(ASListFiltered=req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2], tool = sourcetool())
 
-      if(nrow(alternativeList$PSI) == 0){
+      if(nrow(alternativeList$PSI) == 0 & !is.null(filterTable)){
+
         showNotification("There are no PSI values for the events selected within such range. Updating PSI range to all possible values.",
                          closeButton = TRUE,
                          duration = 5,
@@ -924,18 +937,49 @@ betASapp_server <- function(){
     outputOptions(output, 'showchecks', suspendWhenHidden=FALSE)
 
 
-    output_textTotalNumberEvents <- reactiveVal("")
+    # output_textTotalNumberEvents <- reactiveVal("")
+    #
+    # textTotalNumberEvents <- observeEvent(eventNumber(),{
+    #
+    #   if (isolate(sourcetool()) %in% c("vast-tools","whippet")){
+    #
+    #     output_textTotalNumberEvents(paste0("You have selected ", eventNumber(), " events"))
+    #
+    #   } else if (sourcetool() == "rMATS") {
+    #
+    #     rMATSEventType <- names(selectAlternatives()$EventsPerType)
+    #
+    #     if (rMATSEventType == "EX") {
+    #       rMATSEventTypeText <- "Exon Skipping"
+    #     } else if (rMATSEventType == "IR") {
+    #       rMATSEventTypeText <- "Intron Retention"
+    #     } else if (rMATSEventType == "Altss") {
+    #       rMATSEventTypeText <- "Alternative splice site (Altss)"
+    #     } else if (rMATSEventType == "MXE"){
+    #       rMATSEventTypeText <- "Mutually Exclusive Exons"
+    #     }
+    #
+    #     output_textTotalNumberEvents(paste0("You have selected ", eventNumber(), " ", rMATSEventTypeText," events"))
+    #
+    #   }
+    #
+    # })
+    #
+    # output$textTotalNumberEvents <- renderText({
+    #   output_textTotalNumberEvents()
+    # })
 
-    textTotalNumberEvents <- observeEvent(eventNumber(),{
+    # Step 1: Create a reactive value
+    resultText <- reactiveVal("")
 
+    # Step 2: Update the reactive value when eventNumber changes
+    observeEvent(eventNumber(), {
       if (sourcetool() %in% c("vast-tools","whippet")){
-
-        output_textTotalNumberEvents(paste0("You have selected ", isolate(eventNumber()), " events"))
-
-      } else if (sourcetool() == "rMATS") {
-
+        resultText(paste0("You have selected ", eventNumber(), " events"))
+      }
+      else if (sourcetool() == "rMATS") {
         rMATSEventType <- names(isolate(selectAlternatives())$EventsPerType)
-
+        rMATSEventTypeText <- ""
         if (rMATSEventType == "EX") {
           rMATSEventTypeText <- "Exon Skipping"
         } else if (rMATSEventType == "IR") {
@@ -946,14 +990,13 @@ betASapp_server <- function(){
           rMATSEventTypeText <- "Mutually Exclusive Exons"
         }
 
-        output_textTotalNumberEvents(paste0("You have selected ", isolate(eventNumber()), " ", rMATSEventTypeText," events"))
-
+        resultText(paste0("You have selected ", eventNumber(), " ", rMATSEventTypeText," events"))
       }
-
     })
 
+    # Step 3: Render the reactive value with renderText
     output$textTotalNumberEvents <- renderText({
-      output_textTotalNumberEvents()
+      resultText()
     })
 
 
