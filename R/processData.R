@@ -688,14 +688,17 @@ getDataset <- function(pathTables=NULL, tool){
     if (tool == "vast-tools"){
 
       incData <- readRDS(file = "test/INCLUSION_LEVELS_FULL-mm10-8-v251.rds")
+      colNames <- colnames(incData)
 
     } else if (tool == "rMATS"){
 
       incData <- read.delim(file = "test/SE.MATS.JC.txt")
+      colNames <- colnames(incData)
 
     } else if (tool == "whippet"){
 
       incData <- readRDS(file = "test/listdfs_WHippet.rds")
+      colNames <- Reduce(intersect, lapply(incData, colnames))
 
     } else {
 
@@ -721,6 +724,8 @@ getDataset <- function(pathTables=NULL, tool){
 
       incData <- read.delim(incData)
 
+      colNames <- colnames(incData)
+
     } else if (tool == "whippet"){
 
       if (length(pathTables) == 1){
@@ -732,6 +737,8 @@ getDataset <- function(pathTables=NULL, tool){
         pathTables[grep("[.]gz",pathTables)] <- lapply(pathTables[grep("[.]gz",pathTables)],gzfile)
         incData <- lapply(pathTables,read.delim)
 
+        colNames <- Reduce(intersect, lapply(incData, colnames))
+
       }
 
     }
@@ -739,15 +746,19 @@ getDataset <- function(pathTables=NULL, tool){
   }
 
 
-  if (tool == "vast-tools" & length(incData[incData %in% requiredcols_vasttools]) == length(requiredcols_vasttools)){
+  if (tool == "vast-tools" & length(intersect(colNames, requiredcols_vasttools)) != length(requiredcols_vasttools)){
 
     stop("The provided data is not supported by betAS. Please confirm that your data matches the input requirements.")
 
-  } else if (tool == "rMATS" & length(incData[incData %in% requiredcols_rMATS]) == length(requiredcols_rMATS)){
+  }
+
+  if (tool == "rMATS" & length(intersect(colNames, requiredcols_rMATS)) != length(requiredcols_rMATS)){
 
     stop("The provided data is not supported by betAS. Please confirm that your data matches the input requirements.")
 
-  } else if (tool == "whippet" & length( unique(lapply(incData, colnames))[[1]][unique(lapply(incData, colnames))[[1]] %in% requiredcols_rMATS]) == length(requiredcols_rMATS)) {
+  }
+
+  if (tool == "whippet" & length(intersect(colNames, requiredcols_whippet)) != length(requiredcols_whippet)) {
 
     stop("The provided data is not supported by betAS. Please confirm that your data matches the input requirements.")
 
