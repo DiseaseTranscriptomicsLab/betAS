@@ -30,7 +30,6 @@ betASapp_ui <- function(){
   # defines user interface (ui)
   ui <- fluidPage(
 
-
     # tags$img(src="betasBanner.png", align = "right", height='80px', width='1000px'),
 
     # theme = bs_theme(bootswatch = "sketchy"),
@@ -48,6 +47,18 @@ betASapp_ui <- function(){
         'body {
       font-size: 16px}'
       )),
+
+    tags$head(
+      tags$style(HTML("
+    .table.dataTable tbody td.active,
+    .table.dataTable tbody tr.active td {
+      background-color: #F3969A !important;
+      color: white !important;  # Changing the text color to black for better contrast
+    }
+  "))
+    ),
+
+
 
     # checkboxInput("dark_mode", "Dark mode", FALSE),
 
