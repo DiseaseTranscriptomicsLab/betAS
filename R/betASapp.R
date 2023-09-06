@@ -614,10 +614,11 @@ betASapp_server <- function(){
       existingEvents <- names(GetTable()$EventsPerType)
 
       if(sourcetool()=="vast-tools"){
+
         temp <- c()
-        if(existingEvents %in% c("C1", "C2", "C3", "S", "MIC")) temp <- "EX"
-        if(existingEvents %in% c("IR-C", "IR-S", "IR")) temp <- c(temp,"IR")
-        if(existingEvents %in% c("Alt3", "Alt5")) temp <- c(temp,"Altss")
+        if(any(existingEvents %in% c("C1", "C2", "C3", "S", "MIC"))) temp <- c(temp,"EX")
+        if(any(existingEvents %in% c("IR-C", "IR-S", "IR"))) temp <- c(temp,"IR")
+        if(any(existingEvents %in% c("Alt3", "Alt5"))) temp <- c(temp,"Altss")
         existingEvents <- temp
 
       }
