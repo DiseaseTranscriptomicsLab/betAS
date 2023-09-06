@@ -406,41 +406,47 @@ betASapp_server <- function(){
     # Loaded main original table
     dataset <- reactive({
 
+
       if(is.null(input$psitable)){
 
         if(input$sourcetool == "vast-tools1"){
 
           testTable <- readRDS(file = "test/INCLUSION_LEVELS_FULL-hg19-98-v251.rds")
 
-        }else if(input$sourcetool == "vast-tools2"){
-
-          testTable <- readRDS(file = "test/INCLUSION_LEVELS_FULL-mm10-8-v251.rds")
-
-
-        }else if(input$sourcetool == "rMATS"){
-
-          testTable <- read.delim(file = "test/SE.MATS.JC.txt")
-
-        } else if (input$sourcetool == "whippet"){
+        } else {
 
           showNotification("Please note that importing data may take a few minutes.",
                            closeButton = TRUE,
                            duration = 10,
                            type = c("message"))
 
-          testTable <- readRDS(file = "test/listdfs_WHippet.rds")
+
+          if(input$sourcetool == "vast-tools2"){
+
+            testTable <- readRDS(file = "test/INCLUSION_LEVELS_FULL-mm10-8-v251.rds")
+
+
+          }else if(input$sourcetool == "rMATS"){
+
+            testTable <- read.delim(file = "test/SE.MATS.JC.txt")
+
+          } else if (input$sourcetool == "whippet"){
+
+            testTable <- readRDS(file = "test/listdfs_WHippet.rds")
+
+
+          }
+
+          return(testTable)
 
         }
+      }else {
 
-        return(testTable)
 
-      }else{
+
         if(length(input$psitable$datapath) > 1 & length(grep(pattern = "[.]psi", x = input$psitable$name)) == length(input$psitable$datapath) ){
 
-          showNotification("Please note that importing data may take a few minutes.",
-                           closeButton = TRUE,
-                           duration = 10,
-                           type = c("message"))
+
 
           files <- as.list(input$psitable$datapath)
           files[grep("[.]gz",files)] <- lapply(files[grep("[.]gz",files)],gzfile)
@@ -588,17 +594,46 @@ betASapp_server <- function(){
     })
 
 
-    # Update choice values for inputs when the dataset changes
+    # auxiliary variable to save existing events in a dataset
+    getExistingEvents <- reactive({
 
-    observeEvent(sourcetool(),{
       req(sourcetool())
-      req(dataset())
+      req(GetTable())
+
+      existingEvents <- names(GetTable()$EventsPerType)
 
       if(sourcetool()=="vast-tools"){
-        updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = default_VT_events,  choices = eventTypesVT)
-      }else if(sourcetool()=="whippet"){
-        updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = default_Whippet_events,  choices = eventTypesWhippet)
+        temp <- c()
+        if(existingEvents %in% c("C1", "C2", "C3", "S", "MIC")) temp <- "EX"
+        if(existingEvents %in% c("IR-C", "IR-S", "IR")) temp <- c(temp,"IR")
+        if(existingEvents %in% c("Alt3", "Alt5")) temp <- c(temp,"Altss")
+        existingEvents <- temp
+
       }
+
+      return(existingEvents)
+
+    })
+
+    # Update choice values for inputs when the dataset changes
+    observeEvent(GetTable(),{
+
+      req(sourcetool())
+      req(dataset())
+      req(GetTable())
+
+      existingEvents <- names(GetTable()$EventsPerType)
+
+      if(sourcetool()=="vast-tools"){
+
+        #updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = default_VT_events,  choices = eventTypesVT)
+        updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = getExistingEvents(),  choices = eventTypesVT)
+
+      }else if(sourcetool()=="whippet"){
+        updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = getExistingEvents(),  choices = eventTypesWhippet)
+        #updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = default_Whippet_events,  choices = eventTypesWhippet)
+      }
+
     })
 
     observeEvent(dataset(), {
@@ -629,9 +664,9 @@ betASapp_server <- function(){
       # because the update inputs are too slow, we need to initiate this variable
       # default values for input$types
       if (sourcetool() == "whippet"){
-        input_types(default_Whippet_events)
+        input_types(getExistingEvents())
       } else if (sourcetool() == "vast-tools"){
-        input_types(default_VT_events)
+        input_types(getExistingEvents())
       }
 
       render <- rendervar() + 1
@@ -660,14 +695,17 @@ betASapp_server <- function(){
       print("apparently the input$types changed")
       print(input$types)
       # if no event is selected, change to one of the default ones
-      if(is.null(input$types) & sourcetool() != "rMATS"){
+      if(is.null(input$types)){
+        if (sourcetool() != "rMATS"){
+          showNotification("Please select at least one event type. Updating to default events.", duration = 10, type = c("error"))
 
-        showNotification("Please select at least one event type. Updating to default events.", duration = 10, type = c("error"))
-
-        if(sourcetool()=="vast-tools"){
-          updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = default_VT_events,  choices = eventTypesVT)
-        }else if(sourcetool()=="whippet"){
-          updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = default_Whippet_events,  choices = eventTypesWhippet)
+          if(sourcetool()=="vast-tools"){
+            updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = getExistingEvents(),  choices = eventTypesVT)
+            #updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = default_VT_events,  choices = eventTypesVT)
+          }else if(sourcetool()=="whippet"){
+            updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = getExistingEvents(),  choices = eventTypesWhippet)
+            #updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = default_Whippet_events,  choices = eventTypesWhippet)
+          }
         }
 
         return(NULL)
@@ -692,7 +730,7 @@ betASapp_server <- function(){
 
     filterTable <- eventReactive(rendervar(), {
 
-print("rendering filtertable")
+      print("rendering filtertable")
       req(sourcetool())
       req(GetTable())
       req(input_types())
@@ -725,21 +763,16 @@ print("rendering filtertable")
                          duration = 10,
                          type = c("error")  )
 
-        tempEvents <- names(GetTable()$EventsPerType)
+
 
         if(sourcetool()=="vast-tools"){
 
-          if(tempEvents %in% c("C1", "C2", "C3", "S", "MIC")) tempEvents <- "EX"
-          if(tempEvents %in% c("IR-C", "IR-S", "IR")) tempEvents <- c(tempEvents,"IR")
-          if(tempEvents %in% c("Alt3", "Alt5")) tempEvents <- c(tempEvents,"Altss")
-
-          # if the input dataset doesn't have the default events, consider that the dataset has not been updated, so that the input$types can be updated
           dataset_updated(FALSE)
-          updateCheckboxGroupInput(session, inputId = "types", selected = tempEvents,  choices = eventTypesVT)
+          updateCheckboxGroupInput(session, inputId = "types", selected = getExistingEvents(),  choices = eventTypesVT)
 
         }else if(sourcetool()=="whippet"){
           dataset_updated(FALSE)
-          updateCheckboxGroupInput(session, inputId = "types", selected = tempEvents,  choices = eventTypesWhippet)
+          updateCheckboxGroupInput(session, inputId = "types", selected = getExistingEvents(),  choices = eventTypesWhippet)
         }
 
         return(NULL)
