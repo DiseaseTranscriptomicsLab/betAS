@@ -1,42 +1,219 @@
+
 # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# A. Vast-tools ------------------------------------------------------------
+# A. General Functions ---------------------------------------------------------
 # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-# Tests for minimal coverage based (vast-tools')
-# Checks if "Qual" columns from vast-tools' INCLUSION table are classified at least as "VLOW" based on score 2 (https://github.com/vastgroup/vast-tools)
-# @param quals Set of "Qual" columns from vast-tools' INCLUSION table (one per sample) for a given event
-#
-# @return TRUE if all samples have minimal coverage.
-# @export
-#
-# @examples
-VT_all_minVLOW_tags <- function(quals){
 
-  #Number of samples
-  n <- length(quals)
+#' Retrieve Inclusion Tables for Specific Tools
+#'
+#' This function retrieves the inclusion tables specific to the chosen tool for further analyses.
+#'
+#' @param pathTables Character or list. Specifies the source of the dataset:
+#'        \itemize{
+#'          \item{\strong{vast-tools:}}{Should be a path pointing to a \code{*INCLUSION_LEVELS_FULL*.tab} file.}
+#'          \item{\strong{rMATS:}}{Should be a path pointing to a \code{*MATS.JC.txt} file.}
+#'          \item{\strong{whippet:}}{Should be a list of paths (minimum of 2) pointing to \code{*.psi.gz} files.}
+#'        }
+#'        If \code{NULL}, the function will load the default betAS test datasets for the chosen tool.
+#' @param tool A character string specifying the desired tool for which the dataset
+#'        should be fetched. Acceptable values are "vast-tools", "whippet", or "rMATS".
+#'
+#' @return Returns a data frame if the tool is "rMATS" or "vast-tools". If the tool is
+#'        "whippet", the function returns a list of data frames.
+#' @export
+#'
+#' @examples
+#' # Example using the vast-tools tool with a single path
+#' # getDataset(pathTables = "/path/to/vast_tools_file.txt", tool = "vast-tools")
+#'
+#' # Example using the whippet tool with multiple paths
+#' # getDataset(pathTables = list("/path/to/whippet_file1.txt", "/path/to/whippet_file2.txt"), tool = "whippet")
+#'
+#' # Loading the betAS test datasets for rMATS
+#' getDataset(pathTables = NULL, tool = "rMATS")
+#'
+getDataset <- function(pathTables=NULL, tool){
 
-  #Split string by "@" and keep the second element: "inc,exc"
-  string <- as.character(unlist(quals))
-  split <- unlist(strsplit(toString(unlist(string)), split = "[,@]"))
-  #corrected reads' classifications are the 2nd score (of 7 fields after splitting by @) in each sample
-  tags <- split[seq(from = 2, to = 7*n, by = 7)]
-  test <- length(which(tags == "SOK" | tags == "OK" | tags == "VLOW" | tags == "LOW")) == n
+  requiredcols_vasttools <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX")
+  requiredcols_rMATS <- c("ID","GeneID","geneSymbol","chr","strand","IJC_SAMPLE_1","SJC_SAMPLE_1","IJC_SAMPLE_2","SJC_SAMPLE_2")
+  requiredcols_whippet <- c("Gene", "Node", "Coord", "Strand", "Type" ,"Psi", "CI_Width", "Total_Reads", "Complexity", "Entropy" ,"Inc_Paths", "Exc_Paths")
 
-  return(test)
+  # Use example datasets
+  if (is.null(pathTables)){
+
+    if (tool == "vast-tools"){
+
+      incData <- readRDS(file = "test/INCLUSION_LEVELS_FULL-mm10-8-v251.rds")
+      colNames <- colnames(incData)
+
+    } else if (tool == "rMATS"){
+
+      incData <- read.delim(file = "test/SE.MATS.JC.txt")
+      colNames <- colnames(incData)
+
+    } else if (tool == "whippet"){
+
+      incData <- readRDS(file = "test/listdfs_WHippet.rds")
+      colNames <- Reduce(intersect, lapply(incData, colnames))
+
+    } else {
+
+      stop(paste0("Tool '", tool, "' is not supported by the current version of betAS."))
+
+    }
+
+
+    # Use user-input data
+  } else {
+
+    if (tool %in% c("vast-tools", "rMATS")){
+
+      if(length(grep(pattern = "[.]gz", x = pathTables)) == 0){
+
+        incData <- pathTables
+
+      } else {
+
+        incData <- gzfile(pathTables)
+
+      }
+
+      incData <- read.delim(incData)
+
+      colNames <- colnames(incData)
+
+    } else if (tool == "whippet"){
+
+      if (length(pathTables) == 1){
+
+        stop("The chosen tool (", tool,") is not supported by betAS. Current tool supported by betAS are 'vast-tools', 'rMATS' or 'whippet'")
+
+      } else {
+
+        pathTables[grep("[.]gz",pathTables)] <- lapply(pathTables[grep("[.]gz",pathTables)],gzfile)
+        incData <- lapply(pathTables,read.delim)
+
+        colNames <- Reduce(intersect, lapply(incData, colnames))
+
+      }
+
+    } else {
+
+    }
+
+  }
+
+
+  if (tool == "vast-tools" & length(intersect(colNames, requiredcols_vasttools)) != length(requiredcols_vasttools)){
+
+    stop("The provided data is not supported by betAS. Please confirm that your data matches the input requirements.")
+
+  }
+
+  if (tool == "rMATS" & length(intersect(colNames, requiredcols_rMATS)) != length(requiredcols_rMATS)){
+
+    stop("The provided data is not supported by betAS. Please confirm that your data matches the input requirements.")
+
+  }
+
+  if (tool == "whippet" & length(intersect(colNames, requiredcols_whippet)) != length(requiredcols_whippet)) {
+
+    stop("The provided data is not supported by betAS. Please confirm that your data matches the input requirements.")
+
+  }
+
+  return(incData)
 
 }
 
-# Tests for minimal coverage based (vast-tools')
-# Checks if "Qual" columns from vast-tools' INCLUSION table have at least N reads in total (inc + exc)
-# @param quals Set of "Qual" columns from vast-tools' INCLUSION table (one per sample) for a given event
-# @param N minimum number of reads (inc + exc) for a given event in each sample
-#
-# @return TRUE if all samples have minimal coverage.
-# @export
-#
-# @examples
-VT_all_minReads <- function(quals, N){
 
+
+
+#' Format Inclusion Tables into a Standard betAS Format
+#'
+#' This function formats inclusion tables from one of the three specified tools into
+#' a standard format that is compatible with betAS.
+#'
+#' @param incTable A data frame equivalent object (or list of data frames, when using tool=\code{whippet},
+#'        representing the inclusion table for the chosen tool. This is typically the output of the `getDataset`
+#'        function when not using the `betASapp()` shiny app.
+#'
+#' @param tool A character string specifying the tool from which the incTable is derived.
+#'        It can take one of three values: "vast-tools", "whippet", or "rMATS".
+#'
+#' @return A list containing four data frames:
+#'   \itemize{
+#'     \item \strong{PSI}: A data frame with information regarding the splicing
+#'           events and their inclusion levels.
+#'     \item \strong{Qual}: A data frame detailing the events and information
+#'           related to the coverage associated with each event. This representation
+#'           follows the vast-tools representation of inclusion (inc) and
+#'           exclusion (exc) reads.
+#'     \item \strong{EventsPerType}: A named table summarising the number of
+#'           events per type.
+#'     \item \strong{Samples}: Vector containing the names of the samples considered.
+#'   }
+#'
+#' @examples
+#' # Assuming you have already loaded or created an incTable from rMATS using the getDataset() function:
+#' formattedTable_rMATS <- getEvents(incTable = rMATS_incTable, tool = "rMATS")
+#'
+#' # Similarly, for vast-tools:
+#' formattedTable_vasttools <- getEvents(incTable = vasttools_incTable, tool = "vast-tools")
+#'
+#' # And for whippet:
+#' formattedTable_whippet <- getEvents(incTable = whippet_incTable, tool = "whippet")
+#'
+#' @export
+#'
+getEvents <- function(incTable, tool){
+
+  if (tool == "vast-tools"){
+
+    ASList <- getVastTools(incTable)
+
+  } else if (tool == "rMATS") {
+
+    suppressWarnings({
+      ASList <- getrMATS(incTable)
+    })
+
+  } else if (tool == "whippet") {
+
+    ASList <- getWhippet(incTable)
+
+  } else {
+    stop(paste0("Tool '", tool, "' is not supported by the current version of betAS."))
+  }
+
+  return(ASList)
+
+}
+
+
+#' Verify Minimum Reads for a Given Event Across Samples
+#'
+#' This function checks if the coverage associated to a given event (inc+exc)
+#' across samples for a specific event meet a certain threshold.
+#'
+#' @param quals A set of "Qual" columns (one per sample) for a given event.
+#' @param N The minimum number of reads (inc + exc) for a given event in each sample.
+#'
+#' @return A boolean value indicating if all values of (inc + exc) across samples
+#'         for a given event are greater than or equal to the specified minimum, \code{N}.
+#'
+#' @examples
+#' # Assuming you have a set of "Qual" columns for a given event:
+#' quals_data <- c(...) # Replace with your actual data
+#' min_reads_check <- CheckMinReads(quals = quals_data, N = 5)
+#' if (min_reads_check) {
+#'   print("All samples meet the minimum reads criteria.")
+#' } else {
+#'   print("Not all samples meet the minimum reads criteria.")
+#' }
+#'
+#' @export
+CheckMinReads <- function(quals, N){
 
   # Number of samples
   n <- length(quals)
@@ -58,16 +235,169 @@ VT_all_minReads <- function(quals, N){
 
 
 
-# Format INCLUSION table (vast-tools) for further analyses
-# @param incTable vast-tools' INCLUSION table
-#
-# @return List with: 1) table PSI columns, 2) table Qual columns, 3) table with number of events per type and 4) Samples (based on colnames)
-# @export
-#
-# @examples
+
+
+#' Filter Splicing Events by Quality, Event Type, and Minimum Reads
+#'
+#' This function filters splicing events based on quality (presence of NAs),
+#' specified event types, and a minimum read count threshold.
+#'
+#' @param InputList A list, typically the output from \code{\link{getEvents}}.
+#' @param types A character vector of column letter codes for alternative event types.
+#'        For Whippet, valid types include c("CE", "AA", "AD", "IR", "TS", "TE", "AF", "AL", "BS")
+#'        as described in \url{https://github.com/timbitz/Whippet.jl}.
+#'        For vast-tools, valid types include c("Alt3", "Alt5", "ANN", "C1", "C2", "C3", "IR-C", "IR-S", "MIC", "S")
+#'        as described in \url{https://github.com/vastgroup/vast-tools}.
+#'        For rMATS, as each table only contains one event, this parameter should be set to NULL.
+#' @param N An integer, representing the minimum number of reads (inc + exc) for a given event in each sample.
+#'
+#' @return A list containing:
+#'        1. Psi filtered table.
+#'        2. Qual filtered table.
+#'        3. A table enumerating the number of events per type.
+#'        4. A character vector, "Samples", derived from column names.
+#'        Essentially, it mirrors the structure of \code{\link{getDataset}},
+#'        but with events filtered by coverage and type.
+#'
+#' @examples
+#' # Assuming you have an InputList from getEvents():
+#' input_data <- getEvents(...) # Replace with your actual data
+#' # Filtering whippet events, to isolate only CE and AA events with a minimum of 10 reads in each sample
+#' filtered_data <- filterEvents(InputList = input_data, types = c("CE", "AA"), N = 10)
+#'
+#' @export
+#'
+filterEvents <- function(InputList, types=NULL, N=10){
+
+  filterList <- InputList
+
+  psi <- filterList$PSI
+  qual <- filterList$Qual
+
+  # Remove events containing at least one NA
+  psi$AnyNA    <- apply(psi[,-c(1:6)], 1, anyNA)
+  psi          <- psi[which(psi$AnyNA == FALSE),]
+  psi$AnyNA    <- NULL
+  qual         <- qual[match(psi$EVENT, qual$EVENT),]
+
+  if (!is.null(types)){
+    psi <- psi[which(psi$COMPLEX %in% types),]
+  }
+
+
+  # Calculate coverage/balance (use .Q columns)
+  qual$AllminReads <- apply(qual[,grep("[.]Q", colnames(qual))], 1, FUN = function(X) CheckMinReads(X,N))
+  qual             <- qual[which(qual$AllminReads == TRUE),]
+  psi              <- psi[match(qual$EVENT, psi$EVENT),]
+  qual$AllminReads <-  NULL
+
+  filterList[[1]] <- psi
+  filterList[[2]] <- qual
+  filterList[[3]] <- table(psi$COMPLEX)
+  filterList[[4]] <- colnames(psi)[-c(1:6)]
+
+  names(filterList) <- c("PSI", "Qual", "EventsPerType", "Samples")
+  return(filterList)
+
+
+}
 
 
 
+#' Filter Splicing Events by PSI Range
+#'
+#' This function filters splicing events based on a specified PSI range.
+#' Events with a PSI value outside of the provided range are removed.
+#'
+#' @param filteredList A list, typically the output from \code{\link{filterEvents}} or
+#'                     \code{\link{getEvents}}.
+#' @param minPsi A numeric value between 0 and 100, representing the minimum PSI threshold.
+#' @param maxPsi A numeric value between 0 and 100, representing the maximum PSI threshold.
+#'
+#' @details
+#' The function filters out events whose PSI value (percentage spliced in) does not fall
+#' within the [minPsi, maxPsi] range. Both bounds are inclusive.
+#'
+#' @return A list containing:
+#'        1. PSI filtered table based on the provided PSI range.
+#'        2. Corresponding Qual filtered table.
+#'        3. A table enumerating the number of events per type.
+#'        4. A character vector, "Samples", derived from column names.
+#'        This mirrors the structure of \code{\link{getDataset}},
+#'        but with additional filtering based on the PSI range.
+#'
+#' @examples
+#' # Assuming you have a filteredList from filterEvents():
+#' filtered_data <- filterEvents(...) # Replace with your actual data
+#' alternative_data <- alternativeEvents(filteredList = filtered_data, minPsi = 20, maxPsi = 80)
+#'
+#' @export
+alternativeEvents  <- function(filteredList, minPsi, maxPsi){
+
+  alternative <- list()
+
+  psiTable <- filteredList$PSI
+  qualTable <- filteredList$Qual
+
+  originalColN <- ncol(psiTable)
+
+  # Consider alternative events only
+  psiTable$AllGreaterMin  <- apply(psiTable[,-c(1:6)], 1, all_grteq_row, minPsi)
+  psiTable$AllLowerMax    <- apply(psiTable[,-c(1:6)], 1, all_lweq_row, maxPsi)
+  psiTable                <- psiTable[which(psiTable$AllGreaterMin == TRUE & psiTable$AllLowerMax == TRUE),]
+  qualTable               <- qualTable[match(psiTable$EVENT, qualTable$EVENT),]
+
+  # Remove columns added
+  psiTable                <- psiTable[,c(1:originalColN)]
+  qualTable               <- qualTable[,c(1:originalColN)]
+
+  alternative[[1]] <- psiTable
+  alternative[[2]] <- qualTable
+  alternative[[3]] <- table(psiTable$COMPLEX)
+  alternative[[4]] <- colnames(psiTable)[-c(1:6)]
+
+  names(alternative) <- c("PSI", "Qual", "EventsPerType", "Samples")
+
+  return(alternative)
+
+}
+
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# B. Tool-specific functions ---------------------------------------------------
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+#' Format vast-tools Inclusion Tables for betAS Compatibility
+#'
+#' This function reformats inclusion tables specifically from vast-tools
+#' into a standardized format that is compatible with betAS.
+#'
+#' @param incTable A data frame or similar object representing the inclusion table
+#'                 specifically from vast-tools. This is typically the output of the
+#'                 `getDataset` function when not using the `betASapp()` shiny app.
+#'                 Can also be a data frame obtained by reading a
+#'                 \code{*INCLUSION_LEVELS_FULL*.tab} file.
+#'
+#' @details
+#' vast-tools is one of several splicing tools that output inclusion tables.
+#' For the sake of consistent analysis within betAS, these tables need to be
+#' standardized. This function processes vast-tools output and structures it
+#' in a way that betAS can work with, ensuring compatibility and ease of further analysis.
+#'
+#' @return A list containing:
+#'        \itemize{
+#'        \item{"PSI"}{A data frame containing information regarding the splicing events
+#'                      and their inclusion level.}
+#'        \item{"Qual"}{A data frame with information on the events as well as information
+#'                       regarding the coverage associated with each, emulating vast-tools
+#'                       way of representing inc and exc reads.}
+#'        \item{"EventsPerType"}{A named table summarizing the number of events per type.}
+#'        \item{"Samples"}{A character vector representing the names of the samples considered.}
+#'        }
+#'
+#' @export
+#'
 getVastTools <- function(incTable){
 
   filterVT <- list()
@@ -95,155 +425,37 @@ getVastTools <- function(incTable){
 }
 
 
-# Filter INCLUSION table (vast-tools) for quality and event type
-# Filter table from vast-tools to remove events containing NAs in at least one sample and those that do not have minimal coverage based on VT_all_minVLOW_tags() and split PSI and Qual tables
-# @param VTlist list containing PSI and Qual tables, as well as event and samples, obtained with getVastTools()
-# @param types (character) vast-tools' COMPLEX column letter code for alternative event types (Alt3, Alt5, ANN, C1, C2, C3, IR-C, IR-S, MIC or S) as described in https://github.com/vastgroup/vast-tools
-# @param N minimum number of reads (inc + exc) for a given event in each sample
-#
-# @return List with: 1) filtered table PSI columns, 2) filtered table Qual columns, 3) table with number of events per type and 4) Samples (based on colnames)
-# @export
-#
-# @examples
 
-filterVastTools <- function(VTlist, types, N){
 
-  filterVT <- VTlist
-
-  psiVAST <- filterVT$PSI
-  qualVAST <- filterVT$Qual
-
-  originalColN <- ncol(psiVAST)
-
-  # *** to be made REACTIVE!!! ***
-  # Consider exon skipping events only
-  # psiVAST <- psiVAST[which(psiVAST$COMPLEX == "S"),]
-  psiVAST <- psiVAST[which(psiVAST$COMPLEX %in% types),]
-
-  # Remove events containing at least one NA
-  psiVAST$AnyNA    <- apply(psiVAST, 1, anyNA)
-  psiVAST          <- psiVAST[which(psiVAST$AnyNA == FALSE),]
-  psiVAST          <- psiVAST[,-c(ncol(psiVAST))]
-  qualVAST         <- qualVAST[match(psiVAST$EVENT, qualVAST$EVENT),]
-
-  # *** to be made REACTIVE!!! ***
-  # should not be done while choosing only ES events
-  # Filter out events from "ANN" module out
-  # annot             <- which(psiVAST$COMPLEX == "ANN")
-  # psiVAST           <- psiVAST[-c(annot),]
-  # qualVAST          <- qualVAST[match(psiVAST$EVENT, qualVAST$EVENT),]
-
-  # Calculate coverage/balance (use .Q columns)
-  # qualVAST$AllminVLOW  <- apply(qualVAST[,grep("[.]Q", colnames(qualVAST))], 1, VT_all_minVLOW_tags)
-  #   qualVAST             <- qualVAST[which(qualVAST$AllminVLOW == TRUE),]
-  # psiVAST              <- psiVAST[match(qualVAST$EVENT, psiVAST$EVENT),]
-
-  qualVAST$AllminReads <-  apply(qualVAST[,grep("[.]Q", colnames(qualVAST))], 1, FUN = function(X) VT_all_minReads(X,N))
-  qualVAST             <- qualVAST[which(qualVAST$AllminReads == TRUE),]
-  psiVAST              <- psiVAST[match(qualVAST$EVENT, psiVAST$EVENT),]
-
-  # Remove columns added
-  psiVAST               <- psiVAST[,c(1:originalColN)]
-  qualVAST              <- qualVAST[,c(1:originalColN)]
-
-  filterVT[[1]] <- psiVAST
-  filterVT[[2]] <- qualVAST
-  filterVT[[3]] <- table(psiVAST$COMPLEX)
-  filterVT[[4]] <- colnames(psiVAST)[-c(1:6)]
-
-  names(filterVT) <- c("PSI", "Qual", "EventsPerType", "Samples")
-  return(filterVT)
-
-}
-
-#' Filter PSI table (vast-tools) by alternativity
-#' Filter previously quality-filtered PSI table from vast-tools to consider only events with PSIs between (and including) minPsi and maxPSI.
-#' @param filteredVTList List containing PSI and Qual (vast-tools) tables, obtained with filterVastTools()
-#' @param minPsi (numeric) Minimum PSI to consider
-#' @param maxPsi (numeric) Maximum PSI to consider
+#' Format Whippet Inclusion Tables for betAS Compatibility
 #'
-#' @return List with: 1) filtered table PSI columns, 2) filtered table Qual columns, 3) table with number of events per type and 4) Samples (based on colnames)
+#' This function reformats inclusion tables specifically from Whippet
+#' into a standardized format that is compatible with betAS.
+#'
+#' @param incTable A list of paths (minimum length of 2) pointing to
+#'                 the inclusion tables specifically from Whippet. This is
+#'                 typically the output of the `getDataset` function when not
+#'                 using the `betASapp()` shiny app. Can also be a list of data frames
+#'                 obtained by reading a list of \code{*.psi.gz} files.
+#'
+#' @details
+#' Whippet is one of several splicing tools that output inclusion tables.
+#' For the sake of consistent analysis within betAS, these tables need to be
+#' standardized. This function processes Whippet output and structures it
+#' in a way that betAS can work with, ensuring compatibility and ease of further analysis.
+#'
+#' @return A list containing:
+#'        \itemize{
+#'        \item{"PSI"}{A data frame containing information regarding the splicing events
+#'                      and their inclusion level.}
+#'        \item{"Qual"}{A data frame with information on the events as well as information
+#'                       regarding the coverage associated with each, emulating Whippet
+#'                       way of representing inc and exc reads.}
+#'        \item{"EventsPerType"}{A named table summarizing the number of events per type.}
+#'        \item{"Samples"}{A character vector representing the names of the samples considered.}
+#'        }
+#'
 #' @export
-#'
-#' @examples
-#' testTable <- betAS:::testTable
-#' # filter table to consider only events all PSIs between 1 and 99
-#' alternativeVastTools(testTable, minPsi = 1, maxPsi = 99)
-alternativeVastTools <- function(filteredVTList, minPsi, maxPsi){
-
-  alternativeVT <- list()
-
-  psiTable <- filteredVTList$PSI
-  qualTable <- filteredVTList$Qual
-
-  originalColN <- ncol(psiTable)
-
-  # Consider alternative events only
-  psiTable$AllGreaterMin  <- apply(psiTable[,-c(1:6)], 1, all_grteq_row, minPsi)
-  psiTable$AllLowerMax    <- apply(psiTable[,-c(1:6)], 1, all_lweq_row, maxPsi)
-  psiTable                <- psiTable[which(psiTable$AllGreaterMin == TRUE & psiTable$AllLowerMax == TRUE),]
-  qualTable               <- qualTable[match(psiTable$EVENT, qualTable$EVENT),]
-
-  # Remove columns added
-  psiTable                <- psiTable[,c(1:originalColN)]
-  qualTable               <- qualTable[,c(1:originalColN)]
-
-  alternativeVT[[1]] <- psiTable
-  alternativeVT[[2]] <- qualTable
-  alternativeVT[[3]] <- table(psiTable$COMPLEX)
-  alternativeVT[[4]] <- colnames(psiTable)[-c(1:6)]
-
-  names(alternativeVT) <- c("PSI", "Qual", "EventsPerType", "Samples")
-
-  return(alternativeVT)
-
-}
-
-
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# B. Whippet ---------------------------------------------------------------
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-# Tests for minimal coverage based (rMATS')
-# Checks if "Qual" columns from rMATS' INCLUSION table have at least N reads in total (inc + exc)
-# @param quals Set of "Qual" columns from rMATS' INCLUSION table (one per sample) for a given event
-# @param N minimum number of reads (inc + exc) for a given event in each sample
-#
-# @return TRUE if all samples have minimal coverage.
-# @export
-#
-# @examples
-Whippet_all_minReads <- function(quals, N){
-
-
-  # Number of samples
-  n <- length(quals)
-
-  # Split string by "@" and keep the second element: "inc,exc"
-  string <- as.character(unlist(quals))
-  split <- unlist(strsplit(toString(unlist(string)), split = "[,@]"))
-
-  # Inc reads are the 6th score in each sample; Exc reads the last and 7th
-  inc <- as.numeric(as.vector(split[seq(from = 6, to = 7*n, by = 7)]))
-  exc <- as.numeric(as.vector(split[seq(from = 7, to = 7*n, by = 7)]))
-
-  test <- length(which(inc + exc >= N)) == n
-
-  return(test)
-
-}
-
-
-
-# Format *.psi.gz tables (whippet) for quantified PSIs, for further analyses
-# @param incTable list of whippet's *.psi.gz tables, one per sample
-#
-# @return List with: 1) filtered table PSI columns, 2) filtered table "Qual" columns including inc and exc, 3) table with number of events per type and 4) Samples
-# @export
-#
-# @examples
-
 getWhippet <- function(listIncTables){
 
   filterWhip <- list()
@@ -310,142 +522,35 @@ getWhippet <- function(listIncTables){
 }
 
 
-# Filter whippet tables for quality (NAs) and event type
-# Filter table from whippet to remove events containing NAs in at least one sample
-# @param WhippetList list containing PSI and Qual tables, as well as event and samples, obtained with getWhippet()
-# @param types (character) whippet's Type column letter code for alternative event types (CE,AA,AD,IR,TS,TE,AF,AL,BS) as described in https://github.com/timbitz/Whippet.jl
-# @param N minimum number of reads (inc + exc) for a given event in each sample
-#
-# @return List with: 1) filtered table PSI columns, 2) filtered table Qual columns, 3) table with number of events per type and 4) Samples (based on colnames)
-# @export
-#
-# @examples
-
-filterWhippet <- function(WhippetList, types, N){
-
-  filterWhippet <- WhippetList
-
-  psiWhip <- filterWhippet$PSI
-  qualWhip <- filterWhippet$Qual
-
-
-  # Remove events containing at least one NA
-  psiWhip$AnyNA    <- apply(psiWhip[,-c(1:6)], 1, anyNA)
-  psiWhip          <- psiWhip[which(psiWhip$AnyNA == FALSE),]
-  psiWhip          <- psiWhip[,-c(ncol(psiWhip))]
-  qualWhip         <- qualWhip[match(psiWhip$EVENT, qualWhip$EVENT),]
-
-
-
-
-  # *** to be made REACTIVE!!! ***
-  # Consider exon skipping events only
-  # psiVAST <- psiVAST[which(psiVAST$COMPLEX == "S"),]
-  psiWhip <- psiWhip[which(psiWhip$COMPLEX %in% types),]
-
-  # Calculate coverage/balance (use .Q columns)
-  qualWhip$AllminReads <- apply(qualWhip[,grep("[.]Q", colnames(qualWhip))], 1, FUN = function(X) Whippet_all_minReads(X,N))
-  qualWhip             <- qualWhip[which(qualWhip$AllminReads == TRUE),]
-  psiWhip              <- psiWhip[match(qualWhip$EVENT, psiWhip$EVENT),]
-  qualWhip$AllminReads <-  NULL
-
-  filterWhippet[[1]] <- psiWhip
-  filterWhippet[[2]] <- qualWhip
-  filterWhippet[[3]] <- table(psiWhip$COMPLEX)
-  filterWhippet[[4]] <- colnames(psiWhip)[-c(1:6)]
-
-  names(filterWhippet) <- c("PSI", "Qual", "EventsPerType", "Samples")
-  return(filterWhippet)
-
-}
-
-# Filter PSI table (whippet) by alternativity
-# Filter previously filtered PSI table from whippet to consider only events with PSIs between (and including) minPsi and maxPSI.
-# @param filteredWhippetList List containing PSI and Qual (whippet) tables, obtained with filterWhippet()
-# @param minPsi (numeric) Minimum PSI to consider
-# @param maxPsi (numeric) Maximum PSI to consider
-#
-# @return List with: 1) filtered table PSI columns, 2) filtered table "Qual" columns, including inc and exc, 3) table with number of events per type and 4) Samples
-# @export
-#
-# @examples
-
-
-alternativeWhippet <- function(filteredWhippetList, minPsi, maxPsi){
-
-  alternativeWhippet <- list()
-
-  psiTable <- filteredWhippetList$PSI
-  qualTable <- filteredWhippetList$Qual
-
-  originalColN <- ncol(psiTable)
-
-  # Consider alternative events only
-  psiTable$AllGreaterMin  <- apply(psiTable[,-c(1:6)], 1, all_grteq_row, minPsi)
-  psiTable$AllLowerMax    <- apply(psiTable[,-c(1:6)], 1, all_lweq_row, maxPsi)
-  psiTable                <- psiTable[which(psiTable$AllGreaterMin == TRUE & psiTable$AllLowerMax == TRUE),]
-  qualTable               <- qualTable[match(psiTable$EVENT, qualTable$EVENT),]
-
-  # Remove columns added
-  psiTable                <- psiTable[,c(1:originalColN)]
-  qualTable               <- qualTable[,c(1:originalColN)]
-
-  alternativeWhippet[[1]] <- psiTable
-  alternativeWhippet[[2]] <- qualTable
-  alternativeWhippet[[3]] <- table(psiTable$COMPLEX)
-  alternativeWhippet[[4]] <- colnames(psiTable)[-c(1:6)]
-
-  names(alternativeWhippet) <- c("PSI", "Qual", "EventsPerType", "Samples")
-
-  return(alternativeWhippet)
-
-}
-
-
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# C. rMATS -----------------------------------------------------------------
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-# Tests for minimal coverage based (rMATS')
-# Checks if "Qual" columns from rMATS' INCLUSION table have at least N reads in total (inc + exc)
-# @param quals Set of "Qual" columns from rMATS' INCLUSION table (one per sample) for a given event
-# @param N minimum number of reads (inc + exc) for a given event in each sample
-#
-# @return TRUE if all samples have minimal coverage.
-# @export
-#
-# @examples
-RM_all_minReads <- function(quals, N){
-
-
-  # Number of samples
-  n <- length(quals)
-
-  # Split string by "@" and keep the second element: "inc,exc"
-  string <- as.character(unlist(quals))
-  split <- unlist(strsplit(toString(unlist(string)), split = "[,@]"))
-
-  # Inc reads are the 6th score in each sample; Exc reads the last and 7th
-  inc <- as.numeric(as.vector(split[seq(from = 6, to = 7*n, by = 7)]))
-  exc <- as.numeric(as.vector(split[seq(from = 7, to = 7*n, by = 7)]))
-
-  test <- length(which(inc + exc >= N)) == n
-
-  return(test)
-
-}
-
-
-
-# Format *.MATS.JC.txt table (rMATS) for quantified PSIs, for further analyses
-# @param incTable rMATS' *.MATS.JC.txt table
-#
-# @return List with: 1) filtered table PSI columns, 2) filtered table "Qual" columns including inc and exc, 3) table with number of events per type and 4) Samples
-# @export
-#
-# @examples
-
+#' Format rMATS Inclusion Tables for betAS Compatibility
+#'
+#' This function reformats inclusion tables specifically from rMATS
+#' into a standardized format that is compatible with betAS.
+#'
+#' @param incTable A data frame or similar object representing
+#'                 the inclusion table specifically from rMATS. This is
+#'                 typically the output of the `getDataset` function when not
+#'                 using the `betASapp()` shiny app. Can also be a data frame obtained
+#'                 by reading a \code{*MATS.JC.txt} file
+#'
+#' @details
+#' rMATS is one of several splicing tools that output inclusion tables.
+#' For the sake of consistent analysis within betAS, these tables need to be
+#' standardized. This function processes rMATS output and structures it
+#' in a way that betAS can work with, ensuring compatibility and ease of further analysis.
+#'
+#' @return A list containing:
+#'        \itemize{
+#'        \item{"PSI"}{A data frame containing information regarding the splicing events
+#'                      and their inclusion level.}
+#'        \item{"Qual"}{A data frame with information on the events as well as information
+#'                       regarding the coverage associated with each, emulating rMATS
+#'                       way of representing inc and exc reads.}
+#'        \item{"EventsPerType"}{A named table summarizing the number of events per type.}
+#'        \item{"Samples"}{A character vector representing the names of the samples considered.}
+#'        }
+#'
+#' @export
 getrMATS <- function(incTable){
 
 
@@ -578,277 +683,5 @@ getrMATS <- function(incTable){
 
 
 }
-
-
-# Filter *.MATS.JC.txt table (rMATS) for quantified PSIs
-# Filter table from rMATS to remove events containing NAs in at least one sample and split PSI and Qual tables
-# Normalised inc and exc reads are obtained from "IJC" and "SJC" columns dividing junction counts by IncFormLen and SkipFormLen
-# @param RMlist list containing PSI and Qual tables, as well as event and samples, obtained with getVastTools()
-# @param N minimum number of reads (inc + exc) for a given event in each sample
-#
-# @return List with: 1) filtered table PSI columns, 2) filtered table "Qual" columns including inc and exc, 3) table with number of events per type and 4) Samples
-# @export
-#
-# @examples
-
-
-filterrMATS <- function(RMlist, N){
-
-  filterRM <- RMlist
-
-
-  psiRM <- filterRM$PSI
-  qualRM <- filterRM$Qual
-
-  # Remove events containing at least one NA
-  psiRM$AnyNA    <- apply(psiRM, 1, anyNA)
-  psiRM          <- psiRM[which(psiRM$AnyNA == FALSE),]
-  psiRM          <- psiRM[,-c(ncol(psiRM))]
-  qualRM         <- qualRM[match(psiRM$EVENT, qualRM$EVENT),]
-
-
-
-  # Calculate coverage/balance (use .Q columns)
-  qualRM$AllminReads <- apply(qualRM[,grep("[.]Q", colnames(qualRM))], 1, FUN = function(X) RM_all_minReads(X,N))
-  qualRM             <- qualRM[which(qualRM$AllminReads == TRUE),]
-  psiRM              <- psiRM[match(qualRM$EVENT, psiRM$EVENT),]
-  qualRM$AllminReads <-  NULL
-
-  filterRM[[1]] <- psiRM
-  filterRM[[2]] <- qualRM
-  filterRM[[3]] <- table(psiRM$COMPLEX)
-  filterRM[[4]] <- colnames(psiRM)[-c(1:6)]
-
-  names(filterRM) <- c("PSI", "Qual", "EventsPerType", "Samples")
-  return(filterRM)
-
-}
-
-# Filter PSI table (rMATS) by alternativity
-# Filter previously filtered PSI table from rMATS to consider only events with PSIs between (and including) minPsi and maxPSI.
-# @param filteredRMList List containing PSI and Qual (rMATS) tables, obtained with filterrMATS()
-# @param minPsi (numeric) Minimum PSI to consider
-# @param maxPsi (numeric) Maximum PSI to consider
-#
-# @return List with: 1) filtered table PSI columns, 2) filtered table "Qual" columns, including inc and exc, 3) table with number of events per type and 4) Samples
-# @export
-#
-# @examples
-
-
-alternativerMATS <- function(filteredRMList, minPsi, maxPsi){
-  alternativeRM <- list()
-
-  psiTable <- filteredRMList$PSI
-  qualTable <- filteredRMList$Qual
-
-  originalColN <- ncol(psiTable)
-
-  # Consider alternative events only
-  psiTable$AllGreaterMin  <- apply(psiTable[,-c(1:6)], 1, all_grteq_row, minPsi)
-  psiTable$AllLowerMax    <- apply(psiTable[,-c(1:6)], 1, all_lweq_row, maxPsi)
-  psiTable                <- psiTable[which(psiTable$AllGreaterMin == TRUE & psiTable$AllLowerMax == TRUE),]
-  qualTable               <- qualTable[match(psiTable$EVENT, qualTable$EVENT),]
-
-  # Remove columns added
-  psiTable                <- psiTable[,c(1:originalColN)]
-  qualTable               <- qualTable[,c(1:originalColN)]
-
-  alternativeRM[[1]] <- psiTable
-  alternativeRM[[2]] <- qualTable
-  alternativeRM[[3]] <- table(psiTable$COMPLEX)
-  alternativeRM[[4]] <- colnames(psiTable)[-c(1:6)]
-
-  names(alternativeRM) <- c("PSI", "Qual", "EventsPerType", "Samples")
-
-  return(alternativeRM)
-
-}
-
-
-
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# D. Import data function --------------------------------------------------
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-# get dataset tables. only useful for package, betASapp has a different way of dealing with it
-# pathTables=NULL when using example datasets
-
-# when running this script, one should be in the main folder
-
-getDataset <- function(pathTables=NULL, tool){
-
-  requiredcols_vasttools <- c("GENE","EVENT","COORD","LENGTH","FullCO","COMPLEX")
-  requiredcols_rMATS <- c("ID","GeneID","geneSymbol","chr","strand","IJC_SAMPLE_1","SJC_SAMPLE_1","IJC_SAMPLE_2","SJC_SAMPLE_2")
-  requiredcols_whippet <- c("Gene", "Node", "Coord", "Strand", "Type" ,"Psi", "CI_Width", "Total_Reads", "Complexity", "Entropy" ,"Inc_Paths", "Exc_Paths")
-
-  # Use example datasets
-  if (is.null(pathTables)){
-
-    if (tool == "vast-tools"){
-
-      incData <- readRDS(file = "test/INCLUSION_LEVELS_FULL-mm10-8-v251.rds")
-      colNames <- colnames(incData)
-
-    } else if (tool == "rMATS"){
-
-      incData <- read.delim(file = "test/SE.MATS.JC.txt")
-      colNames <- colnames(incData)
-
-    } else if (tool == "whippet"){
-
-      incData <- readRDS(file = "test/listdfs_WHippet.rds")
-      colNames <- Reduce(intersect, lapply(incData, colnames))
-
-    } else {
-
-      stop(paste0("Tool '", tool, "' is not supported by the current version of betAS."))
-
-    }
-
-
-    # Use user-input data
-  } else {
-
-    if (tool %in% c("vast-tools", "rMATS")){
-
-      if(length(grep(pattern = "[.]gz", x = pathTables)) == 0){
-
-        incData <- pathTables
-
-      } else {
-
-        incData <- gzfile(pathTables)
-
-      }
-
-      incData <- read.delim(incData)
-
-      colNames <- colnames(incData)
-
-    } else if (tool == "whippet"){
-
-      if (length(pathTables) == 1){
-
-        stop("Number of files not supported. Please select at least two files when using whippet inclusion tables.")
-
-      } else {
-
-        pathTables[grep("[.]gz",pathTables)] <- lapply(pathTables[grep("[.]gz",pathTables)],gzfile)
-        incData <- lapply(pathTables,read.delim)
-
-        colNames <- Reduce(intersect, lapply(incData, colnames))
-
-      }
-
-    }
-
-  }
-
-
-  if (tool == "vast-tools" & length(intersect(colNames, requiredcols_vasttools)) != length(requiredcols_vasttools)){
-
-    stop("The provided data is not supported by betAS. Please confirm that your data matches the input requirements.")
-
-  }
-
-  if (tool == "rMATS" & length(intersect(colNames, requiredcols_rMATS)) != length(requiredcols_rMATS)){
-
-    stop("The provided data is not supported by betAS. Please confirm that your data matches the input requirements.")
-
-  }
-
-  if (tool == "whippet" & length(intersect(colNames, requiredcols_whippet)) != length(requiredcols_whippet)) {
-
-    stop("The provided data is not supported by betAS. Please confirm that your data matches the input requirements.")
-
-  }
-
-  return(incData)
-
-}
-
-
-# incTable is an inclusion table (or a list of inclusion tables). List of paths only works for Whippet files
-
-getEvents <- function(incTable, tool){
-
-  if (tool == "vast-tools"){
-
-    ASList <- getVastTools(incTable)
-
-  } else if (tool == "rMATS") {
-
-    suppressWarnings({
-      ASList <- getrMATS(incTable)
-    })
-
-  } else if (tool == "whippet") {
-
-    ASList <- getWhippet(incTable)
-
-  } else {
-    stop(paste0("Tool '", tool, "' is not supported by the current version of betAS."))
-  }
-
-  return(ASList)
-
-}
-
-# output from getPSIs()
-# types should follow the nomenclature of the tool being used
-# types will not be used for rMATS results
-
-filterEvents <- function(ASList, types=NULL, N=10, tool){
-
-  if (is.null(types)){
-    types <- names(ASList$EventsPerType)
-  }
-
-  if (tool == "vast-tools"){
-
-    ASListFiltered <- filterVastTools(ASList, types, N)
-
-  } else if (tool == "rMATS") {
-
-    ASListFiltered <- filterrMATS(ASList, N)
-
-  } else if (tool == "whippet") {
-
-    ASListFiltered <- filterWhippet(ASList, types, N)
-
-  } else {
-    stop(paste0("Tool '", tool, "' is not supported by the current version of betAS."))
-  }
-
-  return(ASListFiltered)
-
-}
-
-# limits in percentage
-alternativeEvents <- function(ASListFiltered, minPsi=1, maxPsi=99, tool ){
-
-
-  if (tool == "vast-tools"){
-
-    ASListAlternative <- alternativeVastTools(ASListFiltered, minPsi, maxPsi)
-
-  } else if (tool == "whippet"){
-
-    ASListAlternative <-  alternativeWhippet(ASListFiltered, minPsi, maxPsi)
-
-  } else if (tool == "rMATS"){
-
-    ASListAlternative <- alternativerMATS(ASListFiltered, minPsi, maxPsi)
-
-  }
-
-  return(ASListAlternative)
-
-}
-
-
-
-
 
 
