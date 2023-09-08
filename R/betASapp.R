@@ -83,7 +83,7 @@ betASapp_ui <- function(){
                                                                                                            "Dataset 2 (obtained using rMATS)" = "rMATS",
                                                                                                            "Dataset 2 (obtained using whippet)" = "whippet")),
                                           "Alternatively, upload table with inclusion level quantification (e.g. PSI):",
-                                          p("betAS currently supports inclusion level tables from vast-tools ",code("(INCLUSION_LEVELS_FULL*.tab)", style = "font-size:12px; color: #AAAAAA"),
+                                          p("betAS currently supports inclusion level tables from vast-tools ",code("(INCLUSION_LEVELS_FULL*.tab.gz)", style = "font-size:12px; color: #AAAAAA"),
                                             ", rMATS ",code("(*.MATS.JC.txt)", style = "font-size:12px; color: #AAAAAA")," and whippet",code("(*.psi.gz).", style = "font-size:12px; color: #AAAAAA"),
                                             "Only a single file is supported when using rMATS or vast-tools results. Results from vast-tools module",code("tidy", style = "font-size:12px; color: #AAAAAA"),"not supported.
                                             For whippet, please upload one file per sample (at least two samples).", style = "font-size:12px; color: #AAAAAA"),
@@ -766,7 +766,7 @@ betASapp_server <- function(){
 
       }
 
-      filteredList <- filterEvents(ASList=GetTable(), types = selectedEventTypes, N= minNreads(), tool=sourcetool())
+      filteredList <- filterEvents(InputList=GetTable(), types = selectedEventTypes, N= minNreads())
 
       # if none of the checked events are in the filtered data, update the event to one that exists, in order to prevent the APP from crashing
       if (all(! selectedEventTypes %in% names(filteredList$EventsPerType)) & sourcetool() != "rMATS"){
@@ -808,7 +808,7 @@ betASapp_server <- function(){
       # This will make sure that selectAlternatives is also updated when filterTable changes
       isolate(filterTable())
 
-      alternativeList <- alternativeEvents(ASListFiltered=req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2], tool = sourcetool())
+      alternativeList <- alternativeEvents(filteredList=req(filterTable()), minPsi = input$psirange[1], maxPsi = input$psirange[2])
 
       if(nrow(alternativeList$PSI) == 0 & !is.null(filterTable)){
 
