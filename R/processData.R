@@ -218,16 +218,19 @@ CheckMinReads <- function(quals, N){
   # Number of samples
   n <- length(quals)
 
-  # Split string by "@" and keep the second element: "inc,exc"
-  string <- as.character(unlist(quals))
-  split <- unlist(strsplit(toString(unlist(string)), split = "[,@]"))
+  # Split string by "@" and keep the second element with the reads "inc,exc"
+  string <- as.character(quals)
+  reads  <- unlist(strsplit(string, split = "@", fixed = TRUE))
+  reads  <- reads[seq(2, length(reads), by = 2)]
 
-  # Inc reads are the 6th score in each sample; Exc reads the last and 7th
-  inc <- as.numeric(as.vector(split[seq(from = 6, to = 7*n, by = 7)]))
-  exc <- as.numeric(as.vector(split[seq(from = 7, to = 7*n, by = 7)]))
+  # Split reads by "," to separate inclusion from exclusion
+  reads  <- strsplit(reads, split = ",", fixed = TRUE)
+  reads  <- as.numeric(unlist(reads))
+  inc <- reads[seq(1, length(reads), by = 2)]
+  exc <- reads[seq(2, length(reads), by = 2)]
 
+  # Test condition
   test <- length(which(inc + exc >= N)) == n
-
   return(test)
 
 }
