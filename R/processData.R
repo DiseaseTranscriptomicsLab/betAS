@@ -345,9 +345,10 @@ alternativeEvents  <- function(filteredList, minPsi, maxPsi){
   originalColN <- ncol(psiTable)
 
   # Consider alternative events only
-  psiTable$AllGreaterMin  <- apply(psiTable[,-c(1:6)], 1, all_grteq_row, minPsi)
-  psiTable$AllLowerMax    <- apply(psiTable[,-c(1:6)], 1, all_lweq_row, maxPsi)
-  psiTable                <- psiTable[which(psiTable$AllGreaterMin == TRUE & psiTable$AllLowerMax == TRUE),]
+  allGreaterMin  <- rowSums(psiTable[,-c(1:6)] < minPsi) > 0
+  allLowerMax    <- rowSums(psiTable[,-c(1:6)] > maxPsi) > 0
+
+  psiTable                <- psiTable[which(allGreaterMin == TRUE & allLowerMax == TRUE),]
   qualTable               <- qualTable[match(psiTable$EVENT, qualTable$EVENT),]
 
   # Remove columns added
