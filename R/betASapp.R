@@ -627,6 +627,44 @@ betASapp_server <- function(){
 
     })
 
+
+    # auxiliary variable to choose only one event type to filter as default
+    getDefaultEvents <- reactive({
+
+      req(sourcetool())
+      req(GetTable())
+
+      getDefaultEvents <- names(GetTable()$EventsPerType)
+
+      if(sourcetool()=="rMATS"){
+         DefaultEvents <- getDefaultEvents
+      }
+
+      if(sourcetool()=="whippet"){
+        if ("CE" %in% getDefaultEvents) DefaultEvents <- "CE"
+        else DefaultEvents <- getDefaultEvents[1]
+      }
+
+      if(sourcetool()=="vast-tools"){
+
+        if(any(getDefaultEvents %in% c("C1", "C2", "C3", "S", "MIC"))) {
+
+          DefaultEvents <- "EX"
+
+        } else {
+
+          if(any(getDefaultEvents %in% c("IR-C", "IR-S", "IR"))) DefaultEvents <- "IR"
+
+          if(any(getDefaultEvents %in% c("Alt3", "Alt5"))) DefaultEvents <- "Altss"
+
+
+        }
+      }
+
+      return(DefaultEvents)
+
+    })
+
     # Update choice values for inputs when the dataset changes
     observeEvent(GetTable(),{
 
@@ -634,15 +672,13 @@ betASapp_server <- function(){
       req(dataset())
       req(GetTable())
 
-      existingEvents <- names(GetTable()$EventsPerType)
-
       if(sourcetool()=="vast-tools"){
 
         #updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = default_VT_events,  choices = eventTypesVT)
-        updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = getExistingEvents(),  choices = eventTypesVT)
+        updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = getDefaultEvents(),  choices = eventTypesVT)
 
       }else if(sourcetool()=="whippet"){
-        updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = getExistingEvents(),  choices = eventTypesWhippet)
+        updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = getDefaultEvents (),  choices = eventTypesWhippet)
         #updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = default_Whippet_events,  choices = eventTypesWhippet)
       }
 
@@ -666,25 +702,26 @@ betASapp_server <- function(){
     input_types <- reactiveVal(default_VT_events)
 
 
-
     # defaults, when the dataset changes
     observeEvent(dataset(), {
 
-      dataset_updated(TRUE)
+      # check whether input$types actually changes in the dataset update observer.
+      # If it doesn't change, we can immediately set dataset_updated(FALSE)
 
-      minNreads(defaultminNreads)
-      # because the update inputs are too slow, we need to initiate this variable
-      # default values for input$types
-      if (sourcetool() == "whippet"){
-        input_types(getExistingEvents())
-      } else if (sourcetool() == "vast-tools"){
-        input_types(getExistingEvents())
+      new_input_types <- getDefaultEvents()
+
+      # Check if input$types would actually change
+      if(!identical(new_input_types, input$types)) {
+        dataset_updated(TRUE)
+      } else {
+        print("update dataset to FALSE")
+        dataset_updated(FALSE)
       }
 
-      render <- rendervar() + 1
-      rendervar(render)
+      # Update input_types and rendervar
+      input_types(new_input_types)
+      rendervar(rendervar() + 1)
 
-      print("render: dataset")
 
     })
 
@@ -712,10 +749,10 @@ betASapp_server <- function(){
           showNotification("Please select at least one event type. Updating to default events.", duration = 10, type = c("error"))
 
           if(sourcetool()=="vast-tools"){
-            updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = getExistingEvents(),  choices = eventTypesVT)
+            updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = getDefaultEvents (),  choices = eventTypesVT)
             #updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = default_VT_events,  choices = eventTypesVT)
           }else if(sourcetool()=="whippet"){
-            updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = getExistingEvents(),  choices = eventTypesWhippet)
+            updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = getDefaultEvents (),  choices = eventTypesWhippet)
             #updateCheckboxGroupInput(session, "types", label = "Event types to consider:", selected = default_Whippet_events,  choices = eventTypesWhippet)
           }
         }
@@ -747,6 +784,7 @@ betASapp_server <- function(){
       req(GetTable())
       req(input_types())
       req(minNreads())
+
 
       if(sourcetool() == "vast-tools"){
 
@@ -780,11 +818,11 @@ betASapp_server <- function(){
         if(sourcetool()=="vast-tools"){
 
           dataset_updated(FALSE)
-          updateCheckboxGroupInput(session, inputId = "types", selected = getExistingEvents(),  choices = eventTypesVT)
+          updateCheckboxGroupInput(session, inputId = "types", selected = getDefaultEvents(),  choices = eventTypesVT)
 
         }else if(sourcetool()=="whippet"){
           dataset_updated(FALSE)
-          updateCheckboxGroupInput(session, inputId = "types", selected = getExistingEvents(),  choices = eventTypesWhippet)
+          updateCheckboxGroupInput(session, inputId = "types", selected = getDefaultEvents(),  choices = eventTypesWhippet)
         }
 
         return(NULL)
