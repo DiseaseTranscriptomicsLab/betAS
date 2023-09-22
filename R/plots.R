@@ -794,8 +794,8 @@ prepareTableVolcanoMultipleGroups <- function(psitable, qualtable, groupList, np
 
   # Prepare individual betAS object per group
   groupNames  <- names(groupList)
-  listNames   <- paste0(groupNames, "_indBetas")
-
+  listNames   <- groupNames
+  #listNames   <- paste0(groupNames, "_indBetas")
   samplesPerGroupList <- list()
   indBetasList        <- list()
 
@@ -1634,7 +1634,8 @@ prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, n
 
   # Prepare individual betAS object per group
   groupNames  <- names(groupList)
-  listNames   <- paste0(groupNames, "_indBetas")
+  # listNames   <- paste0(groupNames, "_indBetas")
+  listNames   <-  groupNames
 
   samplesPerGroupList <- list()
   indBetasList        <- list()
