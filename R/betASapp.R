@@ -127,6 +127,7 @@ betASapp_ui <- function(){
 
                              mainPanel(
                                shinycssloaders::withSpinner(plotOutput("plot", height = "1000px"), type = 8, color = "#FF9AA2", size = 2),
+                               #downloadButton("downloadPlot", "Download Plot"),
                                h6(textOutput("TextToolInfo")),
                                DTOutput("selected_file_table" )
                              )
@@ -974,7 +975,7 @@ betASapp_server <- function(){
 
 
 
-    output$selected_file_table <- renderDT({
+    output$selected_file_table <- renderDT(server = FALSE,{
 
       req(dataset())
       req(selectAlternatives())
@@ -1000,7 +1001,23 @@ betASapp_server <- function(){
 
       }
 
-    }, rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE))
+    }, rownames = FALSE,
+
+    extensions = 'Buttons',
+
+    options = list(paging = TRUE,
+                   pageLength = 10,
+                   scrollX=TRUE,
+                   searching = TRUE,
+                   ordering = TRUE,
+                   dom = 'Bfrtip',
+                   buttons = list(list(extend='copy',
+                                       filename = "betAS_SelectedEvents"),
+                                  list(extend='csv',
+                                       filename = "betAS_SelectedEvents"),
+                                  list(extend='excel',
+                                       filename= "betAS_SelectedEvents")),
+                   lengthMenu=c(3,5,10)))
 
 
 
@@ -1116,14 +1133,20 @@ betASapp_server <- function(){
 
 
     output$plot <- renderPlot({
-
       req(selectAlternatives())
-
       dataset()
-
       bigPicturePlot(isolate(psifiltdataset()))
-
     })
+
+    # output$downloadPlot <- downloadHandler(
+    #   filename = function() { "PSIdistributions.png" },
+    #   content = function(file) {
+    #     png(file, width = 1500, height = 1000)
+    #     print(bigPicturePlot(isolate(psifiltdataset())))
+    #     dev.off()
+    #   }
+    # )
+
 
     output$test_box <- renderText({
       validate(need(input$minNreads > 1, "Please use a value greater or equal than 1"))
@@ -1681,20 +1704,34 @@ betASapp_server <- function(){
     ## Outputs -----------------------------------------------------------------
 
 
-    output$brushed_data <- renderDT({
+    output$brushed_data <- renderDT(server = FALSE,{
 
       req(input$plot_brush)
       req(colnameVector())
 
-      # brushedPoints(df = simplifiedTableVolcano(), input$plot_brush, xvar = "deltapsi", yvar = column)
-      datatable(brushedPoints(df = simplifiedTableVolcano(), input$plot_brush),
-                rownames = FALSE,
-                colnames = colnameVector()) %>% formatRound(columns = c(3:4), digits = 3)
+      datatable(
+        brushedPoints(df = simplifiedTableVolcano(), input$plot_brush),
+        rownames = FALSE,
+        colnames = colnameVector(),
+        extensions = 'Buttons',
+        options = list(
+          dom = 'Bfrtip',
+          buttons = list(
+            list(extend = 'copy', filename = "betAS_DifferentialAlternativeSplicing"),
+            list(extend = 'csv', filename = "betAS_DifferentialAlternativeSplicing"),
+            list(extend = 'excel', filename = "betAS_DifferentialAlternativeSplicing")
+          ),
+          pageLength = 10,
+          lengthMenu = c(3, 5, 10),
+          paging = TRUE,
+          searching = TRUE,
+          ordering = TRUE,
+          scrollX = TRUE
+        )
+      ) %>% formatRound(columns = c(3:4), digits = 3)
 
     })
-    # Required if using renderDT from shiny but with DT (to allow formatRound()); rownames/colnames are replaced by the parameters inside DT::datatable
-    # rownames = FALSE,
-    # colnames = colnameVector())
+
 
     output$urlplot <- renderUI({
 
@@ -2221,14 +2258,29 @@ betASapp_server <- function(){
 
     })
 
-    output$brushed_data_mult <- renderDT({
+    output$brushed_data_mult <- renderDT(server = FALSE,{
 
       req(input$plot_brush_mult)
       req(colnameVector_mult())
 
       datatable(brushedPoints(df = simplifiedTableVolcanoMultiple(), input$plot_brush_mult),
                 rownames = FALSE,
-                colnames = colnameVector_mult()) %>% formatRound(columns = c(3:4), digits = 3)
+                colnames = colnameVector_mult(),
+                extensions = 'Buttons',
+                options = list(
+                  dom = 'Bfrtip',
+                  buttons = list(
+                    list(extend = 'copy', filename = "betAS_DifferentialAlternativeSplicing_MultGroups"),
+                    list(extend = 'csv', filename = "betAS_DifferentialAlternativeSplicing_MultGroups"),
+                    list(extend = 'excel', filename = "betAS_DifferentialAlternativeSplicing_MultGroups")
+                  ),
+                  pageLength = 10,
+                  lengthMenu = c(3, 5, 10),
+                  paging = TRUE,
+                  searching = TRUE,
+                  ordering = TRUE,
+                  scrollX = TRUE
+                )) %>% formatRound(columns = c(3:4), digits = 3)
 
     })
     # Required if using renderDT from shiny but with DT (to allow formatRound()); rownames/colnames are replaced by the parameters inside DT::datatable
