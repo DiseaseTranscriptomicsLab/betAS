@@ -370,7 +370,8 @@ betASapp_server <- function(){
   # file                  <- "test/INCLUSION_LEVELS_FULL-Hsa32-hg19_to_test.tab.gz"
   # testTable             <- read.table(gzfile(file), sep="\t", header=TRUE, quote="")
   # maxDevSimulationN100  <- readRDS(url("http://imm.medicina.ulisboa.pt/group/distrans/SharedFiles/Mariana/Splicing&SenescenceFLEX/xintercepts_100incr_100cov_100trials.R"))
-  maxDevSimulationN100  <- readRDS("test/xintercepts_100incr_100cov_100trials.rds")
+  # maxDevSimulationN100  <- readRDS("test/xintercepts_100incr_100cov_100trials.rds")
+  data("maxDevSimulationN100")
   pastelColors          <- c("#FF9AA2", "#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7", "#C7CEEA", "#FBE2FD", "#D9ECFE")
 
   eventTypesVT          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss")
@@ -423,7 +424,9 @@ betASapp_server <- function(){
 
         if(input$sourcetool == "vast-tools1"){
 
-          testTable <- readRDS(file = "test/INCLUSION_LEVELS_FULL-hg19-98-v251.rds")
+          #testTable <- readRDS(file = "test/INCLUSION_LEVELS_FULL-hg19-98-v251.rds")
+          data("VT1_data_human")
+          testTable <- VT1_data_human
 
         } else {
 
@@ -435,17 +438,18 @@ betASapp_server <- function(){
 
           if(input$sourcetool == "vast-tools2"){
 
-            testTable <- readRDS(file = "test/INCLUSION_LEVELS_FULL-mm10-8-v251.rds")
-
+            #testTable <- readRDS(file = "test/INCLUSION_LEVELS_FULL-mm10-8-v251.rds")
+            testTable <- getDataset(pathTables=NULL, tool = "vast-tools")
 
           }else if(input$sourcetool == "rMATS"){
 
-            testTable <- read.delim(file = "test/SE.MATS.JC.txt")
+            #testTable <- read.delim(file = "test/SE.MATS.JC.txt")
+            testTable <- getDataset(pathTables=NULL, tool = "rMATS")
 
           } else if (input$sourcetool == "whippet"){
 
-            testTable <- readRDS(file = "test/listdfs_WHippet.rds")
-
+            #testTable <- readRDS(file = "test/listdfs_WHippet.rds")
+            testTable <- getDataset(pathTables=NULL, tool = "whippet")
 
           }
 
@@ -508,25 +512,33 @@ betASapp_server <- function(){
 
       if(is.null(input$psitable) & input$sourcetool == "vast-tools1"){
 
-        samplesTable <- readRDS(file = "test/samplesTable.rds")
+        #samplesTable <- readRDS(file = "test/samplesTable.rds")
+        data("VT1_metadata_human")
+        samplesTable <- VT1_metadata_human
 
         return(samplesTable)
 
       } else if(is.null(input$psitable) & input$sourcetool == "vast-tools2"){
 
-        samplesTable <- readRDS(file = "test/samplesTable_Whippet.rds")
+        #samplesTable <- readRDS(file = "test/samplesTable_Whippet.rds")
+        data("VT2_metadata_mouse")
+        samplesTable <- VT2_metadata_mouse
 
         return(samplesTable)
 
       } else if(is.null(input$psitable) & input$sourcetool == "rMATS"){
 
-        samplesTable <- readRDS(file = "test/samplesTable_rMATS.rds")
+        #samplesTable <- readRDS(file = "test/samplesTable_rMATS.rds")
+        data("rMATS_metadata_mouse")
+        samplesTable <- rMATS_metadata_mouse
 
         return(samplesTable)
 
       } else if(is.null(input$psitable) & input$sourcetool == "whippet"){
 
-        samplesTable <- readRDS(file = "test/samplesTable_Whippet.rds")
+        #samplesTable <- readRDS(file = "test/samplesTable_Whippet.rds")
+        data("whippet_metadata_mouse")
+        samplesTable <- whippet_metadata_mouse
 
         return(samplesTable)
 

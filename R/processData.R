@@ -43,17 +43,24 @@ getDataset <- function(pathTables=NULL, tool){
 
     if (tool == "vast-tools"){
 
-      incData <- readRDS(file = "test/INCLUSION_LEVELS_FULL-mm10-8-v251.rds")
+      #incData <- readRDS(file = "test/INCLUSION_LEVELS_FULL-mm10-8-v251.rds")
+      data("VT2_data_mouse")
+      incData <- VT2_data_mouse
+
       colNames <- colnames(incData)
 
     } else if (tool == "rMATS"){
 
-      incData <- read.delim(file = "test/SE.MATS.JC.txt")
+      #incData <- read.delim(file = "test/SE.MATS.JC.txt")
+      data("rMATS_data_mouse")
+      incData <- rMATS_data_mouse
       colNames <- colnames(incData)
 
     } else if (tool == "whippet"){
 
-      incData <- readRDS(file = "test/listdfs_WHippet.rds")
+      #incData <- readRDS(file = "test/listdfs_WHippet.rds")
+      data("whippet_data_mouse")
+      incData <- whippet_data_mouse
       colNames <- Reduce(intersect, lapply(incData, colnames))
 
     } else {
