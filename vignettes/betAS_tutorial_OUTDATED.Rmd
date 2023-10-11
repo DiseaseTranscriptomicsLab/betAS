@@ -1,0 +1,189 @@
+---
+title: "betAS command-line interface (CLI) tutorial"
+author: "Mariana Ascensão-Ferreira"
+date: "`r Sys.Date()`"
+output: 
+    rmarkdown::html_vignette:
+        toc: true
+vignette: >
+    %\VignetteIndexEntry{betAS command-line interface (CLI) tutorial}
+    %\VignetteEngine{knitr::rmarkdown}
+    \usepackage[utf8]{inputenc}
+---
+
+*betAS* is a user-friendly R package that allows intuitive analysis and
+visualisation of differential alternative splicing (AS) based on
+beta distributions.
+
+Beta distributions are suitable to quantify inclusion proportions of
+alternative sequences, using RNA sequencing reads supporting their
+inclusion and exclusion as surrogates for the two distribution shape
+parameters. Each such beta distribution has the inclusion proportion as
+mean value and is narrower when the read coverage is higher, facilitating
+the interpretability of its precision when plotted. betAS uses beta
+distributions to accurately model PSI values and their precision, to
+quantitatively and visually compare AS between groups of samples.
+
+betAS allows the analysis of user-provided tables with AS quantifications,
+such as those obtained by vast-tools (https://github.com/vastgroup/vast-tools),
+ranking differentially spliced events by a significance metric that
+incorporates the compromise between the uncertainty in individual sample
+estimates and the variability among replicates.
+
+# Installing and starting the program
+Install *betAS* by typing the following in an R console:
+
+```{r install, eval=FALSE}
+
+install.packages("BiocManager")
+BiocManager::install("betAS")
+
+```
+
+After the installation, load betAS and other required packages by typing:
+
+```{r load, message=FALSE}
+
+library(betAS)
+library(ggplot2)
+
+```
+
+# Case study: differential alternative splicing analysis between two groups
+Load required files and variables
+
+```{r}
+
+sampleTable           <- readRDS("samplesTable.rds")
+maxDevSimulationN100  <- readRDS("xintercepts_100incr_100cov_100trials.rds")
+pastelColors          <- c("#FF9AA2", "#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7", "#C7CEEA", "#FBE2FD", "#D9ECFE")
+
+```
+
+## Simulate loading a (vast-tools) table into the app
+Demo file: only exon skipping event types ("C1", "C2", "C3", "S" and "MIC"), minimum coverage without NAs
+
+```{r}
+
+testTable   <- readRDS("testTableEX.rds")
+cat(paste0("Filtered events: ", nrow(testTable$PSI)))
+table(testTable$PSI$COMPLEX)
+
+```
+
+## (optional) Select "alternative" events (1 < PSI < 99)
+
+```{r}
+
+testTable <- alternativeVastTools(testTable, minPsi = 1, maxPsi = 99)
+cat(paste0("Alternative events: ", nrow(testTable$PSI)))
+
+```
+
+## Define PSI and Qual table to be used in the following sections
+
+```{r}
+
+psiObject <- testTable
+psiTable  <- psiObject$PSI
+qualTable <- psiObject$Qual
+
+```
+
+## "Big picture" plot
+
+```{r}
+
+bigPicturePlot <- bigPicturePlot(table = psiTable)
+bigPicturePlot + theme_minimal()
+
+```
+
+## Define groups based on sampleTable
+
+```{r}
+
+groups <- unique(sampleTable[,"organism_part"])
+random_colors <- pastelColors
+groupList <- list()
+
+for(i in 1:length(groups$organism_part)){
+
+  groupNames <- sampleTable$Run[which(sampleTable[,"organism_part"] == groups$organism_part[i])]
+
+  # Assign new group
+  currentNames <- names(groupList)
+  groupList[[length(groupList)+1]] <- list(name = groups$organism_part[i],
+                                           samples = groupNames,
+                                           color = random_colors[1])
+  names(groupList) <- make.unique(c(currentNames, groups$organism_part[i]))
+
+  random_colors <- random_colors[-1]
+
+}
+
+```
+
+## Plot densities for defined groups/samples
+
+```{r}
+
+tdensities <- plotIndividualDensitiesList(eventID = "HsaEX0019479",
+                                          npoints = 500,
+                                          psitable = psiTable,
+                                          qualtable = qualTable,
+                                          groupList = groupList,
+                                          maxDevTable = maxDevSimulationN100)
+
+tdensities + theme_minimal()
+
+```
+
+# Apply betAS
+
+```{r}
+
+groupA    <- "heart"
+groupB    <- "forebrain"
+
+samplesA    <- groupList[[groupA]]$samples
+samplesB    <- groupList[[groupB]]$samples
+
+colsGroupA    <- convertCols(psiTable, samplesA)
+colsGroupB    <- convertCols(psiTable, samplesB)
+
+```
+
+## Volcano plot with Pdiff as y-axis variable
+
+```{r}
+
+volcanoTable <- prepareTableVolcano(psitable = psiTable,
+                                    qualtable = qualTable,
+                                    npoints = 500,
+                                    colsA = colsGroupA,
+                                    colsB = colsGroupB,
+                                    labA = groupA,
+                                    labB = groupB,
+                                    basalColor = "#89C0AE",
+                                    interestColor = "#E69A9C",
+                                    maxDevTable = maxDevSimulationN100)
+
+volcanoPdiff <- plotVolcano(betasTable = volcanoTable,
+                            labA = groupList$heart,
+                            labB = groupList$forebrain,
+                            basalColor = "#89C0AE",
+                            interestColor = "#E69A9C")
+
+volcanoPdiff + theme_minimal()
+
+```
+
+# Session information
+
+```{r si}
+
+sessionInfo()
+
+```
+

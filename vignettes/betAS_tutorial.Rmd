@@ -1,165 +1,454 @@
 ---
-title: "betAS command-line interface (CLI) tutorial"
+title: 'betAS command-line interface (CLI) tutorial'
 author: "Mariana Ascensão-Ferreira"
-date: "`r Sys.Date()`"
+date: "`r Sys.Date()`"  
 output: 
     rmarkdown::html_vignette:
         toc: true
+        number_sections: true
+        df_print: kable
 vignette: >
     %\VignetteIndexEntry{betAS command-line interface (CLI) tutorial}
-    %\VignetteEngine{knitr::rmarkdown}
     \usepackage[utf8]{inputenc}
+    %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
+```{=html}
+<style>
+img {
+  width: 100%;
+  max-width: 780px; /* or whatever maximum width you want */
+  height: auto;
+}
+</style>
+```
+```{r eval=F, include=F}
+rmarkdown::render('betAS_tutorial.Rmd',output_dir = "~/VersionControl/betAS/inst/")
+```
+
 *betAS* is a user-friendly R package that allows intuitive analysis and
-visualisation of differential alternative splicing (AS) based on
-beta distributions.
+visualisation of differential alternative splicing (AS) based on beta
+distributions.
 
 Beta distributions are suitable to quantify inclusion proportions of
 alternative sequences, using RNA sequencing reads supporting their
 inclusion and exclusion as surrogates for the two distribution shape
 parameters. Each such beta distribution has the inclusion proportion as
-mean value and is narrower when the read coverage is higher, facilitating
-the interpretability of its precision when plotted. betAS uses beta
-distributions to accurately model PSI values and their precision, to
-quantitatively and visually compare AS between groups of samples.
+mean value and is narrower when the read coverage is higher,
+facilitating the interpretability of its precision when plotted. *betAS*
+uses beta distributions to accurately model PSI values and their
+precision, to quantitatively and visually compare AS between groups of
+samples.
 
-betAS allows the analysis of user-provided tables with AS quantifications,
-such as those obtained by vast-tools (https://github.com/vastgroup/vast-tools),
-ranking differentially spliced events by a significance metric that
-incorporates the compromise between the uncertainty in individual sample
-estimates and the variability among replicates.
+*betAS* allows the analysis of user-provided tables with AS
+quantifications, such as those obtained by
+[vast-tools](https://github.com/vastgroup/vast-tools),
+[rMATS](https://github.com/Xinglab/rmats-turbo) or
+[Whippet](https://github.com/timbitz/Whippet.jl), ranking differentially
+spliced events by a significance metric that incorporates the compromise
+between the uncertainty in individual sample estimates and the
+variability among replicates.
+
+> Please note that this tutorial will provide an overview on how to use
+> betAS R package for alternative splicing analyses. For a more detailed
+> explanation on the methods used, please check [betAS
+> pre-print](https://doi.org/10.1101/2022.12.26.521935).
 
 # Installing and starting the program
+
 Install *betAS* by typing the following in an R console:
 
 ```{r install, eval=FALSE}
-
-install.packages("BiocManager")
-BiocManager::install("betAS")
-
+devtools::install_github("marianaferreira/betAS")
 ```
 
-After the installation, load betAS and other required packages by typing:
+After the installation, load betAS and other required packages by
+typing:
 
-```{r load, message=FALSE}
-
+```{r load, message=FALSE, warning=F}
+#devtools::load_all() # delete this later, useful to test
 library(betAS)
+# For visualization
 library(ggplot2)
+library(plotly) 
+library(dplyr)
+library(ggpubr)
+```
+
+# Loading alternative splicing quantification data
+
+*betAS* accepts files sourced from `vast-tools`, `rMATS`, or `whippet`.
+These files should contain junction reads information (*e.g.* results
+obtained from the vast-tools' `tidy` module are not supported).
+
+Based on the value assigned to the `tool` parameter, the `pathTables`
+parameter can take the following input types:
+
+-   `tool="vast-tools"`: Should be a path pointing to a
+    `*INCLUSION_LEVELS_FULL*.tab` file.
+-   `tool="rMATS"`: Should be a path pointing to a `*MATS.JC.txt` file.
+-   `tool="whippet"`: Should be a list of paths (minimum of 2) pointing
+    to `*.psi.gz` files.
+
+```{r load_data_user, eval=FALSE}
+
+# Example to load data from vast-tools
+dataset <- getDataset(pathTables="path/to/dataset/*INCLUSION_LEVELS_FULL*.tab", tool="vast-tools")
+
+# Example to load data from rMATS
+dataset <- getDataset(pathTables="path/to/dataset/*MATS.JC.txt", tool="rMATS")
+
+# Example to load data from whippet
+dataset <- getDataset(pathTables=list("path/to/sample1/*.psi.gz",
+                                      "path/to/sample2/*.psi.gz",
+                                      "path/to/sample3/*.psi.gz"), tool="whippet")
 
 ```
 
-# Case study: differential alternative splicing analysis between two groups
-Load required files and variables
+For users who may not have files to upload, there's also an option to
+work with our built-in dataset. This dataset is a subset of the [Deep
+transcriptional profiling of longitudinal changes during neurogenesis
+and network maturation in
+vivo](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/) public mouse
+dataset:
 
-```{r}
+| Run       | Cell Type | Div   |
+|-----------|-----------|-------|
+| SRR645824 | ESC       | DIV-8 |
+| SRR645826 | ESC       | DIV-8 |
+| SRR645828 | ESC       | DIV-8 |
+| SRR645830 | ESC       | DIV-8 |
+| SRR645872 | Neuron    | DIV28 |
+| SRR645875 | Neuron    | DIV28 |
+| SRR645877 | Neuron    | DIV28 |
+| SRR645879 | Neuron    | DIV28 |
 
-sampleTable           <- readRDS("samplesTable.rds")
-maxDevSimulationN100  <- readRDS("xintercepts_100incr_100cov_100trials.rds")
-pastelColors          <- c("#FF9AA2", "#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7", "#C7CEEA", "#FBE2FD", "#D9ECFE")
+To use the pre-built datasets, simply don't specify the file and choose
+the tool you prefer.
 
-```
+```{r load_data_default, eval=FALSE}
+# Example to load data from vast-tools
+dataset <- getDataset(pathTables=NULL, tool="vast-tools")
 
-## Simulate loading a (vast-tools) table into the app
-Demo file: only exon skipping event types ("C1", "C2", "C3", "S" and "MIC"), minimum coverage without NAs
+# Example to load data from rMATS
+dataset <- getDataset(pathTables=NULL, tool="rMATS")
 
-```{r}
-
-testTable   <- readRDS("testTableEX.rds")
-cat(paste0("Filtered events: ", nrow(testTable$PSI)))
-table(testTable$PSI$COMPLEX)
-
-```
-
-## (optional) Select "alternative" events (1 < PSI < 99)
-
-```{r}
-
-testTable <- alternativeVastTools(testTable, minPsi = 1, maxPsi = 99)
-cat(paste0("Alternative events: ", nrow(testTable$PSI)))
-
-```
-
-## Define PSI and Qual table to be used in the following sections
-
-```{r}
-
-psiObject <- testTable
-psiTable  <- psiObject$PSI
-qualTable <- psiObject$Qual
+# Example to load data from whippet
+dataset <- getDataset(pathTables=NULL, tool="whippet")
 
 ```
 
-## "Big picture" plot
+# Filtering datasets
 
-```{r}
+*betAS* allows to filter the dataset based on alternative splicing event
+types, PSI value range to consider and minimum number of supporting
+reads.
 
-bigPicturePlot <- bigPicturePlot(table = psiTable)
+For simplicity, in this tutorial we will be using *betAS* provided
+dataset from **vast-tools** to illustrate such features. The
+`getDataset` function retrieves the inclusion tables specific to the
+chosen tool for further analyses, and the `getEvents` formats inclusion
+tables into a standard format that is compatible with **betAS**.
+
+The output from `getEvents` is an object with 4 attributes:
+
+-   `PSI`: A data frame with information regarding the splicing events
+    and their inclusion levels.
+-   `Qual`: A data frame detailing the events and information related to
+    the coverage associated with each event. This representation follows
+    the vast-tools representation of inclusion (inc) and exclusion (exc)
+    reads.
+-   `EventsPerType`: A named table summarising the number of events per
+    type.
+-   `Samples`: Vector containing the names of the samples considered.
+
+```{r load_dataset_example}
+tool <-  "vast-tools"
+
+# Import data
+dataset <- getDataset(pathTables=NULL, tool = tool)
+# Get data ready for betAS
+dataset <- getEvents(dataset, tool = tool)
+
+lapply(dataset,head)
+
+```
+
+We will be using betAS metadata for vast-tools built-in example to ease
+group creation.
+
+```{r load_metadata_example}
+
+data("VT2_metadata_mouse")
+(metadata <- as.data.frame(VT2_metadata_mouse))
+
+# to clean-up the environment of unecessary variables, loaded automatically by betAS when using default datasets
+rm(VT2_data_mouse)
+rm(VT2_metadata_mouse)
+
+```
+
+## Filter dataset based on alternative splicing event types and minimum number of supporting reads
+
+*betAS* allows to filter event types. The supported event types are in
+accordance to the ones documented in the alternative splicing
+quantification tools supported by betAS:
+
+-   For vast-tools, valid `types` include c("Alt3", "Alt5", "ANN", "C1",
+    "C2", "C3", "IR-C", "IR-S", "MIC", "S") as described in [vast-tools
+    documentation](https://github.com/vastgroup/vast-tools).
+-   For Whippet, valid `types` include c("CE", "AA", "AD", "IR", "TS",
+    "TE", "AF", "AL", "BS") as described in [whippet
+    documentation](https://github.com/timbitz/Whippet.jl).
+-   For rMATS, as each output file from this tool considers only one
+    event, the `types` parameter should be set to `NULL`
+
+*betAS* also allows to filter events with less than a given number of
+junction reads (sum of inclusion and exclusion reads) in at least one
+sample. To do so, the user can specify the minimum number of reads to
+consider in the `N`parameter.
+
+To simplify, we will be considering only exon skipping events (C1, C2,
+C3, S & MIC events from `vast-tools`) with at least 10 junction read
+counts in all samples.
+
+```{r filter_event_types_nb_reads}
+dataset_filtered <- filterEvents(dataset, types=c("C1", "C2", "C3", "S", "MIC"), N=10)
+
+cat(paste0("Alternative events: ", nrow(dataset_filtered$PSI)))
+
+```
+
+## Filter dataset based on PSI value range
+
+*betAS* allows to filter events based on their PSI value range. We will
+be filtering events with a PSI of less than 1 or higher than 99 in all
+samples, in order to keep only alternative events.
+
+```{r filter_PSIrange}
+
+dataset_filtered <- alternativeEvents(dataset_filtered, minPsi=1, maxPsi=99  )
+
+cat(paste0("Alternative events: ", nrow(dataset_filtered$PSI)))
+
+```
+
+## Plotting PSI distribution across samples
+
+After filtering the data to only keep events of interest, we can have an
+overview of the PSIs on the samples being analysed.
+
+```{r bigPicturePlot, fig.width=8, fig.height=4}
+
+bigPicturePlot <- bigPicturePlot(table = dataset_filtered$PSI)
 bigPicturePlot + theme_minimal()
 
 ```
 
-## Define groups based on sampleTable
+# Group definition and management from automatically detected or user-defined sample list
 
-```{r}
+To allow for alternative splicing analyses between groups of interest,
+the user must firstly specify to what groups the samples under analyses
+belong to.
 
-groups <- unique(sampleTable[,"organism_part"])
-random_colors <- pastelColors
+To check the names of the samples being used, we can access the
+`Samples` attribute inside the `dataset` object.
+
+```{r sample_names}
+cat("Sample names: ")
+cat(dataset_filtered$Samples)
+```
+
+In order to ease group visualization, we can assign a color to each
+group. In this section we showcase how to assign a group to a given
+color, based on a manually defined palette. To automatically define
+color palettes of N colors the user might want to check [Custom color
+palette for group definition](#groupdefpalette) section of this
+tutorial.
+
+## Automatic group definition based on sample name
+
+We can define sample groups based on the name of the samples being used,
+assuming that the sample naming has some characteristics that allow to
+easily identify the group to which they belong to.
+
+```{r aux_automaticgroup}
+samples <- dataset_filtered$Samples 
+random_colors <- c("#FF9AA2", "#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7", "#C7CEEA", "#FBE2FD", "#D9ECFE")
+```
+
+```{r automaticgroup}
+
+# Automatic group definition
+not_grouped   <- samples
+checked       <- c()
+groups        <- LETTERS[seq(1, length = min(length(names), 26))]
+used_groups   <- groups
 groupList <- list()
 
-for(i in 1:length(groups$organism_part)){
+while((length(checked) < length(names)) & length(used_groups) <= 26){
+  
+  groupNames  <- agrep(pattern = not_grouped[1], x = not_grouped, value = TRUE)
+  checked     <- c(checked, groupNames)
+  not_grouped <- not_grouped[-c(match(groupNames, not_grouped))]
+  
+  # Assign new group
+  currentNames <- names(groupList)
+  groupList[[length(groupList)+1]] <- list(name = used_groups[1],
+                                                   samples = groupNames,
+                                                   color = random_colors[1])
+  names(groupList) <- make.unique(c(currentNames, used_groups[1]))
+  
+  random_colors <- random_colors[-1]
+  used_groups   <- used_groups[-1]
+  
+}
 
-  groupNames <- sampleTable$Run[which(sampleTable[,"organism_part"] == groups$organism_part[i])]
+groupList
+      
+      
+```
+
+```{r automaticgroup_visualize, fig.width=8, fig.height=4}
+# Visualize colors being used
+slices <- rep(1, length(groupList))  # Equal-sized slices for each color
+# Display the pie chart with colors
+pie(slices, col = random_colors[1:length(groupList)], border = "black", labels=names(groupList), main = "Color palette for group definition")
+```
+
+## Group definition based on user-defined list
+
+We can also define groups of samples based on a given column of the
+metadata. For this example we will use the cell type as a grouping
+variable, *i.e.* Neurons or Embrionic Stem Cell (ESC). This information
+can be accessed through the `CellType` column in the example metadata.
+The name of the samples to be used can be retrieved by accessing the
+`Run` column in the example metadata.
+
+If using user-provided data, the user must also provide a metadata
+table, or ensure that the final result corresponds to `groupList`
+presented in this section.
+
+```{r aux_featuregrouo}
+# Define variable of the metadata table to be used as a grouping variable
+groupingVariable <- "CellType"
+# to get the unique values of the grouping variable. In this example, will be Neuron and ESC
+groups <- unique(metadata[,groupingVariable])
+# Define vector of sample names based on the example metadata 
+samples <- metadata$Run
+# Define colors for the two groups
+random_colors <- c("#FF9AA2", "#FFB7B2")
+```
+
+```{r featuregroup}
+
+groupList <- list()
+
+for(i in 1:length(groups)){
+
+  groupNames <- samples[which(metadata[,groupingVariable] == groups[i])]
 
   # Assign new group
   currentNames <- names(groupList)
-  groupList[[length(groupList)+1]] <- list(name = groups$organism_part[i],
+  groupList[[length(groupList)+1]] <- list(name = groups[i],
                                            samples = groupNames,
-                                           color = random_colors[1])
-  names(groupList) <- make.unique(c(currentNames, groups$organism_part[i]))
-
-  random_colors <- random_colors[-1]
+                                           color = random_colors[i])
+  names(groupList) <- make.unique(c(currentNames, groups[i]))
 
 }
 
-```
-
-## Plot densities for defined groups/samples
-
-```{r}
-
-tdensities <- plotIndividualDensitiesList(eventID = "HsaEX0019479",
-                                          npoints = 500,
-                                          psitable = psiTable,
-                                          qualtable = qualTable,
-                                          groupList = groupList,
-                                          maxDevTable = maxDevSimulationN100)
-
-tdensities + theme_minimal()
+groupList
 
 ```
 
-# Apply betAS
+```{r festuregroup_visualize, fig.width=8, fig.height=4}
+# Visualize colors being used
+slices <- rep(1, length(groups))  # Equal-sized slices for each color
+# Display the pie chart with colors
+pie(slices, col = random_colors[1:length(groups)], border = "black", labels=groups, main = "Color palette for group definition")
+```
+
+# Differential alternative splicing between two groups
+
+betAS approach for alternative splicing analyses takes into account two
+metrics for each alternative splicing event under analyses: the
+magnitude of the effect (𝚫PSI = PSI~betAS~(group A) - PSI~betAS~(group
+B)) and the statistical significance of such changes. For the latter,
+betAS introduces three approaches: probability of differential splicing
+(**Pdiff)**, **F-statistic** or false discovery rate (**FDR**).
+
+-   **Pdiff**: This approach takes the two sets of random points per
+    condition and calculates, for each AS event's estimated ∆PSI, the
+    proportion of differences between these that are greater than zero,
+    which has the same interpretation as asking what proportion of beta
+    distribution-emitted values for one condition are higher than those
+    emitted for the other, thus reflecting the probability of
+    differential AS of PSI~betAS~(group A) being greater than
+    PSI~betAS~(group B).
+
+-   **F-statistic**: *betAS* also enables an ANOVA-like analysis of
+    variance, comparing inter- and intra-group variabilities. For each
+    event, ***within*** is considered the set of differences between
+    each pair of samples that are part of the same group and
+    ***between*** the set of differences between each pair of groups.
+    The ratio of the median absolute values of ***between*** and
+    ***within*** therefore provides an "F-like" statistic. This metric
+    provides a compromise between the effect size of AS differences and
+    their significance.
+
+-   **FDR**: Random generation of points from a beta distribution is
+    used to estimate the null distribution's PSI and its precision.
+    Then, one point is randomly selected from each of the sample's null
+    distribution and, keeping the samples' group assignment (*i.e.*,
+    which samples belong to each group), the ∆PSI between groups under
+    the null hypothesis is calculated. The process is repeated many
+    times (10 000 by default) and the FDR is the proportion of ∆PSI
+    random simulations that are larger than (*i.e.*, more extreme) or
+    equal to the empirical ∆PSI.
+
+## Calculate statistical metrics for differential alternative splicing & visualize results
+
+Firstly, we need to define the groups we will be analysing. This step is
+particularly important when we have more than one group defined, but
+want to compare only two of them.
 
 ```{r}
+# Define groups
+groupA    <- "Neuron"
+groupB    <- "ESC"
 
-groupA    <- "heart"
-groupB    <- "forebrain"
-
+# Define samples inside each group
 samplesA    <- groupList[[groupA]]$samples
 samplesB    <- groupList[[groupB]]$samples
 
-colsGroupA    <- convertCols(psiTable, samplesA)
-colsGroupB    <- convertCols(psiTable, samplesB)
+# Convert samples into indexes
+colsGroupA    <- convertCols(dataset_filtered$PSI, samplesA)
+colsGroupB    <- convertCols(dataset_filtered$PSI, samplesB)
 
+
+cat("samplesA:")
+cat(samplesA) 
+cat("\nsamplesB:")
+cat(samplesB)
+cat("\n")
+cat("colsGroupA: \n")
+colsGroupA
+cat("colsGroupB:  \n")
+colsGroupB
 ```
 
-## Volcano plot with Pdiff as y-axis variable
+### Probability of differential splicing (Pdiff)
 
-```{r}
+To calculate the **Pdiff** for all events in our dataset, we will use
+the `prepareTableVolcano` function. To visualize the results in a
+volcano plot, we will use the `plotvolcanoPdiff` function.
 
-volcanoTable <- prepareTableVolcano(psitable = psiTable,
-                                    qualtable = qualTable,
+```{r plotvolcano_Pdiff, fig.width=14, fig.height=10}
+volcanoTable_Pdiff <- prepareTableVolcano(psitable = dataset_filtered$PSI,
+                                    qualtable = dataset_filtered$Qual,
                                     npoints = 500,
                                     colsA = colsGroupA,
                                     colsB = colsGroupB,
@@ -169,21 +458,354 @@ volcanoTable <- prepareTableVolcano(psitable = psiTable,
                                     interestColor = "#E69A9C",
                                     maxDevTable = maxDevSimulationN100)
 
-volcanoPdiff <- plotVolcano(betasTable = volcanoTable,
-                            labA = groupList$heart,
-                            labB = groupList$forebrain,
+volcano_Pdiff <- plotVolcano(betasTable = volcanoTable_Pdiff,
+                            labA = groupA,
+                            labB = groupB,
                             basalColor = "#89C0AE",
-                            interestColor = "#E69A9C")
+                            interestColor = "#E69A9C") 
 
-volcanoPdiff + theme_minimal()
+volcano_Pdiff
+ 
+```
+
+The above plot colors in pink and labels by default the events with a
+∆PSI\>0.1. However, if these are in high number, the labels might not
+appear. To make the plot interactive, we can use the `ggplotly`
+function.
+
+```{r plotvolcano_Pdiff_interactive}
+# change size points manually
+volcano_Pdiff$layers[[1]]$aes_params$size <- 1
+volcano_Pdiff$layers[[2]]$aes_params$size <- 1
+
+# Plot interactively
+plotly_volcano_Pdiff <- ggplotly(volcano_Pdiff, width = 700, height = 500) %>%
+                          layout(
+                            font = list(size = 10),
+                            xaxis = list(
+                              title = list(font = list(size = 14)),  # Adjust as necessary
+                              tickfont = list(size = 10)  # Adjust the tick font size here
+                            ),
+                            yaxis = list(
+                              title = list(font = list(size = 14)),  # Adjust as necessary
+                              tickfont = list(size = 10)  # Adjust the tick font size here
+                            )
+                          )
+
+ 
+hover_text  <- paste(
+  "Event: ", volcanoTable_Pdiff$EVENT,
+  "<br>Pdiff: ", round(volcanoTable_Pdiff$Pdiff,3),
+  "<br>Deltapsi: ", round(volcanoTable_Pdiff$deltapsi,3),
+  sep = ""
+)
+
+ 
+
+plotly_volcano_Pdiff$x$data[[1]]$text <- hover_text # all points
+plotly_volcano_Pdiff$x$data[[2]]$text <- NULL 
+  
+plotly_volcano_Pdiff
+
 
 ```
 
-# Session information
+The results can also be manually inspected by browsing the
+`volcanoTable_Pdiff` table
 
-```{r si}
+```{r Pdiff_table}
+head(volcanoTable_Pdiff[,c("GENE","EVENT","COORD","Pdiff","deltapsi")])
+```
 
-sessionInfo()
+### F-statistic
+
+To calculate the **F-statistic** for all events in our dataset, we will
+use the `prepareTableVolcanoFstat` function. To visualize the results in
+a volcano plot, we will use the `plotVolcanoFstat` function. The user
+can also use the approach presented above to make the plot interactive.
+
+```{r plotvolcano_Fstat, fig.width=14, fig.height=10}
+volcanoTable_Fstat <- prepareTableVolcanoFstat(psitable = dataset_filtered$PSI,
+                                    qualtable = dataset_filtered$Qual,
+                                    npoints = 500,
+                                    colsA = colsGroupA,
+                                    colsB = colsGroupB,
+                                    labA = groupA,
+                                    labB = groupB,
+                                    basalColor = "#89C0AE",
+                                    interestColor = "#E69A9C",
+                                    maxDevTable = maxDevSimulationN100)
+
+volcano_Fstat <- plotVolcanoFstat(betasTable = volcanoTable_Fstat,
+                            labA = groupA,
+                            labB = groupB,
+                            basalColor = "#89C0AE",
+                            interestColor = "#E69A9C") 
+
+volcano_Fstat
+ 
+```
+
+```{r Fstat_table}
+head(volcanoTable_Fstat[,c("GENE","EVENT","COORD","Fstat","deltapsi")])
+```
+
+### False discovery rate (**FDR)**
+
+To calculate the **FDR** for all events in our dataset, we will use the
+`prepareTableVolcanoFDR` function. To visualize the results in a volcano
+plot, we will use the `plotVolcanoFDR` function. The user can also use
+the approach presented above to make the plot interactive.
+
+```{r plotvolcano_FDR, fig.width=14, fig.height=10}
+volcanoTable_FDR <- prepareTableVolcanoFDR(psitable = dataset_filtered$PSI,
+                                    qualtable = dataset_filtered$Qual,
+                                    npoints = 500,
+                                    colsA = colsGroupA,
+                                    colsB = colsGroupB,
+                                    labA = groupA,
+                                    labB = groupB,
+                                    basalColor = "#89C0AE",
+                                    interestColor = "#E69A9C",
+                                    maxDevTable = maxDevSimulationN100,
+                                    nsim = 100) 
+        
+volcano_FDR <- plotVolcanoFDR(betasTable = volcanoTable_FDR,
+                            labA = groupA,
+                            labB = groupB,
+                            basalColor = "#89C0AE",
+                            interestColor = "#E69A9C") 
+
+volcano_FDR
+```
+
+```{r FDR_table}
+head(volcanoTable_FDR[,c("GENE","EVENT","COORD","FDR","deltapsi")])
+```
+
+## Visualize individual events
+
+To illustrate betAS approach for an individual event with differential
+alternative splicing between Neurons and ESC, we will be using the event
+[`MmuEX0003638`](https://vastdb.crg.eu/event/MmuEX0003638@mm10). This is
+an exon skipping event in the *Actn4* gene.
+
+```{r eventID}
+eventID <- "MmuEX0003638"
+```
+
+We can visualize the beta distributions for this event for each sample.
+
+```{r densities_per_event, fig.width=8, fig.height=4}
+# Auxiliary data to add increment based on the event coverage to avoid dividing by zero 
+data("maxDevSimulationN100")
+
+tdensities <- plotIndividualDensitiesList(eventID = eventID,
+                                          npoints = 500,
+                                          psitable = dataset$PSI,
+                                          qualtable = dataset$Qual,
+                                          groupList = groupList,
+                                          maxDevTable = maxDevSimulationN100)
+
+tdensities + theme_minimal() + ggtitle(eventID)
 
 ```
 
+We can also inspect manually the different statistics for this event:
+
+```{r resultsDF_per_event}
+subset(volcanoTable_Pdiff[,c("GENE","EVENT","COORD","Pdiff","deltapsi")], EVENT==eventID)
+subset(volcanoTable_Fstat[,c("GENE","EVENT","COORD","Fstat","deltapsi")], EVENT==eventID)
+subset(volcanoTable_FDR[,c("GENE","EVENT","COORD","FDR","deltapsi")], EVENT==eventID)
+ 
+```
+
+```{r resultsplots_per_event, fig.width=12, fig.height=4}
+
+plotPdiff <- prepareTableEvent(eventID = eventID,
+                               psitable = dataset$PSI,
+                               qualtable = dataset$Qual,
+                               npoints = 500,
+                               colsA = colsGroupA,
+                               colsB = colsGroupB,
+                               labA = groupA,
+                               labB = groupB,
+                               basalColor = "#89C0AE",
+                               interestColor = "#E69A9C",
+                               maxDevTable = maxDevSimulationN100,
+                               nsim = 1000) %>% 
+  plotPDiffFromEventObjList()
+
+plotFstat <- prepareTableEvent(eventID = eventID,
+                               psitable = dataset$PSI,
+                               qualtable = dataset$Qual,
+                               npoints = 500,
+                               colsA = colsGroupA,
+                               colsB = colsGroupB,
+                               labA = groupA,
+                               labB = groupB,
+                               basalColor = "#89C0AE",
+                               interestColor = "#E69A9C",
+                               maxDevTable = maxDevSimulationN100,
+                               nsim = 1000) %>% 
+  plotFstatFromEventObjList()
+
+plotFDR <- prepareTableEvent(eventID = eventID,
+                               psitable = dataset$PSI,
+                               qualtable = dataset$Qual,
+                               npoints = 500,
+                               colsA = colsGroupA,
+                               colsB = colsGroupB,
+                               labA = groupA,
+                               labB = groupB,
+                               basalColor = "#89C0AE",
+                               interestColor = "#E69A9C",
+                               maxDevTable = maxDevSimulationN100,
+                               nsim = 1000) %>% 
+  plotFDRFromEventObjList()
+
+ggarrange(plotPdiff,plotFstat,plotFDR, ncol=3)
+
+```
+
+# Differential alternative splicing between multiple groups
+
+The differential AS approach implemented by *betAS* can be applied to
+multiple (i.e., more than two) groups in a novel ANOVA-inspired way that
+extends the Pdiff definition to the comparison of the differences
+between samples belonging to different biological conditions to those
+found between replicates. To illustrate this, we applied multiple-group
+*betAS* to the analysis of AS differences in a subset of human
+transcriptomes of forebrain, hindbrain, heart, kidney, liver and testis.
+This dataset is a subset of the [Human RNA-seq time-series of the
+development of seven major
+organs](https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/)
+public human dataset.
+
+```{r load_default_data_multgroups}
+# load data and prepare it for betAS
+data("VT1_data_human")
+dataset_multgroups <- getEvents(VT1_data_human, tool = tool)
+
+# load metadata
+data("VT1_metadata_human")
+metadata_multgroups <- as.data.frame(VT1_metadata_human)
+metadata_multgroups
+```
+
+## Group definition
+
+We will create groups based on the samples' tissue of origin, encoded in
+the `organism_part` metadata's column.
+
+```{r aux_featuregroups_mult}
+# Define variable of the metadata table to be used as a grouping variable
+groupingVariable <- "organism_part"
+# to get the unique values of the grouping variable. In this example, will be Neuron and ESC
+groups <- unique(metadata_multgroups[,groupingVariable])
+# Define vector of sample names based on the example metadata 
+samples <- metadata_multgroups$Run
+# Define colors for the two groups
+random_colors <- c("#FF9AA2", "#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7")
+```
+
+```{r featuregroup_mult}
+
+groupList <- list()
+
+for(i in 1:length(groups)){
+
+  groupNames <- samples[which(metadata_multgroups[,groupingVariable] == groups[i])]
+
+  # Assign new group
+  currentNames <- names(groupList)
+  groupList[[length(groupList)+1]] <- list(name = groups[i],
+                                           samples = groupNames,
+                                           color = random_colors[i])
+  names(groupList) <- make.unique(c(currentNames, groups[i]))
+
+}
+
+groupList
+
+```
+
+```{r festuregroup_visualize_mult, fig.width=8, fig.height=4}
+# Visualize colors being used
+slices <- rep(1, length(groups))  # Equal-sized slices for each color
+# Display the pie chart with colors
+pie(slices, col = random_colors[1:length(groups)], border = "black", labels=groups, main = "Color palette for group definition")
+```
+
+# Differential alternative splicing across multiple groups/conditions
+
+## Calculate statistical metrics for differential alternative splicing & visualize results
+
+### Metric 1
+
+```{r}
+
+```
+
+### Metric 2
+
+```{r}
+
+```
+
+## Visualize individual events
+
+```{r}
+
+```
+
+## The monotony coefficient between multiple sequential groups
+
+```{r}
+
+```
+
+# Supplementary Information
+
+## Custom color palette for group definition {#groupdefpalette}
+
+In the provided example, the color palette used for group definition was
+manually defined. If the user wishes to automatically generate a palette
+of `N`colors, the following code is advisable:
+
+```{r fig.width=8, fig.height=4}
+#install.packages("grDevices")
+library(grDevices)
+
+generate_pastel_colors <- function(N) {
+  pastel_colors <- vector("list", length = N)
+  
+  for (i in 1:N) {
+    # Generate random values for hue, chroma, and luminance
+    hue <- runif(1, min = 0, max = 360)  # Adjust the range for a different initial hue
+    chroma <- runif(1, min = 50, max = 80)  # Adjust these values for your desired pastel range
+    luminance <- runif(1, min = 80, max = 90)  # Adjust these values for your desired pastel range
+    
+    # Create a pastel color using hcl() with the random values
+    pastel_color <- hcl(hue, chroma, luminance)
+    
+    pastel_colors[[i]] <- pastel_color
+  }
+  
+  return(pastel_colors)
+}
+
+
+# Generate 10 random pastel colors
+N <- 10
+random_pastel_colors <- generate_pastel_colors(N)
+
+cat("HEX codes of generated pastel colors: ")
+cat(unlist(random_pastel_colors))
+
+# Prepare data for the pie chart
+slices <- rep(1, N)  # Equal-sized slices for each color
+# Display the pie chart with pastel colors
+pie(slices, col = unlist(random_pastel_colors), border = "black", labels=unlist(random_pastel_colors), main = "Automatically generated color palette for group definition")
+
+```
