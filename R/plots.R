@@ -568,20 +568,20 @@ plotVolcano <- function(betasTable, labA, labB, basalColor, interestColor){
 }
 
 
-# Prepare and return table used for betAS volcano plot with F-statistic for the y-axis
-#
-# @param psitable
-# @param qualtable
-# @param npoints
-# @param colsA
-# @param colsB
-# @param basalColor
-# @param interestColor
-#
-# @return
-# @export
-#
-# @examples
+#' Prepare and return table used for betAS volcano plot with F-statistic for the y-axis
+#'
+#' @param psitable
+#' @param qualtable
+#' @param npoints
+#' @param colsA
+#' @param colsB
+#' @param basalColor
+#' @param interestColor
+#'
+#' @return
+#' @export
+#'
+#' @examples
 prepareTableVolcanoFstat <- function(psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable){
 
   colsA    <- convertCols(psitable, colsA)
@@ -614,21 +614,21 @@ prepareTableVolcanoFstat <- function(psitable, qualtable, npoints, colsA, colsB,
 
 }
 
-# Plot betAS volcano plot with F-statistic for the y-axis
-#
-# @param psitable
-# @param qualtable
-# @param npoints
-# @param colsA
-# @param colsB
-# @param basalColor
-# @param interestColor
-#
-# @return
-# @export
-#
-# @examples
-# @importFrom ggrepel geom_text_repel
+#' Plot betAS volcano plot with F-statistic for the y-axis
+#'
+#' @param psitable
+#' @param qualtable
+#' @param npoints
+#' @param colsA
+#' @param colsB
+#' @param basalColor
+#' @param interestColor
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' @importFrom ggrepel geom_text_repel
 plotVolcanoFstat <- function(betasTable, labA, labB, basalColor, interestColor){
 
   refSeq      <- seq(0,1.1, 0.1) # from 0 to 1.1, the latter needed to include deltaPSI=1
@@ -659,21 +659,21 @@ plotVolcanoFstat <- function(betasTable, labA, labB, basalColor, interestColor){
 }
 
 
-# Prepare and return table used for betAS volcano plot with the estimated FDR
-#
-# @param psitable
-# @param qualtable
-# @param npoints
-# @param colsA
-# @param colsB
-# @param basalColor
-# @param interestColor
-#
-# @return
-# @export
-#
-# @examples
-# @importFrom ggrepel geom_text_repel
+#' Prepare and return table used for betAS volcano plot with the estimated FDR
+#'
+#' @param psitable
+#' @param qualtable
+#' @param npoints
+#' @param colsA
+#' @param colsB
+#' @param basalColor
+#' @param interestColor
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' @importFrom ggrepel geom_text_repel
 prepareTableVolcanoFDR <- function(psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, nsim){
 
   colsA    <- convertCols(psitable, colsA)
@@ -721,21 +721,21 @@ prepareTableVolcanoFDR <- function(psitable, qualtable, npoints, colsA, colsB, l
 
 }
 
-# Plot betAS volcano plot with the estimated FDR
-#
-# @param psitable
-# @param qualtable
-# @param npoints
-# @param colsA
-# @param colsB
-# @param basalColor
-# @param interestColor
-#
-# @return
-# @export
-#
-# @examples
-# @importFrom ggrepel geom_text_repel
+#' Plot betAS volcano plot with the estimated FDR
+#'
+#' @param psitable
+#' @param qualtable
+#' @param npoints
+#' @param colsA
+#' @param colsB
+#' @param basalColor
+#' @param interestColor
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' @importFrom ggrepel geom_text_repel
 plotVolcanoFDR <- function(betasTable, labA, labB, basalColor, interestColor){
 
   refSeq      <- seq(0,1.1, 0.1) # from 0 to 1.1, the latter needed to include deltaPSI=1
@@ -777,19 +777,19 @@ plotVolcanoFDR <- function(betasTable, labA, labB, basalColor, interestColor){
 
 }
 
-# Prepare and return table used for betAS volcano plot (multiple group analysis)
-#
-# @param psitable
-# @param qualtable
-# @param groupList
-# @param npoints
-# @param maxDevTable
-#
-# @return
-# @export
-#
-# @examples
-# @importFrom ggrepel geom_text_repel
+#' Prepare and return table used for betAS volcano plot (multiple group analysis)
+#'
+#' @param psitable
+#' @param qualtable
+#' @param groupList
+#' @param npoints
+#' @param maxDevTable
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' @importFrom ggrepel geom_text_repel
 prepareTableVolcanoMultipleGroups <- function(psitable, qualtable, groupList, npoints, maxDevTable){
 
   # Prepare individual betAS object per group
@@ -1005,14 +1005,14 @@ theme_clean20 <- function(base_size = 20, base_family = ""){
     )
 }
 
-# Adapted from highcharts themes: "simple theme for highcharts"
-#
-# @param ...
-#
-# @return
-# @export
-#
-# @examples
+#' Adapted from highcharts themes: "simple theme for highcharts"
+#'
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 #' @import highcharter
 hc_theme_smpl_tailored <- function (...){
   theme <- hc_theme(colors = c("#FF9AA2", "#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7", "#C7CEEA", "#FBE2FD", "#D9ECFE"),
@@ -1034,22 +1034,22 @@ hc_theme_smpl_tailored <- function (...){
 }
 
 
-# Prepare and return table used for betAS event-wise plots
-#
-# @param eventID
-# @param psitable
-# @param qualtable
-# @param npoints
-# @param colsA
-# @param colsB
-# @param basalColor
-# @param interestColor
-# @param nsim
-#
-# @return
-# @export
-#
-# @examples
+#' Prepare and return table used for betAS event-wise plots
+#'
+#' @param eventID
+#' @param psitable
+#' @param qualtable
+#' @param npoints
+#' @param colsA
+#' @param colsB
+#' @param basalColor
+#' @param interestColor
+#' @param nsim
+#'
+#' @return
+#' @export
+#'
+#' @examples
 prepareTableEvent <- function(eventID, psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, nsim){
 
   colsA    <- convertCols(psitable, colsA)
@@ -1271,15 +1271,15 @@ prepareTableEvent <- function(eventID, psitable, qualtable, npoints, colsA, cols
 
 }
 
-# Plot individual beta distributions per sample
-#
-# @param eventObjList
-#
-# @return
-# @export
-#
-# @examples
-# @importFrom ggridges geom_density_ridges
+#' Plot individual beta distributions per sample
+#'
+#' @param eventObjList
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' @importFrom ggridges geom_density_ridges
 plotDensitiesFromEventObjList <- function(eventObjList, colorA, colorB){
 
   eventID <- eventObjList$eventID
@@ -1377,15 +1377,15 @@ plotDensitiesFromEventObjList <- function(eventObjList, colorA, colorB){
 
 }
 
-# Plot Pdiff explanation plot per sample
-#
-# @param eventObjList
-#
-# @return
-# @export
-#
-# @examples
-# @importFrom ggridges geom_density_ridges
+#' Plot Pdiff explanation plot per sample
+#'
+#' @param eventObjList
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' @importFrom ggridges geom_density_ridges
 plotPDiffFromEventObjList <- function(eventObjList){
 
   eventID <- eventObjList$eventID
@@ -1445,15 +1445,15 @@ plotPDiffFromEventObjList <- function(eventObjList){
 
 }
 
-# Plot Fstat explanation plot per sample
-#
-# @param eventObjList
-#
-# @return
-# @export
-#
-# @examples
-# @importFrom ggridges geom_density_ridges
+#' Plot Fstat explanation plot per sample
+#'
+#' @param eventObjList
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' @importFrom ggridges geom_density_ridges
 plotFstatFromEventObjList <- function(eventObjList){
 
   eventID <- eventObjList$eventID
@@ -1527,15 +1527,15 @@ plotFstatFromEventObjList <- function(eventObjList){
 }
 
 
-# Plot FDR explanation plot per sample
-#
-# @param eventObjList
-#
-# @return
-# @export
-#
-# @examples
-# @importFrom ggridges geom_density_ridges
+#' Plot FDR explanation plot per sample
+#'
+#' @param eventObjList
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' @importFrom ggridges geom_density_ridges
 plotFDRFromEventObjList <- function(eventObjList){
 
   eventID <- eventObjList$eventID
@@ -1615,19 +1615,19 @@ plotFDRFromEventObjList <- function(eventObjList){
 
 }
 
-# Prepare and return table used for betAS event-wise plots (multiple-group section)
-#
-# @param eventID
-# @param psitable
-# @param qualtable
-# @param groupList
-# @param npoints
-# @param maxDevTable
-#
-# @return
-# @export
-#
-# @examples
+#' Prepare and return table used for betAS event-wise plots (multiple-group section)
+#'
+#' @param eventID
+#' @param psitable
+#' @param qualtable
+#' @param groupList
+#' @param npoints
+#' @param maxDevTable
+#'
+#' @return
+#' @export
+#'
+#' @examples
 prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, npoints, maxDevTable){
 
   x <- match(eventID, qualtable$EVENT)
@@ -1766,15 +1766,15 @@ prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, n
 
 }
 
-# Plot Fstat explanation plot per sample
-#
-# @param eventObjList
-#
-# @return
-# @export
-#
-# @examples
-# @importFrom ggridges geom_density_ridges
+#' Plot Fstat explanation plot per sample
+#'
+#' @param eventObjList
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' @importFrom ggridges geom_density_ridges
 plotFstatFromEventObjListMultiple <- function(eventObjList){
 
   eventID <- eventObjList$eventID
