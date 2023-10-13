@@ -25,8 +25,13 @@ img {
 }
 </style>
 ```
-```{r eval=F, include=F}
-rmarkdown::render('betAS_tutorial.Rmd',output_dir = "~/VersionControl/betAS/inst/")
+```{r render_markdown, eval=F, include=F}
+# This chunk is only here to update the html that will be deployed in GitHub pages. Inside inst folder so it doesn't enter in conflict n vignettes for r package. Will not be included in final HTML files
+rmarkdown::render('betAS_tutorial.Rmd',output_dir = "../inst/")
+```
+
+```{r include=F}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
 ```
 
 *betAS* is a user-friendly R package that allows intuitive analysis and
@@ -53,9 +58,17 @@ between the uncertainty in individual sample estimates and the
 variability among replicates.
 
 > Please note that this tutorial will provide an overview on how to use
-> betAS R package for alternative splicing analyses. For a more detailed
-> explanation on the methods used, please check [betAS
-> pre-print](https://doi.org/10.1101/2022.12.26.521935).
+> *betAS* R package for alternative splicing analyses. The cases
+> explored in this tutorial were adapted from *betAS*' original article:
+>
+> Mariana Ascensão-Ferreira, Rita Martins-Silva, Nuno Saraiva-Agostinho
+> and Nuno L. Barbosa-Morais (2023). [betAS**: intuitive analysis and
+> visualisation of differential alternative splicing using beta
+> distributions**](https://www.biorxiv.org/content/10.1101/2022.12.26.521935v2). *bioRxiv*
+>
+> The results herein presented don't correspond necessarily to the
+> results presented in the manuscript. For a more detailed explanation
+> on the methods used, please check the manuscript.
 
 # Installing and starting the program
 
@@ -69,9 +82,13 @@ After the installation, load betAS and other required packages by
 typing:
 
 ```{r load, message=FALSE, warning=F}
-#devtools::load_all() # delete this later, useful to test
 library(betAS)
-# For visualization
+```
+
+Consider also loading the following libraries, for visualization
+purposes, by typing:
+
+```{r load2, message=FALSE, warning=F}
 library(ggplot2)
 library(plotly) 
 library(dplyr)
@@ -80,9 +97,13 @@ library(ggpubr)
 
 # Loading alternative splicing quantification data
 
-*betAS* accepts files sourced from `vast-tools`, `rMATS`, or `whippet`.
-These files should contain junction reads information (*e.g.* results
-obtained from the vast-tools' `tidy` module are not supported).
+## Load user-provided files
+
+To load data for differential alternative splicing analyses, we can use
+the `getDataset` function. *betAS* accepts files sourced from
+`vast-tools`, `rMATS`, or `whippet`. These files should contain junction
+reads information (*e.g.* results obtained from the vast-tools' `tidy`
+module are not supported).
 
 Based on the value assigned to the `tool` parameter, the `pathTables`
 parameter can take the following input types:
@@ -108,10 +129,35 @@ dataset <- getDataset(pathTables=list("path/to/sample1/*.psi.gz",
 
 ```
 
-For users who may not have files to upload, there's also an option to
-work with our built-in dataset. This dataset is a subset of the [Deep
-transcriptional profiling of longitudinal changes during neurogenesis
-and network maturation in
+The `getDataset` function retrieves the inclusion tables specific to the
+chosen tool for further analyses. However, we also need to use the
+`getEvents` function in order to format inclusion tables into a standard
+format that is compatible with *betAS* workflow.
+
+The output from `getEvents` is an object with 4 attributes:
+
+-   `PSI`: A data frame with information regarding the splicing events
+    and their inclusion levels.
+-   `Qual`: A data frame detailing the events and information related to
+    the coverage associated with each event. This representation follows
+    the vast-tools representation of inclusion (inc) and exclusion (exc)
+    reads.
+-   `EventsPerType`: A named table summarising the number of events per
+    type.
+-   `Samples`: Vector containing the names of the samples considered.
+
+```{r load_default, eval=F}
+tool <- "vast-tools" # example tool, can be one of the follwoing: "vast-tools", "rMATS", "whippet"
+dataset <- getEvents(dataset, tool = tool)
+```
+
+## Load betAS default datasets
+
+For users who may not have files to upload and just want to explore
+*betAS* functionalities, there's also an option to work with built-in
+datasets. This dataset is a subset of the [Deep transcriptional
+profiling of longitudinal changes during neurogenesis and network
+maturation in
 vivo](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA185305/) public mouse
 dataset:
 
@@ -129,6 +175,12 @@ dataset:
 To use the pre-built datasets, simply don't specify the file and choose
 the tool you prefer.
 
+> Take into account that the dataset provided by the three different
+> tools might not be totally the same. The events provided greatly
+> depend on the tool itself, the type of events considered (e.g. for
+> rMATS only exon-skipping events were considered), among others. These
+> datasets should be used for exploration of betAS features only.
+
 ```{r load_data_default, eval=FALSE}
 # Example to load data from vast-tools
 dataset <- getDataset(pathTables=NULL, tool="vast-tools")
@@ -138,7 +190,20 @@ dataset <- getDataset(pathTables=NULL, tool="rMATS")
 
 # Example to load data from whippet
 dataset <- getDataset(pathTables=NULL, tool="whippet")
+```
 
+For simplicity, in this tutorial we will be using a default dataset from
+**vast-tools** to illustrate such features. At this stage, the user can
+explore the raw / non-filtered data by browsing in the four objects
+inside `dataset`. It might be useful to check at this stage the overall
+results for a given gene / event of interest.
+
+```{r explore_event_gene}
+gene <- "Actn4"
+head(dataset$PSI[dataset$PSI$GENE==gene,])
+
+event_of_interest <- "MmuEX0003638"
+dataset$PSI[dataset$PSI$EVENT==event_of_interest,]
 ```
 
 # Filtering datasets
@@ -147,72 +212,35 @@ dataset <- getDataset(pathTables=NULL, tool="whippet")
 types, PSI value range to consider and minimum number of supporting
 reads.
 
-For simplicity, in this tutorial we will be using *betAS* provided
-dataset from **vast-tools** to illustrate such features. The
-`getDataset` function retrieves the inclusion tables specific to the
-chosen tool for further analyses, and the `getEvents` formats inclusion
-tables into a standard format that is compatible with **betAS**.
-
-The output from `getEvents` is an object with 4 attributes:
-
--   `PSI`: A data frame with information regarding the splicing events
-    and their inclusion levels.
--   `Qual`: A data frame detailing the events and information related to
-    the coverage associated with each event. This representation follows
-    the vast-tools representation of inclusion (inc) and exclusion (exc)
-    reads.
--   `EventsPerType`: A named table summarising the number of events per
-    type.
--   `Samples`: Vector containing the names of the samples considered.
-
-```{r load_dataset_example}
-tool <-  "vast-tools"
-
-# Import data
-dataset <- getDataset(pathTables=NULL, tool = tool)
-# Get data ready for betAS
-dataset <- getEvents(dataset, tool = tool)
-
-lapply(dataset,head)
-
-```
-
-We will be using betAS metadata for vast-tools built-in example to ease
-group creation.
-
-```{r load_metadata_example}
-
-data("VT2_metadata_mouse")
-(metadata <- as.data.frame(VT2_metadata_mouse))
-
-# to clean-up the environment of unecessary variables, loaded automatically by betAS when using default datasets
-rm(VT2_data_mouse)
-rm(VT2_metadata_mouse)
-
-```
-
 ## Filter dataset based on alternative splicing event types and minimum number of supporting reads
 
 *betAS* allows to filter event types. The supported event types are in
 accordance to the ones documented in the alternative splicing
 quantification tools supported by betAS:
 
--   For vast-tools, valid `types` include c("Alt3", "Alt5", "ANN", "C1",
-    "C2", "C3", "IR-C", "IR-S", "MIC", "S") as described in [vast-tools
+-   For vast-tools, valid `types` include Alt3, Alt5, ANN, C1, C2, C3,
+    IR-C, IR-S, MIC and S as described in [vast-tools
     documentation](https://github.com/vastgroup/vast-tools).
--   For Whippet, valid `types` include c("CE", "AA", "AD", "IR", "TS",
-    "TE", "AF", "AL", "BS") as described in [whippet
+-   For Whippet, valid `types` include CE, AA, AD, IR, TS, TE, AF, AL
+    and BS as described in [whippet
     documentation](https://github.com/timbitz/Whippet.jl).
 -   For rMATS, as each output file from this tool considers only one
     event, the `types` parameter should be set to `NULL`
+
+To explore the type of events in a dataset and their respective number,
+we can access the `EventsPerType` field in the `dataset`variable.
+
+```{r event_types}
+dataset$EventsPerType
+```
 
 *betAS* also allows to filter events with less than a given number of
 junction reads (sum of inclusion and exclusion reads) in at least one
 sample. To do so, the user can specify the minimum number of reads to
 consider in the `N`parameter.
 
-To simplify, we will be considering only exon skipping events (C1, C2,
-C3, S & MIC events from `vast-tools`) with at least 10 junction read
+In this tutorial, we will be considering only exon skipping events (C1,
+C2, C3, S & MIC events from `vast-tools`) with at least 10 junction read
 counts in all samples.
 
 ```{r filter_event_types_nb_reads}
@@ -224,13 +252,15 @@ cat(paste0("Alternative events: ", nrow(dataset_filtered$PSI)))
 
 ## Filter dataset based on PSI value range
 
-*betAS* allows to filter events based on their PSI value range. We will
-be filtering events with a PSI of less than 1 or higher than 99 in all
-samples, in order to keep only alternative events.
+*betAS* allows to filter events based on their PSI value range (in
+percentage, *i.e.* PSI ∈ [0,100]). We will be keeping only alternative
+events, i.e. \~ 0 \< PSI \< 100 in **all samples**. If you wish to keep
+all of the events and don't filter by PSI range, skip this step or put
+`minPsi`=0 and `maxPsi`=100.
 
 ```{r filter_PSIrange}
 
-dataset_filtered <- alternativeEvents(dataset_filtered, minPsi=1, maxPsi=99  )
+dataset_filtered <- alternativeEvents(dataset_filtered, minPsi=1, maxPsi=99)
 
 cat(paste0("Alternative events: ", nrow(dataset_filtered$PSI)))
 
@@ -258,8 +288,7 @@ To check the names of the samples being used, we can access the
 `Samples` attribute inside the `dataset` object.
 
 ```{r sample_names}
-cat("Sample names: ")
-cat(dataset_filtered$Samples)
+dataset_filtered$Samples
 ```
 
 In order to ease group visualization, we can assign a color to each
@@ -322,11 +351,19 @@ pie(slices, col = random_colors[1:length(groupList)], border = "black", labels=n
 ## Group definition based on user-defined list
 
 We can also define groups of samples based on a given column of the
-metadata. For this example we will use the cell type as a grouping
-variable, *i.e.* Neurons or Embrionic Stem Cell (ESC). This information
-can be accessed through the `CellType` column in the example metadata.
-The name of the samples to be used can be retrieved by accessing the
-`Run` column in the example metadata.
+metadata. We will be using betAS metadata for vast-tools built-in
+example to ease group creation:
+
+```{r load_metadata_example}
+data("VT2_metadata_mouse")
+(metadata <- as.data.frame(VT2_metadata_mouse))
+```
+
+For this example we will use the cell type as a grouping variable,
+*i.e.* Neurons or Embrionic Stem Cell (ESC). This information can be
+accessed through the `CellType` column in the example metadata. The name
+of the samples to be used can be retrieved by accessing the `Run` column
+in the example metadata.
 
 If using user-provided data, the user must also provide a metadata
 table, or ensure that the final result corresponds to `groupList`
@@ -415,7 +452,7 @@ Firstly, we need to define the groups we will be analysing. This step is
 particularly important when we have more than one group defined, but
 want to compare only two of them.
 
-```{r}
+```{r groups_auxiliary}
 # Define groups
 groupA    <- "Neuron"
 groupB    <- "ESC"
@@ -427,17 +464,6 @@ samplesB    <- groupList[[groupB]]$samples
 # Convert samples into indexes
 colsGroupA    <- convertCols(dataset_filtered$PSI, samplesA)
 colsGroupB    <- convertCols(dataset_filtered$PSI, samplesB)
-
-
-cat("samplesA:")
-cat(samplesA) 
-cat("\nsamplesB:")
-cat(samplesB)
-cat("\n")
-cat("colsGroupA: \n")
-colsGroupA
-cat("colsGroupB:  \n")
-colsGroupB
 ```
 
 ### Probability of differential splicing (Pdiff)
@@ -446,7 +472,7 @@ To calculate the **Pdiff** for all events in our dataset, we will use
 the `prepareTableVolcano` function. To visualize the results in a
 volcano plot, we will use the `plotvolcanoPdiff` function.
 
-```{r plotvolcano_Pdiff, fig.width=14, fig.height=10}
+```{r plotvolcano_Pdiff, fig.width=14, fig.height=10, warning=F}
 volcanoTable_Pdiff <- prepareTableVolcano(psitable = dataset_filtered$PSI,
                                     qualtable = dataset_filtered$Qual,
                                     npoints = 500,
@@ -473,9 +499,9 @@ The above plot colors in pink and labels by default the events with a
 appear. To make the plot interactive, we can use the `ggplotly`
 function.
 
-```{r plotvolcano_Pdiff_interactive}
+```{r plotvolcano_Pdiff_interactive, warning=F}
 # change size points manually
-volcano_Pdiff$layers[[1]]$aes_params$size <- 1
+volcano_Pdiff$layers[[1]]$aes_params$size <- 2
 volcano_Pdiff$layers[[2]]$aes_params$size <- 1
 
 # Plot interactively
@@ -524,7 +550,7 @@ use the `prepareTableVolcanoFstat` function. To visualize the results in
 a volcano plot, we will use the `plotVolcanoFstat` function. The user
 can also use the approach presented above to make the plot interactive.
 
-```{r plotvolcano_Fstat, fig.width=14, fig.height=10}
+```{r plotvolcano_Fstat, fig.width=14, fig.height=10, warning=F}
 volcanoTable_Fstat <- prepareTableVolcanoFstat(psitable = dataset_filtered$PSI,
                                     qualtable = dataset_filtered$Qual,
                                     npoints = 500,
@@ -550,14 +576,14 @@ volcano_Fstat
 head(volcanoTable_Fstat[,c("GENE","EVENT","COORD","Fstat","deltapsi")])
 ```
 
-### False discovery rate (**FDR)**
+### False discovery rate (FDR**)**
 
 To calculate the **FDR** for all events in our dataset, we will use the
 `prepareTableVolcanoFDR` function. To visualize the results in a volcano
 plot, we will use the `plotVolcanoFDR` function. The user can also use
 the approach presented above to make the plot interactive.
 
-```{r plotvolcano_FDR, fig.width=14, fig.height=10}
+```{r plotvolcano_FDR, fig.width=14, fig.height=10, warning=F}
 volcanoTable_FDR <- prepareTableVolcanoFDR(psitable = dataset_filtered$PSI,
                                     qualtable = dataset_filtered$Qual,
                                     npoints = 500,
@@ -596,7 +622,7 @@ eventID <- "MmuEX0003638"
 
 We can visualize the beta distributions for this event for each sample.
 
-```{r densities_per_event, fig.width=8, fig.height=4}
+```{r densities_per_event, fig.width=8, fig.height=4, warning=F}
 # Auxiliary data to add increment based on the event coverage to avoid dividing by zero 
 data("maxDevSimulationN100")
 
@@ -611,7 +637,8 @@ tdensities + theme_minimal() + ggtitle(eventID)
 
 ```
 
-We can also inspect manually the different statistics for this event:
+We can also inspect manually the different statistics for this event,
+and plot such results.
 
 ```{r resultsDF_per_event}
 subset(volcanoTable_Pdiff[,c("GENE","EVENT","COORD","Pdiff","deltapsi")], EVENT==eventID)
@@ -620,7 +647,7 @@ subset(volcanoTable_FDR[,c("GENE","EVENT","COORD","FDR","deltapsi")], EVENT==eve
  
 ```
 
-```{r resultsplots_per_event, fig.width=12, fig.height=4}
+```{r resultsplots_per_event, fig.width=14, fig.height=4, warning=F}
 
 plotPdiff <- prepareTableEvent(eventID = eventID,
                                psitable = dataset$PSI,
@@ -671,14 +698,17 @@ ggarrange(plotPdiff,plotFstat,plotFDR, ncol=3)
 # Differential alternative splicing between multiple groups
 
 The differential AS approach implemented by *betAS* can be applied to
-multiple (i.e., more than two) groups in a novel ANOVA-inspired way that
-extends the Pdiff definition to the comparison of the differences
+multiple (*i.e.*, more than two) groups in a novel ANOVA-inspired way
+that extends the Pdiff definition to the comparison of the differences
 between samples belonging to different biological conditions to those
-found between replicates. To illustrate this, we applied multiple-group
-*betAS* to the analysis of AS differences in a subset of human
-transcriptomes of forebrain, hindbrain, heart, kidney, liver and testis.
-This dataset is a subset of the [Human RNA-seq time-series of the
-development of seven major
+found between replicates.
+
+## Dataset loading and filtering
+
+To illustrate this, we applied multiple-group *betAS* to the analysis of
+AS differences in a subset of human transcriptomes of forebrain,
+hindbrain, heart, kidney, liver and testis. This dataset is a subset of
+the [Human RNA-seq time-series of the development of seven major
 organs](https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6814/)
 public human dataset.
 
@@ -691,6 +721,29 @@ dataset_multgroups <- getEvents(VT1_data_human, tool = tool)
 data("VT1_metadata_human")
 metadata_multgroups <- as.data.frame(VT1_metadata_human)
 metadata_multgroups
+```
+
+For this dataset, we are considering a reasonable number of samples
+(46). As such, in cases like this, it might be interesting to be less
+conservative on the filtering step and choose to keep all events
+irrespectively of their PSI value. However, for the purpose of this
+tutorial, we will keep the criteria of filtering discussed above, for
+computational ease of this exercise. For simplicity, we will consider
+only exon-skipping events.
+
+```{r filter_multgroups}
+
+cat(paste0("Initial number of events: ", nrow(dataset_multgroups$PSI)))
+
+
+dataset_multgroups_filtered <- filterEvents(dataset_multgroups, types=c("C1", "C2", "C3", "S", "MIC"), N=10)
+cat(paste0("Alternative events (after event type and coverage filtering): ", nrow(dataset_multgroups_filtered$PSI)))
+
+
+dataset_multgroups_filtered <- alternativeEvents(dataset_multgroups_filtered, minPsi=1, maxPsi=99)
+cat(paste0("Alternative events (after PSI range filtering): ", nrow(dataset_multgroups_filtered$PSI)))
+
+
 ```
 
 ## Group definition
@@ -737,31 +790,63 @@ slices <- rep(1, length(groups))  # Equal-sized slices for each color
 pie(slices, col = random_colors[1:length(groups)], border = "black", labels=groups, main = "Color palette for group definition")
 ```
 
-# Differential alternative splicing across multiple groups/conditions
+## Differential alternative splicing across multiple groups/conditions
 
-## Calculate statistical metrics for differential alternative splicing & visualize results
+```{r table_multgroups}
+volcanoTable_multgroups <- prepareTableVolcanoMultipleGroups(psitable = dataset_multgroups_filtered$PSI,
+                                                 qualtable = dataset_multgroups_filtered$Qual,
+                                                 groupList = groupList,
+                                                 npoints = 500,
+                                                 maxDevTable = maxDevSimulationN100)
 
-### Metric 1
-
-```{r}
+head(volcanoTable_multgroups[,c("GENE","EVENT","Fstat","Pdiff","Pzero","medianBetweens","deltaAbsolute")])
 
 ```
 
-### Metric 2
+### Probability of differential splicing (Pdiff)
 
-```{r}
+```{r plot_volcano_pdiff_multgroups, fig.width=16, fig.height=10, warning=F}
+plotVolcano_MultipleGroups_Pdiff(betasTable = volcanoTable_multgroups)
+```
 
+### F-statistic
+
+```{r plot_volcano_fstat_multgroups, fig.width=20, fig.height=10, warning=F}
+plotVolcano_MultipleGroups_Fstat(betasTable = volcanoTable_multgroups)
 ```
 
 ## Visualize individual events
 
-```{r}
+```{r eventid_mult}
+eventID_mult <- "HsaEX0031861"
+```
+
+```{r event_violins_mult, fig.width=20, fig.height=6, warning=F}
+mult_violinplots <- plotIndividualViolinsList(eventID = eventID_mult,
+                          npoints = 500,
+                          psitable = dataset_multgroups_filtered$PSI,
+                          qualtable = dataset_multgroups_filtered$Qual,
+                          groupList = groupList,
+                          maxDevTable = maxDevSimulationN100)
+
+eventList <- prepareTableEventMultiple(eventID = eventID_mult,
+                                       psitable = dataset_multgroups_filtered$PSI,
+                                       qualtable = dataset_multgroups_filtered$Qual,
+                                       groupList = groupList,
+                                       npoints = 500,
+                                       maxDevTable = maxDevSimulationN100)
+
+fstat_mult <- plotFstatFromEventObjListMultiple(eventObjList = eventList)
+
+
+ggarrange(fstat_mult,mult_violinplots, ncol=2, widths = c(0.3, 1))
+
 
 ```
 
 ## The monotony coefficient between multiple sequential groups
 
-```{r}
+```{r monotony}
 
 ```
 
@@ -769,11 +854,11 @@ pie(slices, col = random_colors[1:length(groups)], border = "black", labels=grou
 
 ## Custom color palette for group definition {#groupdefpalette}
 
-In the provided example, the color palette used for group definition was
-manually defined. If the user wishes to automatically generate a palette
-of `N`colors, the following code is advisable:
+In the provided examples, the color palette used for group definition
+was manually defined. If the user wishes to automatically generate a
+palette of `N`colors, the following code is advisable:
 
-```{r fig.width=8, fig.height=4}
+```{r custom_palette, fig.width=8, fig.height=4}
 #install.packages("grDevices")
 library(grDevices)
 
