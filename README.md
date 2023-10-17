@@ -22,7 +22,7 @@ You can install the development version of betAS from [GitHub](https://github.co
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("marianaferreira/betAS")
+devtools::install_github("marianaferreira/betAS@dev")
 ```
 
 ## Example
