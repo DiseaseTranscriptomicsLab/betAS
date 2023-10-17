@@ -12,11 +12,11 @@ Please consider the latest version of betAS in the [dev](https://github.com/Dise
  
 ## Installation
 
-You can install the development version of betAS from [GitHub](https://github.com/) with:
+You can install the **development** version of betAS from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("marianaferreira/betAS")
+devtools::install_github("marianaferreira/betAS@dev")
 ```
 <!---
 ## Example
