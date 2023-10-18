@@ -31,7 +31,7 @@ rmarkdown::render('betAS_tutorial.Rmd',output_dir = "../inst/")
 ```
 
 ```{r include=F}
-knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)  
 ```
 
 *betAS* is a user-friendly R package that allows intuitive analysis and
@@ -62,7 +62,7 @@ variability among replicates.
 > explored in this tutorial were adapted from *betAS*' original article:
 >
 > Mariana Ascensão-Ferreira, Rita Martins-Silva, Nuno Saraiva-Agostinho
-> and Nuno L. Barbosa-Morais (2023). [betAS**: intuitive analysis and
+> and Nuno L. Barbosa-Morais (2023). [betAS: **intuitive analysis and
 > visualisation of differential alternative splicing using beta
 > distributions**](https://www.biorxiv.org/content/10.1101/2022.12.26.521935v2). *bioRxiv*
 >
@@ -75,7 +75,7 @@ variability among replicates.
 Install *betAS* by typing the following in an R console:
 
 ```{r install, eval=FALSE}
-devtools::install_github("marianaferreira/betAS")
+devtools::install_github("DiseaseTranscriptomicsLab/betAS@dev")
 ```
 
 After the installation, load betAS and other required packages by
@@ -147,7 +147,7 @@ The output from `getEvents` is an object with 4 attributes:
 -   `Samples`: Vector containing the names of the samples considered.
 
 ```{r load_default, eval=F}
-tool <- "vast-tools" # example tool, can be one of the follwoing: "vast-tools", "rMATS", "whippet"
+tool <- "vast-tools" # example tool, can be one of the following: "vast-tools", "rMATS", "whippet"
 dataset <- getEvents(dataset, tool = tool)
 ```
 
@@ -197,6 +197,11 @@ For simplicity, in this tutorial we will be using a default dataset from
 explore the raw / non-filtered data by browsing in the four objects
 inside `dataset`. It might be useful to check at this stage the overall
 results for a given gene / event of interest.
+
+```{r load_data_default_VT, warning=F}
+dataset <- getDataset(pathTables=NULL, tool="vast-tools")
+dataset <- getEvents(dataset, tool = "vast-tools")
+```
 
 ```{r explore_event_gene}
 gene <- "Actn4"
@@ -715,7 +720,7 @@ public human dataset.
 ```{r load_default_data_multgroups}
 # load data and prepare it for betAS
 data("VT1_data_human")
-dataset_multgroups <- getEvents(VT1_data_human, tool = tool)
+dataset_multgroups <- getEvents(VT1_data_human, tool = "vast-tools")
 
 # load metadata
 data("VT1_metadata_human")
