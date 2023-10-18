@@ -22,7 +22,7 @@ You can install the development version of betAS from [GitHub](https://github.co
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("marianaferreira/betAS@dev")
+devtools::install_github("DiseaseTranscriptomicsLab/betAS@dev")
 ```
 
 ## Example
