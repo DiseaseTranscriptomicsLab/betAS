@@ -7,7 +7,7 @@ Authors@R: c(
                email="marianaascferreira@medicina.ulisboa.pt", role=c("aut", "cre"),
                comment=c(ORCID="0000-0002-5247-246X")),
          person("Rita", "Martins-Silva",
-               email="rita.silva@medicina.ulisboa.pt", role=c("aut", "cre"),
+               email="rita.silva@medicina.ulisboa.pt", role=c("aut"),
                comment=c(ORCID="0000-0002-1067-7993")),
         person("Nuno", "Saraiva-Agostinho",
                email="nunodanielagostinho@gmail.com", role=c("aut"),
