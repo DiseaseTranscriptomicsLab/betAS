@@ -16,7 +16,7 @@ You can install betAS from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("marianaferreira/betAS")
+devtools::install_github("DiseaseTranscriptomicsLab/betAS")
 ```
 <!---
 ## Example
