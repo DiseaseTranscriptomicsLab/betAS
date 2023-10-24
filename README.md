@@ -15,7 +15,7 @@
 > [betAS: intuitive analysis and visualisation of differential alternative splicing using beta distributions]([url](https://www.biorxiv.org/content/10.1101/2022.12.26.521935v2)). *bioRxiv*
 
 
-betAS is a user-friendly R package that allows intuitive analysis and
+betAS is a user-friendly **R package** and **Shiny App** that allows intuitive analysis and
 visualisation of differential alternative splicing (AS) based on
 beta distributions. 
 
