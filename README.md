@@ -30,6 +30,9 @@ betAS allows the analysis of user-provided tables with AS quantifications, such 
 ```rMATS``` or ```Whippet```, ranking differentially spliced events by a significance metric that incorporates the compromise 
 between the uncertainty in individual sample estimates and the variability among replicates.
 
+![Differential alternative splicing analysis in *betAS*](man/figures/betAS_screenshot.png)
+
+
 ## Tutorials
 
 The following tutorials are available:
