@@ -600,7 +600,6 @@ betASapp_server <- function(){
         return(NULL)
 
       }
-      print(sourcetool)
       return(sourcetool)
 
     })
@@ -727,7 +726,6 @@ betASapp_server <- function(){
       if(!identical(new_input_types, input$types)) {
         dataset_updated(TRUE)
       } else {
-        print("update dataset to FALSE")
         dataset_updated(FALSE)
       }
 
@@ -746,7 +744,6 @@ betASapp_server <- function(){
       rendervar(render)
 
       minNreads(input$minNreads)
-      print("render: button")
 
     })
 
@@ -754,8 +751,6 @@ betASapp_server <- function(){
     # Also update the value of the event types to be filtered to the ones in the input$types field
     observeEvent(input$types, {
 
-      print("apparently the input$types changed")
-      print(input$types)
       # if no event is selected, change to one of the default ones
       if(is.null(input$types)){
         if (sourcetool() != "rMATS"){
@@ -775,12 +770,10 @@ betASapp_server <- function(){
 
       # to prevent filterTable() to update twice, as the input types will change when changing tool (and, thus, dataset)
       if (dataset_updated()) {
-        print("update dataset to FALSE")
         dataset_updated(FALSE)
         return(NULL) # Exit this observer early if dataset was just updated
       }
 
-      print("render: event types")
       input_types(input$types)
       render <- rendervar() + 1
       rendervar(render)
@@ -792,7 +785,6 @@ betASapp_server <- function(){
 
     filterTable <- eventReactive(rendervar(), {
 
-      print("rendering filtertable")
       req(sourcetool())
       req(GetTable())
       req(input_types())
@@ -1309,10 +1301,6 @@ betASapp_server <- function(){
       req(input$findGroups)
 
       names <- colnames(psifiltdataset())[-c(1:6)]
-
-
-
-      print(names)
 
 
       not_grouped   <- names
