@@ -46,7 +46,7 @@ The following tutorials are available:
 
 betAS is freely available at <https://compbio.imm.medicina.ulisboa.pt/app/betAS>
 
-![](man/figures/betAS_webapp2.png)
+![](man/figures/betAS_webapp3.png)
 
 
 ### Installation
