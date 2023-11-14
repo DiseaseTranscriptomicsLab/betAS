@@ -51,7 +51,7 @@ betAS is freely available at <https://compbio.imm.medicina.ulisboa.pt/app/betAS>
 
 ### Installation
 
-If you prefer to use `betAS` locally (as a Shiny app or as an R package), you can do so by following one of the following approaches:
+If you prefer to use betAS locally (as a Shiny app or as an R package), you can do so by following one of the following approaches:
 
 #### A) R package
 
@@ -63,7 +63,7 @@ devtools::install_github("DiseaseTranscriptomicsLab/betAS@dev")
 library(betAS)
 ```
 
-To explore the functionalities of `betAS` for analyzing differential alternative splicing, you now have the option to initiate the Shiny App using the command `betASapp()` or navigate through its functions. For the latter, you may find the [Command-line interface tutorial](https://diseasetranscriptomicslab.github.io/betAS/inst/betAS_tutorial.html) useful.
+To explore the functionalities of betAS for analyzing differential alternative splicing, you now have the option to initiate the Shiny App using the command `betASapp()` or navigate through its functions. For the latter, you may find the [Command-line interface tutorial](https://diseasetranscriptomicslab.github.io/betAS/inst/betAS_tutorial.html) useful.
 
 
 #### B) Docker image
@@ -94,7 +94,7 @@ docker run -e PASSWORD=bioc -p 8787:8787 marianaferreira/betas:latest
 
 1. Download the latest stable version of the repository from this link and unzip the files.
 2. Open R Studio and run the script located at `R/betAS.R`. This action will launch the Shiny app.
-3. If you wish to make changes, you can adapt the content of this script. For instance, the default input file size in `betAS` is configured to 100Mb. You have the flexibility to modify this value by adjusting the `shiny.maxRequestSize` parameter.
+3. If you wish to make changes, you can adapt the content of this script. For instance, the default input file size is configured to 100Mb. You have the flexibility to modify this value by adjusting the `shiny.maxRequestSize` parameter.
 
 
 ## Workflow
