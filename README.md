@@ -183,9 +183,11 @@ The differential AS approach implemented by betAS can be applied to multiple (i.
 Please send any feedback and questions on *betAS* to:
 
 > Mariana Ascensão-Ferreira (marianaascferreira@medicina.ulisboa.pt)
+>
 > Rita Martins-Silva (rita.silva@medicina.ulisboa.pt)
 > 
-> [Disease Transcriptomics Lab, Instituto de Medicina Molecular (Portugal)](http://imm.medicina.ulisboa.pt/group/distrans/)
+
+[Disease Transcriptomics Lab, Instituto de Medicina Molecular (Portugal)](http://imm.medicina.ulisboa.pt/group/distrans/)
  
 
 
