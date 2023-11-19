@@ -1087,13 +1087,13 @@ betASapp_server <- function(){
       else if (sourcetool() == "rMATS") {
         rMATSEventType <- names(isolate(selectAlternatives())$EventsPerType)
         rMATSEventTypeText <- ""
-        if (rMATSEventType == "EX") {
+        if (rMATSEventType[1] == "EX") { #adding [1] so we avoid the error of comparing more than one event. this happens because shiny is slow and does not automatically update this value
           rMATSEventTypeText <- "Exon Skipping"
-        } else if (rMATSEventType == "IR") {
+        } else if (rMATSEventType[1] == "IR") {
           rMATSEventTypeText <- "Intron Retention"
-        } else if (rMATSEventType == "Altss") {
+        } else if (rMATSEventType[1] == "Altss") {
           rMATSEventTypeText <- "Alternative splice site (Altss)"
-        } else if (rMATSEventType == "MXE"){
+        } else if (rMATSEventType[1] == "MXE"){
           rMATSEventTypeText <- "Mutually Exclusive Exons"
         }
 
