@@ -420,7 +420,7 @@ metrics for each alternative splicing event under analyses: the
 magnitude of the effect (𝚫PSI = PSI~betAS~(group A) - PSI~betAS~(group
 B)) and the statistical significance of such changes. For the latter,
 betAS introduces three approaches: probability of differential splicing
-(**Pdiff)**, **F-statistic** or false discovery rate (**FDR**).
+(**Pdiff)**, **F-statistic** or false positive rate (**FPR**).
 
 -   **Pdiff**: This approach takes the two sets of random points per
     condition and calculates, for each AS event's estimated ∆PSI, the
@@ -441,13 +441,13 @@ betAS introduces three approaches: probability of differential splicing
     provides a compromise between the effect size of AS differences and
     their significance.
 
--   **FDR**: Random generation of points from a beta distribution is
+-   **FPR**: Random generation of points from a beta distribution is
     used to estimate the null distribution's PSI and its precision.
     Then, one point is randomly selected from each of the sample's null
     distribution and, keeping the samples' group assignment (*i.e.*,
     which samples belong to each group), the ∆PSI between groups under
     the null hypothesis is calculated. The process is repeated many
-    times (10 000 by default) and the FDR is the proportion of ∆PSI
+    times (10 000 by default) and the FPR is the proportion of ∆PSI
     random simulations that are larger than (*i.e.*, more extreme) or
     equal to the empirical ∆PSI.
 
@@ -581,9 +581,9 @@ volcano_Fstat
 head(volcanoTable_Fstat[,c("GENE","EVENT","COORD","Fstat","deltapsi")])
 ```
 
-### False discovery rate (FDR**)**
+### False positive rate (FPR)
 
-To calculate the **FDR** for all events in our dataset, we will use the
+To calculate the **FPR** for all events in our dataset, we will use the
 `prepareTableVolcanoFDR` function. To visualize the results in a volcano
 plot, we will use the `plotVolcanoFDR` function. The user can also use
 the approach presented above to make the plot interactive.

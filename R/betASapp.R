@@ -7,7 +7,7 @@
 betASapp_ui <- function(){
   # :::: Variables ::::
   availabletools      <- c("vast-tools", "rMATS","whippet")
-  yAxisStats          <- c("Pdiff (probability of differential splicing)", "F-statistic (median(|between|)/median(|within|))", "False discovery rate (FDR)")
+  yAxisStats          <- c("Pdiff (probability of differential splicing)", "F-statistic (median(|between|)/median(|within|))", "False positive rate (FPR)")
   yAxisStats_multiple <- c("Pdiff (probability that |between| > |within|)", "F-statistic (median(|between|)/median(|within|))")
   eventTypesVT          <- c("Exon skipping (ES)"="EX", "Intron retention (IR)"="IR", "Alternative splice site (Altss)"="Altss")
   eventTypesWhippet     <- c("Core Exon (CE)"="CE",
@@ -254,7 +254,7 @@ betASapp_ui <- function(){
                                           h6("Ratio between absolute differences 'between' and 'within' groups.")),
 
                                    column(4,
-                                          h4("False discovery rate (FDR):"),
+                                          h4("False positive rate (FPR):"),
                                           h6("Probability of getting an absolute difference in PSI between groups greater than the observed, under the null hypothesis that all PSIs come from the same distribution."))
 
                                  )),
@@ -1625,7 +1625,7 @@ betASapp_server <- function(){
 
       }else if(
 
-        yStat == "False discovery rate (FDR)"){
+        yStat == "False positive rate (FPR)"){
 
         samplesA <- values$groups[[groupA]]$samples
         colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
@@ -1676,7 +1676,7 @@ betASapp_server <- function(){
 
       }else if(
 
-        yStat == "False discovery rate (FDR)"){
+        yStat == "False positive rate (FPR)"){
         column <- "invertedFDR"
 
       }
@@ -1857,7 +1857,7 @@ betASapp_server <- function(){
 
       }else if(
 
-        yStat == "False discovery rate (FDR)"){
+        yStat == "False positive rate (FPR)"){
 
         samplesA <- values$groups[[groupA]]$samples
         colsGroupA <- match(samplesA, colnames(isolate(psifiltdataset())))
@@ -1994,7 +1994,7 @@ betASapp_server <- function(){
 
       }else if(
 
-        yStat == "False discovery rate (FDR)"){
+        yStat == "False positive rate (FPR)"){
 
         column <- "invertedFDR"
         colnameVector <- c("Event ID" = "EVENT", "Gene" = "GENE", "dPSI" = "deltapsi", "1-FDR" = "invertedFDR")

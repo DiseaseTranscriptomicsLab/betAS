@@ -659,7 +659,7 @@ plotVolcanoFstat <- function(betasTable, labA, labB, basalColor, interestColor){
 }
 
 
-#' Prepare and return table used for betAS volcano plot with the estimated FDR
+#' Prepare and return table used for betAS volcano plot with the estimated FPR
 #'
 #' @param psitable
 #' @param qualtable
@@ -721,7 +721,7 @@ prepareTableVolcanoFDR <- function(psitable, qualtable, npoints, colsA, colsB, l
 
 }
 
-#' Plot betAS volcano plot with the estimated FDR
+#' Plot betAS volcano plot with the estimated FPR
 #'
 #' @param psitable
 #' @param qualtable
@@ -743,7 +743,7 @@ plotVolcanoFDR <- function(betasTable, labA, labB, basalColor, interestColor){
   pos         <- which(abs(refSeq-maxDeltaPsi)==min(abs(refSeq-maxDeltaPsi)))
   refScale    <- refSeq[pos+1]
 
-  # To be used if intented to use -log10 of FDR and still manage to see Inf points
+  # To be used if intented to use -log10 of FPR and still manage to see Inf points
   # betasTableTransf <- betasTable
   #
   # betasTableTransf$TransfFDR <- -log10(betasTableTransf$FDR)
@@ -1527,7 +1527,7 @@ plotFstatFromEventObjList <- function(eventObjList){
 }
 
 
-#' Plot FDR explanation plot per sample
+#' Plot FPR explanation plot per sample
 #'
 #' @param eventObjList
 #'
@@ -1579,11 +1579,11 @@ plotFDRFromEventObjList <- function(eventObjList){
   if(fdr == 0){
 
     res <- 1/nsim
-    title <- paste0("FDR < ", res)
+    title <- paste0("FPR < ", res)
 
     }else{
 
-    title <- paste0("FDR = ", round(fdr, digits = 3))
+    title <- paste0("FPR = ", round(fdr, digits = 3))
 
   }
 
