@@ -477,6 +477,12 @@ To calculate the **Pdiff** for all events in our dataset, we will use
 the `prepareTableVolcano` function. To visualize the results in a
 volcano plot, we will use the `plotvolcanoPdiff` function.
 
+betAS utilizes R's `rbeta` function, introducing inherent uncertainty. 
+Running betAS twice may yield different results, particularly near significance thresholds. 
+Variability in outcomes can be informative, signaling cases where an event's significance is on the cusp. 
+However, to ensure reproducibility, users can set a seed, avoiding randomization of the emitted points. 
+By default, the seed is set to TRUE, and will be used as such for the tutorial's reproducibility.
+
 ```{r plotvolcano_Pdiff, fig.width=14, fig.height=10, warning=F}
 volcanoTable_Pdiff <- prepareTableVolcano(psitable = dataset_filtered$PSI,
                                     qualtable = dataset_filtered$Qual,
@@ -487,7 +493,8 @@ volcanoTable_Pdiff <- prepareTableVolcano(psitable = dataset_filtered$PSI,
                                     labB = groupB,
                                     basalColor = "#89C0AE",
                                     interestColor = "#E69A9C",
-                                    maxDevTable = maxDevSimulationN100)
+                                    maxDevTable = maxDevSimulationN100, 
+                                    seed=TRUE)
 
 volcano_Pdiff <- plotVolcano(betasTable = volcanoTable_Pdiff,
                             labA = groupA,
@@ -565,7 +572,8 @@ volcanoTable_Fstat <- prepareTableVolcanoFstat(psitable = dataset_filtered$PSI,
                                     labB = groupB,
                                     basalColor = "#89C0AE",
                                     interestColor = "#E69A9C",
-                                    maxDevTable = maxDevSimulationN100)
+                                    maxDevTable = maxDevSimulationN100, 
+                                    seed=TRUE)
 
 volcano_Fstat <- plotVolcanoFstat(betasTable = volcanoTable_Fstat,
                             labA = groupA,
@@ -599,7 +607,8 @@ volcanoTable_FDR <- prepareTableVolcanoFDR(psitable = dataset_filtered$PSI,
                                     basalColor = "#89C0AE",
                                     interestColor = "#E69A9C",
                                     maxDevTable = maxDevSimulationN100,
-                                    nsim = 100) 
+                                    nsim = 100, 
+                                    seed=TRUE) 
         
 volcano_FDR <- plotVolcanoFDR(betasTable = volcanoTable_FDR,
                             labA = groupA,
@@ -636,7 +645,8 @@ tdensities <- plotIndividualDensitiesList(eventID = eventID,
                                           psitable = dataset$PSI,
                                           qualtable = dataset$Qual,
                                           groupList = groupList,
-                                          maxDevTable = maxDevSimulationN100)
+                                          maxDevTable = maxDevSimulationN100, 
+                                          seed=TRUE)
 
 tdensities + theme_minimal() + ggtitle(eventID)
 
@@ -665,7 +675,8 @@ plotPdiff <- prepareTableEvent(eventID = eventID,
                                basalColor = "#89C0AE",
                                interestColor = "#E69A9C",
                                maxDevTable = maxDevSimulationN100,
-                               nsim = 1000) %>% 
+                               nsim = 1000, 
+                               seed=TRUE) %>% 
   plotPDiffFromEventObjList()
 
 plotFstat <- prepareTableEvent(eventID = eventID,
@@ -679,7 +690,8 @@ plotFstat <- prepareTableEvent(eventID = eventID,
                                basalColor = "#89C0AE",
                                interestColor = "#E69A9C",
                                maxDevTable = maxDevSimulationN100,
-                               nsim = 1000) %>% 
+                               nsim = 1000,
+                               seed=TRUE) %>% 
   plotFstatFromEventObjList()
 
 plotFDR <- prepareTableEvent(eventID = eventID,
@@ -693,7 +705,8 @@ plotFDR <- prepareTableEvent(eventID = eventID,
                                basalColor = "#89C0AE",
                                interestColor = "#E69A9C",
                                maxDevTable = maxDevSimulationN100,
-                               nsim = 1000) %>% 
+                               nsim = 1000,
+                               seed=TRUE) %>% 
   plotFDRFromEventObjList()
 
 ggarrange(plotPdiff,plotFstat,plotFDR, ncol=3)
@@ -802,7 +815,7 @@ volcanoTable_multgroups <- prepareTableVolcanoMultipleGroups(psitable = dataset_
                                                  qualtable = dataset_multgroups_filtered$Qual,
                                                  groupList = groupList,
                                                  npoints = 500,
-                                                 maxDevTable = maxDevSimulationN100)
+                                                 maxDevTable = maxDevSimulationN100, seed=TRUE)
 
 head(volcanoTable_multgroups[,c("GENE","EVENT","Fstat","Pdiff","Pzero","medianBetweens","deltaAbsolute")])
 
@@ -832,14 +845,16 @@ mult_violinplots <- plotIndividualViolinsList(eventID = eventID_mult,
                           psitable = dataset_multgroups_filtered$PSI,
                           qualtable = dataset_multgroups_filtered$Qual,
                           groupList = groupList,
-                          maxDevTable = maxDevSimulationN100)
+                          maxDevTable = maxDevSimulationN100,
+                          seed=TRUE)
 
 eventList <- prepareTableEventMultiple(eventID = eventID_mult,
                                        psitable = dataset_multgroups_filtered$PSI,
                                        qualtable = dataset_multgroups_filtered$Qual,
                                        groupList = groupList,
                                        npoints = 500,
-                                       maxDevTable = maxDevSimulationN100)
+                                       maxDevTable = maxDevSimulationN100,
+                                       seed=TRUE)
 
 fstat_mult <- plotFstatFromEventObjListMultiple(eventObjList = eventList)
 

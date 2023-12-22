@@ -9,9 +9,16 @@
 # @export
 #
 # @examples
-individualBetas_nofitting_incr <- function(table, cols, indpoints, maxdevRefTable){
+individualBetas_nofitting_incr <- function(table, cols, indpoints, maxdevRefTable, seed=TRUE){
 
-    indBetas <- list()
+
+  if (seed){
+    seed <- "21122023"
+  } else {
+    seed <- paste( sample( 0:9, 8, replace=TRUE ), collapse="" )
+  }
+
+  indBetas <- list()
 
   # .Q columns to consider
   quals <- table[1,cols]
@@ -61,6 +68,7 @@ individualBetas_nofitting_incr <- function(table, cols, indpoints, maxdevRefTabl
   artif_sample <- c()
   for(i in 1:length(inc)) {
     artif_sample <- c(artif_sample, rep(names[i], times = indpoints))
+    set.seed(seed)
     artif <- c(artif, rbeta(no_points,
                             shape1 = inc[i],
                             shape2 = exc[i]))

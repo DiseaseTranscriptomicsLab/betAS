@@ -4,6 +4,7 @@
 #' @importFrom colourpicker colourInput updateColourInput
 #' @importFrom DT renderDT DTOutput formatRound datatable
 #' @importFrom bslib bs_theme
+#' @importFrom shinyBS bsTooltip
 betASapp_ui <- function(){
   # :::: Variables ::::
   availabletools      <- c("vast-tools", "rMATS","whippet")
@@ -139,13 +140,12 @@ betASapp_ui <- function(){
                sidebarLayout(fluid = TRUE,
 
                              sidebarPanel(
-                               selectInput("indbetaseventid", "Select alternative splicing event to plot:", choices = NULL),
-                               h6(textOutput("EventInfoWhippet")),
 
+                               h4("Analysis Settings"),
+                               checkboxInput("use_seed", label = "Disable Randomization of Generated Points", value = TRUE, width = NULL),
+                               checkboxInput("weight_by_cov", label = "Weight Number of Generated Points Based on Individual Sample Coverage", value = FALSE, width = NULL),
 
-                               uiOutput("url"),
-
-                               h5(textOutput("samplesTabletext")),
+                               h4(textOutput("samplesTabletext")),
 
                                DTOutput("sampleTable"),
 
@@ -182,11 +182,16 @@ betASapp_ui <- function(){
 
                                  )),
 
-                               h5("Current groups defined"),
+                               h4("Current groups defined"),
                                DTOutput("groupsTable"),
                                helpText(em("Choose one table row for group deletion")),
 
-                               actionButton("deleteGroups", "Delete group(s)", icon = icon("eraser"), class = "btn-danger")
+                               actionButton("deleteGroups", "Delete group(s)", icon = icon("eraser"), class = "btn-danger"),
+
+                               h4("Plot individual events"),
+                               selectInput("indbetaseventid", "Select alternative splicing event to plot:", choices = NULL),
+                               p(textOutput("EventInfoWhippet")),
+                               uiOutput("url"),
 
                              ),
 
@@ -212,6 +217,8 @@ betASapp_ui <- function(){
                                selectInput("groupB", "Choose group B:", NULL),
 
                                radioButtons("volcanoYAxis", label = "Choose significance statistic (Y-axis) to consider:", choices = yAxisStats),
+
+
 
                                actionButton("rundiffbetas", "Run betAS", icon = icon("person-running"), class = "btn-info"),
                                # Other cool icons: play | play-circle
@@ -1210,7 +1217,8 @@ betASapp_server <- function(){
                                      basalColor = "#89C0AE",
                                      interestColor = "#E69A9C",
                                      maxDevTable = maxDevSimulationN100,
-                                     nsim = 1000)
+                                     nsim = 1000,
+                                     seed=input$use_seed)
       return(eventList)
 
     })
@@ -1516,14 +1524,15 @@ betASapp_server <- function(){
       #                         labB = values$groups[[2]]$name,
       #                         colorA = values$groups[[1]]$color,
       #                         colorB =  values$groups[[2]]$color,
-      #                         maxDevTable = maxDevSimulationN100)
+      #                         maxDevTable = maxDevSimulationN100, seed=input$use_seed)
 
       plotIndividualDensitiesList(eventID = selectedeventID(),
                                   npoints = 500,
                                   psitable = psifiltdataset(),
                                   qualtable = qualfiltdataset(),
                                   groupList = values$groups,
-                                  maxDevTable = maxDevSimulationN100)
+                                  maxDevTable = maxDevSimulationN100,
+                                  seed=input$use_seed)
 
     })
 
@@ -1595,7 +1604,8 @@ betASapp_server <- function(){
                                      basalColor = "#89C0AE",
                                      # interestColor = "#EE805B", #orange
                                      interestColor = "#E69A9C", #pink
-                                     maxDevTable = maxDevSimulationN100)
+                                     maxDevTable = maxDevSimulationN100,
+                                     seed=input$use_seed)
 
       }else if(
 
@@ -1621,7 +1631,8 @@ betASapp_server <- function(){
                                           labB = groupB,
                                           basalColor = "#89C0AE",
                                           interestColor = "#E69A9C",
-                                          maxDevTable = maxDevSimulationN100)
+                                          maxDevTable = maxDevSimulationN100,
+                                          seed=input$use_seed)
 
       }else if(
 
@@ -1643,7 +1654,8 @@ betASapp_server <- function(){
                                         basalColor = "#89C0AE",
                                         interestColor = "#E69A9C",
                                         maxDevTable = maxDevSimulationN100,
-                                        nsim = 100)
+                                        nsim = 100,
+                                        seed=input$use_seed)
 
       }
 
@@ -1792,14 +1804,14 @@ betASapp_server <- function(){
       #                         labB = values$groups[[2]]$name,
       #                         colorA = values$groups[[1]]$color,
       #                         colorB =  values$groups[[2]]$color,
-      #                         maxDevTable = maxDevSimulationN100)
+      #                         maxDevTable = maxDevSimulationN100, seed=input$use_seed)
 
       plotIndividualDensitiesList(eventID = selectedeventIDDiff(),
                                   npoints = 500,
                                   psitable = psifiltdataset(),
                                   qualtable = qualfiltdataset(),
                                   groupList = values$groups[c(groupA, groupB)],
-                                  maxDevTable = maxDevSimulationN100)
+                                  maxDevTable = maxDevSimulationN100, seed=input$use_seed)
 
     })
 
@@ -2097,7 +2109,8 @@ betASapp_server <- function(){
                                                  qualtable = isolate(qualfiltdataset()),
                                                  groupList = values$groups,
                                                  npoints = 500,
-                                                 maxDevTable = maxDevSimulationN100)
+                                                 maxDevTable = maxDevSimulationN100,
+                                                 seed=input$use_seed)
 
       return(table)
 
@@ -2150,7 +2163,8 @@ betASapp_server <- function(){
                                              qualtable = qualfiltdataset(),
                                              groupList = values$groups,
                                              npoints = 500,
-                                             maxDevTable = maxDevSimulationN100)
+                                             maxDevTable = maxDevSimulationN100,
+                                             seed=input$use_seed)
 
       return(eventList)
 
@@ -2302,7 +2316,8 @@ betASapp_server <- function(){
                                 psitable = psifiltdataset(),
                                 qualtable = qualfiltdataset(),
                                 groupList = values$groups,
-                                maxDevTable = maxDevSimulationN100)
+                                maxDevTable = maxDevSimulationN100,
+                                seed=input$use_seed)
 
     })
 

@@ -148,7 +148,7 @@ jointBetas_nofitting_Fast0 <- function(indBetasA, indBetasB, groupsAB){
 # @examples
 # @importFrom ggrepel geom_text_repel
 #' @importFrom utils combn
-fStatistic_2Groups_PerEvent <- function(eventPos, psitable, qualtable, npoints, colsA, colsB, labA, labB, maxDevTable){
+fStatistic_2Groups_PerEvent <- function(eventPos, psitable, qualtable, npoints, colsA, colsB, labA, labB, maxDevTable, seed=TRUE){
 
   fStat_2Groups <- list()
 
@@ -156,13 +156,13 @@ fStatistic_2Groups_PerEvent <- function(eventPos, psitable, qualtable, npoints, 
   indBetasA <- individualBetas_nofitting_incr(table = qualtable[eventPos,],
                                               cols = colsA,
                                               indpoints = npoints,
-                                              maxdevRefTable = maxDevTable)
+                                              maxdevRefTable = maxDevTable, seed=seed)
 
   #Group betAS (B)
   indBetasB <- individualBetas_nofitting_incr(table = qualtable[eventPos,],
                                               cols = colsB,
                                               indpoints = npoints,
-                                              maxdevRefTable = maxDevTable)
+                                              maxdevRefTable = maxDevTable,seed=seed)
 
   #Calculate withins for each group (withins is the vector that will concatenate all within differences found)
   withins <- c()
@@ -244,7 +244,13 @@ fStatistic_2Groups_PerEvent <- function(eventPos, psitable, qualtable, npoints, 
 #
 # @examples
 #' @importFrom stats density median rbeta sd
-estimateFDR <- function(indBetasA, indBetasB, groupsAB, nsim){
+estimateFDR <- function(indBetasA, indBetasB, groupsAB, nsim, seed=TRUE){
+
+if (seed){
+  seed <- "21122023"
+} else {
+  seed <- paste( sample( 0:9, 8, replace=TRUE ), collapse="" )
+}
 
 jntBetas <- list()
 
@@ -278,6 +284,7 @@ simulatedA  <- list()
 for(sample in unique(artiflabelsA)){
 
   simReads    <- simulate_reads(cov = covA[which(names(covA) == sample)], psi = originalMedian)
+  set.seed(seed)
   sampleDistA <- rbeta(npoints, shape1 = simReads$inc, shape2 = simReads$exc)
   simulatedA[[length(simulatedA)+1]] <- sampleDistA
 
@@ -287,6 +294,7 @@ simulatedB  <- list()
 for(sample in unique(artiflabelsB)){
 
   simReads <- simulate_reads(cov = covB[which(names(covB) == sample)], psi = originalMedian)
+  set.seed(seed)
   sampleDistB <- rbeta(npoints, shape1 = simReads$inc, shape2 = simReads$exc)
   simulatedB[[length(simulatedB)+1]] <- sampleDistB
 

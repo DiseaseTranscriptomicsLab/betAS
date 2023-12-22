@@ -90,7 +90,7 @@ bigPicturePlot <- function(table){
 # @examples
 #' @importFrom ggridges geom_density_ridges
 #' @importFrom graphics title points
-plotIndividualDensities <- function(eventID, npoints, psitable, qualtable, colsA, colsB, labA, labB, colorA, colorB, maxDevTable){
+plotIndividualDensities <- function(eventID, npoints, psitable, qualtable, colsA, colsB, labA, labB, colorA, colorB, maxDevTable, seed=TRUE){
 
   row <- which(psitable$EVENT == eventID)
 
@@ -113,7 +113,8 @@ plotIndividualDensities <- function(eventID, npoints, psitable, qualtable, colsA
     indBetAS_A <- individualBetas_nofitting_incr(table = qualtable[row,],
                                                  cols = colsA[a],
                                                  indpoints = npoints,
-                                                 maxdevRefTable = maxDevTable)
+                                                 maxdevRefTable = maxDevTable,
+                                                 seed=seed)
 
     betasListA[[a]] <- indBetAS_A
 
@@ -126,7 +127,8 @@ plotIndividualDensities <- function(eventID, npoints, psitable, qualtable, colsA
     indBetAS_B <- individualBetas_nofitting_incr(table = qualtable[row,],
                                                  cols = colsB[b],
                                                  indpoints = npoints,
-                                                 maxdevRefTable = maxDevTable)
+                                                 maxdevRefTable = maxDevTable,
+                                                 seed=seed)
 
     betasListB[[b]] <- indBetAS_B
 
@@ -137,13 +139,15 @@ plotIndividualDensities <- function(eventID, npoints, psitable, qualtable, colsA
   groupAbetAS <- individualBetas_nofitting_incr(table = qualtable[row,],
                                                 cols = colsA,
                                                 indpoints = npoints,
-                                                maxdevRefTable = maxDevTable)
+                                                maxdevRefTable = maxDevTable,
+                                                seed=seed)
 
   #Group betAS (B)
   groupBbetAS <- individualBetas_nofitting_incr(table = qualtable[row,],
                                                 cols = colsB,
                                                 indpoints = npoints,
-                                                maxdevRefTable = maxDevTable)
+                                                maxdevRefTable = maxDevTable,
+                                                seed=seed)
 
   # Data-frame containing emitted points, sample names and group names
   densities_df  <- data.frame("points" = numeric(), "samples" = character())
@@ -235,7 +239,7 @@ plotIndividualDensities <- function(eventID, npoints, psitable, qualtable, colsA
 #' testGroups[[length(testGroups)+1]] <- list(name = "GroupA", samples = c("ERR2598266", "ERR2598267", "ERR2598268"), color = "#FF9AA2")
 #' testGroups[[length(testGroups)+1]] <- list(name = "GroupB", samples = c("ERR2598270", "ERR2598307", "ERR2598351"), color = "#FFB7B2")
 #' plotIndividualDensitiesList(eventID = "HsaEX0019479", npoints = 500, psitable = psiTable, qualtable = qualTable, groupList = testGroups, maxDevTable = maxDevSimulationN100)
-plotIndividualDensitiesList <- function(eventID, npoints, psitable, qualtable, groupList, maxDevTable){
+plotIndividualDensitiesList <- function(eventID, npoints, psitable, qualtable, groupList, maxDevTable, seed=TRUE){
 
 
    row <- which(psitable$EVENT == eventID)
@@ -263,7 +267,8 @@ plotIndividualDensitiesList <- function(eventID, npoints, psitable, qualtable, g
     groupBetas    <- individualBetas_nofitting_incr(table = qualtable[row,],
                                                     cols = columns,
                                                     indpoints = npoints,
-                                                    maxdevRefTable = maxDevTable)
+                                                    maxdevRefTable = maxDevTable,
+                                                    seed=seed)
     betasPerGroup[[g]] <- groupBetas
 
     groupIndSamplesList <- list()
@@ -272,7 +277,7 @@ plotIndividualDensitiesList <- function(eventID, npoints, psitable, qualtable, g
       indBetasGroup <- individualBetas_nofitting_incr(table = qualtable[row,],
                                                       cols = columns[samp],
                                                       indpoints = npoints,
-                                                      maxdevRefTable = maxDevTable)
+                                                      maxdevRefTable = maxDevTable, seed=seed)
 
       groupIndSamplesList[[samp]] <- indBetasGroup
 
@@ -341,7 +346,7 @@ plotIndividualDensitiesList <- function(eventID, npoints, psitable, qualtable, g
 #' @export
 #'
 #' @examples
-plotIndividualViolinsList <- function(eventID, npoints, psitable, qualtable, groupList, maxDevTable){
+plotIndividualViolinsList <- function(eventID, npoints, psitable, qualtable, groupList, maxDevTable, seed=TRUE){
 
   row <- which(psitable$EVENT == eventID)
 
@@ -368,7 +373,7 @@ plotIndividualViolinsList <- function(eventID, npoints, psitable, qualtable, gro
     groupBetas    <- individualBetas_nofitting_incr(table = qualtable[row,],
                                                     cols = columns,
                                                     indpoints = npoints,
-                                                    maxdevRefTable = maxDevTable)
+                                                    maxdevRefTable = maxDevTable, seed=seed)
     betasPerGroup[[g]] <- groupBetas
 
     groupIndSamplesList <- list()
@@ -377,7 +382,7 @@ plotIndividualViolinsList <- function(eventID, npoints, psitable, qualtable, gro
       indBetasGroup <- individualBetas_nofitting_incr(table = qualtable[row,],
                                                       cols = columns[samp],
                                                       indpoints = npoints,
-                                                      maxdevRefTable = maxDevTable)
+                                                      maxdevRefTable = maxDevTable, seed=seed)
 
       groupIndSamplesList[[samp]] <- indBetasGroup
 
@@ -462,7 +467,7 @@ plotIndividualViolinsList <- function(eventID, npoints, psitable, qualtable, gro
 #' colsGroupA    <- convertCols(psiTable, samplesA)
 #' colsGroupB    <- convertCols(psiTable, samplesB)
 #' prepareTableVolcano(psitable = psiTable, qualtable = qualTable, npoints = 500, colsA = colsGroupA, colsB = colsGroupB, labA = groupA, labB = groupB, basalColor = "#89C0AE", interestColor = "#E69A9C", maxDevTable = maxDevSimulationN100)
-prepareTableVolcano <- function(psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable){
+prepareTableVolcano <- function(psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, seed=TRUE){
 
   colsA    <- convertCols(psitable, colsA)
   samplesA <- names(colsA)
@@ -476,7 +481,8 @@ prepareTableVolcano <- function(psitable, qualtable, npoints, colsA, colsB, labA
                           individualBetas_nofitting_incr(table = qualtable[x,],
                                                          cols = colsA,
                                                          indpoints = npoints,
-                                                         maxdevRefTable = maxDevTable))
+                                                         maxdevRefTable = maxDevTable,
+                                                         seed=seed))
 
   #Group betAS (B)
   groupBbetAS <- lapply(1:nrow(qualtable),
@@ -484,7 +490,8 @@ prepareTableVolcano <- function(psitable, qualtable, npoints, colsA, colsB, labA
                           individualBetas_nofitting_incr(table = qualtable[x,],
                                                          cols = colsB,
                                                          indpoints = npoints,
-                                                         maxdevRefTable = maxDevTable))
+                                                         maxdevRefTable = maxDevTable,
+                                                         seed=seed))
 
   #Differential betAS (A vs. B)
   diffABbetAS <- lapply(1:nrow(qualtable),
@@ -582,7 +589,7 @@ plotVolcano <- function(betasTable, labA, labB, basalColor, interestColor){
 #' @export
 #'
 #' @examples
-prepareTableVolcanoFstat <- function(psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable){
+prepareTableVolcanoFstat <- function(psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, seed=TRUE){
 
   colsA    <- convertCols(psitable, colsA)
   samplesA <- names(colsA)
@@ -601,7 +608,8 @@ prepareTableVolcanoFstat <- function(psitable, qualtable, npoints, colsA, colsB,
                                                        colsB = colsB,
                                                        labA = labA,
                                                        labB = labB,
-                                                       maxDevTable = maxDevTable))
+                                                       maxDevTable = maxDevTable,
+                                                       seed=seed))
 
 
   names(fstat2groups) <- qualtable$EVENT
@@ -674,7 +682,7 @@ plotVolcanoFstat <- function(betasTable, labA, labB, basalColor, interestColor){
 #'
 #' @examples
 #' @importFrom ggrepel geom_text_repel
-prepareTableVolcanoFDR <- function(psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, nsim){
+prepareTableVolcanoFDR <- function(psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, nsim, seed=TRUE){
 
   colsA    <- convertCols(psitable, colsA)
   samplesA <- names(colsA)
@@ -688,7 +696,7 @@ prepareTableVolcanoFDR <- function(psitable, qualtable, npoints, colsA, colsB, l
                           individualBetas_nofitting_incr(table = qualtable[x,],
                                                          cols = colsA,
                                                          indpoints = npoints,
-                                                         maxdevRefTable = maxDevTable))
+                                                         maxdevRefTable = maxDevTable, seed=seed))
 
   #Group betAS (B)
   groupBbetAS <- lapply(1:nrow(qualtable),
@@ -696,7 +704,7 @@ prepareTableVolcanoFDR <- function(psitable, qualtable, npoints, colsA, colsB, l
                           individualBetas_nofitting_incr(table = qualtable[x,],
                                                          cols = colsB,
                                                          indpoints = npoints,
-                                                         maxdevRefTable = maxDevTable))
+                                                         maxdevRefTable = maxDevTable, seed=seed))
 
   #Differential betAS (A vs. B)
   diffABbetAS <- lapply(1:nrow(qualtable),
@@ -704,7 +712,7 @@ prepareTableVolcanoFDR <- function(psitable, qualtable, npoints, colsA, colsB, l
                           estimateFDR(indBetasA = groupAbetAS[[x]],
                                       indBetasB = groupBbetAS[[x]],
                                       groupsAB = c(labA, labB),
-                                      nsim = nsim))
+                                      nsim = nsim, seed=seed))
 
   names(groupAbetAS) <- qualtable$EVENT
   names(groupBbetAS) <- qualtable$EVENT
@@ -790,7 +798,7 @@ plotVolcanoFDR <- function(betasTable, labA, labB, basalColor, interestColor){
 #'
 #' @examples
 #' @importFrom ggrepel geom_text_repel
-prepareTableVolcanoMultipleGroups <- function(psitable, qualtable, groupList, npoints, maxDevTable){
+prepareTableVolcanoMultipleGroups <- function(psitable, qualtable, groupList, npoints, maxDevTable, seed=TRUE){
 
   # Prepare individual betAS object per group
   groupNames  <- names(groupList)
@@ -812,7 +820,8 @@ prepareTableVolcanoMultipleGroups <- function(psitable, qualtable, groupList, np
                            individualBetas_nofitting_incr(table = qualtable[x,],
                                                           cols = pos,
                                                           indpoints = npoints,
-                                                          maxdevRefTable = maxDevTable))
+                                                          maxdevRefTable = maxDevTable,
+                                                          seed=seed))
     # Name each position in list after the event
     names(indbetas) <- qualtable$EVENT
 
@@ -1050,7 +1059,9 @@ hc_theme_smpl_tailored <- function (...){
 #' @export
 #'
 #' @examples
-prepareTableEvent <- function(eventID, psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, nsim){
+prepareTableEvent <- function(eventID, psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, nsim, seed=TRUE){
+
+
 
   colsA    <- convertCols(psitable, colsA)
   samplesA <- names(colsA)
@@ -1064,13 +1075,14 @@ prepareTableEvent <- function(eventID, psitable, qualtable, npoints, colsA, cols
   indBetasA <- individualBetas_nofitting_incr(table = qualtable[x,],
                                               cols = colsA,
                                               indpoints = npoints,
-                                              maxdevRefTable = maxDevTable)
+                                              maxdevRefTable = maxDevTable,
+                                              seed=seed)
 
   #Group betAS (B)
   indBetasB <- individualBetas_nofitting_incr(table = qualtable[x,],
                                               cols = colsB,
                                               indpoints = npoints,
-                                              maxdevRefTable = maxDevTable)
+                                              maxdevRefTable = maxDevTable, seed=seed)
 
   eventPlotsObjs <- list()
 
@@ -1096,6 +1108,14 @@ prepareTableEvent <- function(eventID, psitable, qualtable, npoints, colsA, cols
   labelB <- labB
   covB <- indBetasB$inc + indBetasB$exc
   medianB <- indBetasB$MedianBeta
+
+
+  if (seed){
+    seed <- "21122023"
+  } else {
+    seed <- paste( sample( 0:9, 8, replace=TRUE ), collapse="" )
+  }
+
 
   # :::::::::::::::::::::::::
   # 1. Pdiff approach
@@ -1225,6 +1245,7 @@ prepareTableEvent <- function(eventID, psitable, qualtable, npoints, colsA, cols
   for(sample in unique(artiflabelsA)){
 
     simReads    <- simulate_reads(cov = covA[which(names(covA) == sample)], psi = originalMedian)
+    set.seed(seed)
     sampleDistA <- rbeta(npoints, shape1 = simReads$inc, shape2 = simReads$exc)
     simulatedA[[length(simulatedA)+1]] <- sampleDistA
 
@@ -1234,6 +1255,7 @@ prepareTableEvent <- function(eventID, psitable, qualtable, npoints, colsA, cols
   for(sample in unique(artiflabelsB)){
 
     simReads <- simulate_reads(cov = covB[which(names(covB) == sample)], psi = originalMedian)
+    set.seed(seed)
     sampleDistB <- rbeta(npoints, shape1 = simReads$inc, shape2 = simReads$exc)
     simulatedB[[length(simulatedB)+1]] <- sampleDistB
 
@@ -1628,7 +1650,7 @@ plotFDRFromEventObjList <- function(eventObjList){
 #' @export
 #'
 #' @examples
-prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, npoints, maxDevTable){
+prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, npoints, maxDevTable, seed=TRUE){
 
   x <- match(eventID, qualtable$EVENT)
 
@@ -1651,7 +1673,8 @@ prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, n
     indbetas <- individualBetas_nofitting_incr(table = qualtable[x,],
                                                cols = pos,
                                                indpoints = npoints,
-                                               maxdevRefTable = maxDevTable)
+                                               maxdevRefTable = maxDevTable,
+                                               seed=seed)
     # Name each position in list after the event
     # names(indbetas) <- groupNames[i]
 
