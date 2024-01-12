@@ -14,7 +14,9 @@ prepareTableVolcano(
   labB,
   basalColor,
   interestColor,
-  maxDevTable
+  maxDevTable,
+  seed = TRUE,
+  CoverageWeight = CoverageWeight
 )
 }
 \arguments{
@@ -37,6 +39,10 @@ prepareTableVolcano(
 \item{interestColor}{color for highlighted points (events)}
 
 \item{maxDevTable}{(data.frame) reference data frame with maximum increment values per coverage (inc+exc) to avoid emitted values to be artifitially beyond a certain threshold}
+
+\item{seed}{(boolean) Boolean indicating if seed should be fixed. Default is TRUE}
+
+\item{CoverageWeight}{(boolean)  Boolean indicating if number of points emitted in beta distributions should be weighted by the coverage of each sample. Default is FALSE}
 }
 \value{
 data table to be used as ggplot input for plotting

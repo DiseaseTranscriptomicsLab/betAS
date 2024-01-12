@@ -10,7 +10,9 @@ plotIndividualDensitiesList(
   psitable,
   qualtable,
   groupList,
-  maxDevTable
+  maxDevTable,
+  seed = TRUE,
+  CoverageWeight = FALSE
 )
 }
 \arguments{
@@ -25,6 +27,10 @@ plotIndividualDensitiesList(
 \item{groupList}{group list}
 
 \item{maxDevTable}{table with increments to be summed to zero-valued reads, per coverage}
+
+\item{seed}{(boolean) Boolean indicating if seed should be fixed. Default is TRUE}
+
+\item{CoverageWeight}{(boolean)  Boolean indicating if number of points emitted in beta distributions should be weighted by the coverage of each sample. Default is FALSE}
 }
 \value{
 ggplot density plot grid

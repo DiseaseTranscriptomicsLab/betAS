@@ -2,7 +2,7 @@
 % Please edit documentation in R/plots.R
 \name{plotVolcanoFDR}
 \alias{plotVolcanoFDR}
-\title{Plot betAS volcano plot with the estimated FDR}
+\title{Plot betAS volcano plot with the estimated FPR}
 \usage{
 plotVolcanoFDR(betasTable, labA, labB, basalColor, interestColor)
 }
@@ -10,5 +10,5 @@ plotVolcanoFDR(betasTable, labA, labB, basalColor, interestColor)
 \item{interestColor}{}
 }
 \description{
-Plot betAS volcano plot with the estimated FDR
+Plot betAS volcano plot with the estimated FPR
 }

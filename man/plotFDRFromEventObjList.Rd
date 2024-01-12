@@ -2,7 +2,7 @@
 % Please edit documentation in R/plots.R
 \name{plotFDRFromEventObjList}
 \alias{plotFDRFromEventObjList}
-\title{Plot FDR explanation plot per sample}
+\title{Plot FPR explanation plot per sample}
 \usage{
 plotFDRFromEventObjList(eventObjList)
 }
@@ -10,5 +10,5 @@ plotFDRFromEventObjList(eventObjList)
 \item{eventObjList}{}
 }
 \description{
-Plot FDR explanation plot per sample
+Plot FPR explanation plot per sample
 }

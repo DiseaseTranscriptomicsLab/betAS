@@ -9,11 +9,15 @@ prepareTableVolcanoMultipleGroups(
   qualtable,
   groupList,
   npoints,
-  maxDevTable
+  maxDevTable,
+  seed = TRUE,
+  CoverageWeight = FALSE
 )
 }
 \arguments{
-\item{maxDevTable}{}
+\item{seed}{(boolean) Boolean indicating if seed should be fixed. Default is TRUE}
+
+\item{CoverageWeight}{(boolean)  Boolean indicating if number of points emitted in beta distributions should be weighted by the coverage of each sample. Default is FALSE}
 }
 \description{
 Prepare and return table used for betAS volcano plot (multiple group analysis)

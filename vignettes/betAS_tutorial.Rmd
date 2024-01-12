@@ -471,19 +471,30 @@ colsGroupA    <- convertCols(dataset_filtered$PSI, samplesA)
 colsGroupB    <- convertCols(dataset_filtered$PSI, samplesB)
 ```
 
+
+betAS utilizes R's `rbeta` and `sample` functions, introducing inherent uncertainty. 
+Running betAS twice may yield different results, particularly near significance thresholds. 
+Variability in outcomes can be informative, signaling cases where an event's significance is on the cusp. 
+However, to ensure reproducibility, users can set a seed, avoiding randomization of the emitted points. 
+By default, the seed is set to TRUE, and will be used as such for the tutorial's reproducibility.
+
+Moreover, the user can choose to weight the number of points emitted for beta distributions based on the coverage of each sample.
+With large sample sizes, uncertainty and significance of differential splicing are mostly determined by biological variability among 
+replicate samples. However, as stated in betAS manuscript, working with small sample sizes implies a good compromise between modelling 
+the uncertainty in the estimation of inclusion levels of alternative splicing events in individual samples and accounting for that 
+biological variability among replicates. As such, we consider that for not-so-small sample sizes and/or a knowledgeable user intending 
+to tune the aforementioned compromise differently, size factors proportional to coverage can be useful. This parameter should be used 
+with care, and by default it is set to FALSE.
+
 ### Probability of differential splicing (Pdiff)
 
 To calculate the **Pdiff** for all events in our dataset, we will use
 the `prepareTableVolcano` function. To visualize the results in a
 volcano plot, we will use the `plotvolcanoPdiff` function.
 
-betAS utilizes R's `rbeta` function, introducing inherent uncertainty. 
-Running betAS twice may yield different results, particularly near significance thresholds. 
-Variability in outcomes can be informative, signaling cases where an event's significance is on the cusp. 
-However, to ensure reproducibility, users can set a seed, avoiding randomization of the emitted points. 
-By default, the seed is set to TRUE, and will be used as such for the tutorial's reproducibility.
 
 ```{r plotvolcano_Pdiff, fig.width=14, fig.height=10, warning=F}
+options(error=recover)
 volcanoTable_Pdiff <- prepareTableVolcano(psitable = dataset_filtered$PSI,
                                     qualtable = dataset_filtered$Qual,
                                     npoints = 500,
@@ -494,7 +505,8 @@ volcanoTable_Pdiff <- prepareTableVolcano(psitable = dataset_filtered$PSI,
                                     basalColor = "#89C0AE",
                                     interestColor = "#E69A9C",
                                     maxDevTable = maxDevSimulationN100, 
-                                    seed=TRUE)
+                                    seed=TRUE, 
+                                    CoverageWeight = FALSE)
 
 volcano_Pdiff <- plotVolcano(betasTable = volcanoTable_Pdiff,
                             labA = groupA,
@@ -573,7 +585,8 @@ volcanoTable_Fstat <- prepareTableVolcanoFstat(psitable = dataset_filtered$PSI,
                                     basalColor = "#89C0AE",
                                     interestColor = "#E69A9C",
                                     maxDevTable = maxDevSimulationN100, 
-                                    seed=TRUE)
+                                    seed=TRUE,
+                                   CoverageWeight=F )
 
 volcano_Fstat <- plotVolcanoFstat(betasTable = volcanoTable_Fstat,
                             labA = groupA,
@@ -608,7 +621,8 @@ volcanoTable_FDR <- prepareTableVolcanoFDR(psitable = dataset_filtered$PSI,
                                     interestColor = "#E69A9C",
                                     maxDevTable = maxDevSimulationN100,
                                     nsim = 100, 
-                                    seed=TRUE) 
+                                    seed=TRUE, 
+                                    CoverageWeight = FALSE) 
         
 volcano_FDR <- plotVolcanoFDR(betasTable = volcanoTable_FDR,
                             labA = groupA,
@@ -646,7 +660,8 @@ tdensities <- plotIndividualDensitiesList(eventID = eventID,
                                           qualtable = dataset$Qual,
                                           groupList = groupList,
                                           maxDevTable = maxDevSimulationN100, 
-                                          seed=TRUE)
+                                          seed=TRUE, 
+                                          CoverageWeight = FALSE)
 
 tdensities + theme_minimal() + ggtitle(eventID)
 
@@ -676,7 +691,8 @@ plotPdiff <- prepareTableEvent(eventID = eventID,
                                interestColor = "#E69A9C",
                                maxDevTable = maxDevSimulationN100,
                                nsim = 1000, 
-                               seed=TRUE) %>% 
+                               seed=T,
+                                CoverageWeight=F) %>% 
   plotPDiffFromEventObjList()
 
 plotFstat <- prepareTableEvent(eventID = eventID,
@@ -691,9 +707,10 @@ plotFstat <- prepareTableEvent(eventID = eventID,
                                interestColor = "#E69A9C",
                                maxDevTable = maxDevSimulationN100,
                                nsim = 1000,
-                               seed=TRUE) %>% 
+                               seed=T,
+                             CoverageWeight=F) %>% 
   plotFstatFromEventObjList()
-
+ 
 plotFDR <- prepareTableEvent(eventID = eventID,
                                psitable = dataset$PSI,
                                qualtable = dataset$Qual,
@@ -706,7 +723,8 @@ plotFDR <- prepareTableEvent(eventID = eventID,
                                interestColor = "#E69A9C",
                                maxDevTable = maxDevSimulationN100,
                                nsim = 1000,
-                               seed=TRUE) %>% 
+                               seed=T,
+                             CoverageWeight=F) %>% 
   plotFDRFromEventObjList()
 
 ggarrange(plotPdiff,plotFstat,plotFDR, ncol=3)
@@ -811,11 +829,12 @@ pie(slices, col = random_colors[1:length(groups)], border = "black", labels=grou
 ## Differential alternative splicing across multiple groups/conditions
 
 ```{r table_multgroups}
+options(error=recover)
 volcanoTable_multgroups <- prepareTableVolcanoMultipleGroups(psitable = dataset_multgroups_filtered$PSI,
                                                  qualtable = dataset_multgroups_filtered$Qual,
                                                  groupList = groupList,
                                                  npoints = 500,
-                                                 maxDevTable = maxDevSimulationN100, seed=TRUE)
+                                                 maxDevTable = maxDevSimulationN100, seed=TRUE, CoverageWeight = F)
 
 head(volcanoTable_multgroups[,c("GENE","EVENT","Fstat","Pdiff","Pzero","medianBetweens","deltaAbsolute")])
 
@@ -846,7 +865,8 @@ mult_violinplots <- plotIndividualViolinsList(eventID = eventID_mult,
                           qualtable = dataset_multgroups_filtered$Qual,
                           groupList = groupList,
                           maxDevTable = maxDevSimulationN100,
-                          seed=TRUE)
+                          seed=TRUE,
+                          CoverageWeight = F)
 
 eventList <- prepareTableEventMultiple(eventID = eventID_mult,
                                        psitable = dataset_multgroups_filtered$PSI,
@@ -854,7 +874,8 @@ eventList <- prepareTableEventMultiple(eventID = eventID_mult,
                                        groupList = groupList,
                                        npoints = 500,
                                        maxDevTable = maxDevSimulationN100,
-                                       seed=TRUE)
+                                       seed=TRUE,
+                                        CoverageWeight = F)
 
 fstat_mult <- plotFstatFromEventObjListMultiple(eventObjList = eventList)
 

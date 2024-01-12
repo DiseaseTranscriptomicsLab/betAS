@@ -2,7 +2,7 @@
 % Please edit documentation in R/plots.R
 \name{prepareTableVolcanoFDR}
 \alias{prepareTableVolcanoFDR}
-\title{Prepare and return table used for betAS volcano plot with the estimated FDR}
+\title{Prepare and return table used for betAS volcano plot with the estimated FPR}
 \usage{
 prepareTableVolcanoFDR(
   psitable,
@@ -15,12 +15,16 @@ prepareTableVolcanoFDR(
   basalColor,
   interestColor,
   maxDevTable,
-  nsim
+  nsim,
+  seed = TRUE,
+  CoverageWeight = FALSE
 )
 }
 \arguments{
-\item{interestColor}{}
+\item{seed}{(boolean) Boolean indicating if seed should be fixed. Default is TRUE}
+
+\item{CoverageWeight}{(boolean)  Boolean indicating if number of points emitted in beta distributions should be weighted by the coverage of each sample. Default is FALSE}
 }
 \description{
-Prepare and return table used for betAS volcano plot with the estimated FDR
+Prepare and return table used for betAS volcano plot with the estimated FPR
 }
