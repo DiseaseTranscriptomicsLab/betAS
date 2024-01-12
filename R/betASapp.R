@@ -144,6 +144,7 @@ betASapp_ui <- function(){
                                h4("Analysis Settings"),
                                checkboxInput("use_seed", label = "Disable Randomization of Generated Points", value = TRUE, width = NULL),
                                checkboxInput("weight_by_cov", label = "Weight Number of Generated Points Based on Individual Sample Coverage", value = FALSE, width = NULL),
+                               helpText((em("Please refer to the betAS manuscript if changing these parameters, as they may significantly influence the results."))),
 
                                h4(textOutput("samplesTabletext")),
 
@@ -1218,7 +1219,8 @@ betASapp_server <- function(){
                                      interestColor = "#E69A9C",
                                      maxDevTable = maxDevSimulationN100,
                                      nsim = 1000,
-                                     seed=input$use_seed)
+                                     seed=input$use_seed,
+                                     CoverageWeight=input$weight_by_cov)
       return(eventList)
 
     })
@@ -1532,7 +1534,8 @@ betASapp_server <- function(){
                                   qualtable = qualfiltdataset(),
                                   groupList = values$groups,
                                   maxDevTable = maxDevSimulationN100,
-                                  seed=input$use_seed)
+                                  seed=input$use_seed,
+                                  CoverageWeight = FALSE) # for visualization only
 
     })
 
@@ -1605,7 +1608,8 @@ betASapp_server <- function(){
                                      # interestColor = "#EE805B", #orange
                                      interestColor = "#E69A9C", #pink
                                      maxDevTable = maxDevSimulationN100,
-                                     seed=input$use_seed)
+                                     seed=input$use_seed,
+                                     CoverageWeight=input$weight_by_cov)
 
       }else if(
 
@@ -1632,7 +1636,8 @@ betASapp_server <- function(){
                                           basalColor = "#89C0AE",
                                           interestColor = "#E69A9C",
                                           maxDevTable = maxDevSimulationN100,
-                                          seed=input$use_seed)
+                                          seed=input$use_seed,
+                                          CoverageWeight=input$weight_by_cov)
 
       }else if(
 
@@ -1655,7 +1660,8 @@ betASapp_server <- function(){
                                         interestColor = "#E69A9C",
                                         maxDevTable = maxDevSimulationN100,
                                         nsim = 100,
-                                        seed=input$use_seed)
+                                        seed=input$use_seed,
+                                        CoverageWeight=input$weight_by_cov)
 
       }
 
@@ -1811,7 +1817,8 @@ betASapp_server <- function(){
                                   psitable = psifiltdataset(),
                                   qualtable = qualfiltdataset(),
                                   groupList = values$groups[c(groupA, groupB)],
-                                  maxDevTable = maxDevSimulationN100, seed=input$use_seed)
+                                  maxDevTable = maxDevSimulationN100, seed=input$use_seed,
+                                  CoverageWeight = FALSE) # for visualization only
 
     })
 
@@ -2110,7 +2117,8 @@ betASapp_server <- function(){
                                                  groupList = values$groups,
                                                  npoints = 500,
                                                  maxDevTable = maxDevSimulationN100,
-                                                 seed=input$use_seed)
+                                                 seed=input$use_seed,
+                                                 CoverageWeight=input$weight_by_cov)
 
       return(table)
 
@@ -2164,7 +2172,7 @@ betASapp_server <- function(){
                                              groupList = values$groups,
                                              npoints = 500,
                                              maxDevTable = maxDevSimulationN100,
-                                             seed=input$use_seed)
+                                             seed=input$use_seed, CoverageWeight =input$weight_by_cov)
 
       return(eventList)
 

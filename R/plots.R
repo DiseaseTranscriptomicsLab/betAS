@@ -71,26 +71,28 @@ bigPicturePlot <- function(table){
 
 }
 
-# Plot individual beta distributions per sample
-#
-# @param eventID
-# @param npoints
-# @param psitable
-# @param qualtable
-# @param colsA
-# @param colsB
-# @param labA
-# @param labB
-# @param colorA
-# @param colorB
-#
-# @return
-# @export
-#
-# @examples
+#' Plot individual beta distributions per sample
+#'
+#' @param eventID
+#' @param npoints
+#' @param psitable
+#' @param qualtable
+#' @param colsA
+#' @param colsB
+#' @param labA
+#' @param labB
+#' @param colorA
+#' @param colorB
+#' @param seed (boolean) Boolean indicating if seed should be fixed. Default is TRUE
+#' @param CoverageWeight (boolean)  Boolean indicating if number of points emitted in beta distributions should be weighted by the coverage of each sample. Default is FALSE
+#'
+#' @return
+#' @export
+#'
+#' @examples
 #' @importFrom ggridges geom_density_ridges
 #' @importFrom graphics title points
-plotIndividualDensities <- function(eventID, npoints, psitable, qualtable, colsA, colsB, labA, labB, colorA, colorB, maxDevTable, seed=TRUE){
+plotIndividualDensities <- function(eventID, npoints, psitable, qualtable, colsA, colsB, labA, labB, colorA, colorB, maxDevTable, seed=TRUE, CoverageWeight = FALSE){
 
   row <- which(psitable$EVENT == eventID)
 
@@ -114,7 +116,8 @@ plotIndividualDensities <- function(eventID, npoints, psitable, qualtable, colsA
                                                  cols = colsA[a],
                                                  indpoints = npoints,
                                                  maxdevRefTable = maxDevTable,
-                                                 seed=seed)
+                                                 seed=seed,
+                                                 CoverageWeight=CoverageWeight)
 
     betasListA[[a]] <- indBetAS_A
 
@@ -128,7 +131,8 @@ plotIndividualDensities <- function(eventID, npoints, psitable, qualtable, colsA
                                                  cols = colsB[b],
                                                  indpoints = npoints,
                                                  maxdevRefTable = maxDevTable,
-                                                 seed=seed)
+                                                 seed=seed,
+                                                 CoverageWeight=CoverageWeight)
 
     betasListB[[b]] <- indBetAS_B
 
@@ -140,14 +144,16 @@ plotIndividualDensities <- function(eventID, npoints, psitable, qualtable, colsA
                                                 cols = colsA,
                                                 indpoints = npoints,
                                                 maxdevRefTable = maxDevTable,
-                                                seed=seed)
+                                                seed=seed,
+                                                CoverageWeight=CoverageWeight)
 
   #Group betAS (B)
   groupBbetAS <- individualBetas_nofitting_incr(table = qualtable[row,],
                                                 cols = colsB,
                                                 indpoints = npoints,
                                                 maxdevRefTable = maxDevTable,
-                                                seed=seed)
+                                                seed=seed,
+                                                CoverageWeight=CoverageWeight)
 
   # Data-frame containing emitted points, sample names and group names
   densities_df  <- data.frame("points" = numeric(), "samples" = character())
@@ -225,6 +231,8 @@ plotIndividualDensities <- function(eventID, npoints, psitable, qualtable, colsA
 #' @param qualtable Qual table
 #' @param groupList group list
 #' @param maxDevTable table with increments to be summed to zero-valued reads, per coverage
+#' @param seed (boolean) Boolean indicating if seed should be fixed. Default is TRUE
+#' @param CoverageWeight (boolean)  Boolean indicating if number of points emitted in beta distributions should be weighted by the coverage of each sample. Default is FALSE
 #'
 #' @return ggplot density plot grid
 #' @export
@@ -239,7 +247,9 @@ plotIndividualDensities <- function(eventID, npoints, psitable, qualtable, colsA
 #' testGroups[[length(testGroups)+1]] <- list(name = "GroupA", samples = c("ERR2598266", "ERR2598267", "ERR2598268"), color = "#FF9AA2")
 #' testGroups[[length(testGroups)+1]] <- list(name = "GroupB", samples = c("ERR2598270", "ERR2598307", "ERR2598351"), color = "#FFB7B2")
 #' plotIndividualDensitiesList(eventID = "HsaEX0019479", npoints = 500, psitable = psiTable, qualtable = qualTable, groupList = testGroups, maxDevTable = maxDevSimulationN100)
-plotIndividualDensitiesList <- function(eventID, npoints, psitable, qualtable, groupList, maxDevTable, seed=TRUE){
+plotIndividualDensitiesList <- function(eventID, npoints, psitable, qualtable, groupList, maxDevTable, seed=TRUE, CoverageWeight = FALSE){
+  # Number of emmited points is fixed for visualization purposes, regardless of the value in CoverageWeight;
+  # to be updated in the future if needed, npoints should also come as an output from individualBetas_nofitting_incr
 
 
    row <- which(psitable$EVENT == eventID)
@@ -268,7 +278,8 @@ plotIndividualDensitiesList <- function(eventID, npoints, psitable, qualtable, g
                                                     cols = columns,
                                                     indpoints = npoints,
                                                     maxdevRefTable = maxDevTable,
-                                                    seed=seed)
+                                                    seed=seed,
+                                                    CoverageWeight = CoverageWeight)
     betasPerGroup[[g]] <- groupBetas
 
     groupIndSamplesList <- list()
@@ -277,11 +288,14 @@ plotIndividualDensitiesList <- function(eventID, npoints, psitable, qualtable, g
       indBetasGroup <- individualBetas_nofitting_incr(table = qualtable[row,],
                                                       cols = columns[samp],
                                                       indpoints = npoints,
-                                                      maxdevRefTable = maxDevTable, seed=seed)
+                                                      maxdevRefTable = maxDevTable,
+                                                      seed=seed,
+                                                      CoverageWeight = CoverageWeight)
 
       groupIndSamplesList[[samp]] <- indBetasGroup
 
       #prepare table with emitted points
+      # Number of emmited points is fixed for visualization purposes, regardless of the value in CoverageWeight; to be updated in the future if needed, npoints should also come as an output from individualBetas_nofitting_incr
       points_df     <- data.frame("points" = matrix(unlist(indBetasGroup$BetaPoints), nrow = npoints, byrow=TRUE), stringsAsFactors=FALSE)
       sample_df     <- cbind("points" = points_df, "samples" = rep(samples[samp], times = length(points_df)), "group" = rep(groupName, times = length(points_df)))
       densities_df  <- rbind(densities_df, sample_df)
@@ -341,12 +355,14 @@ plotIndividualDensitiesList <- function(eventID, npoints, psitable, qualtable, g
 #' @param qualtable Qual table
 #' @param groupList group list
 #' @param maxDevTable table with increments to be summed to zero-valued reads, per coverage
+#' @param seed (boolean) Boolean indicating if seed should be fixed. Default is TRUE
+#' @param CoverageWeight (boolean)  Boolean indicating if number of points emitted in beta distributions should be weighted by the coverage of each sample. Default is FALSE
 #'
 #' @return ggplot density plot grid
 #' @export
 #'
 #' @examples
-plotIndividualViolinsList <- function(eventID, npoints, psitable, qualtable, groupList, maxDevTable, seed=TRUE){
+plotIndividualViolinsList <- function(eventID, npoints, psitable, qualtable, groupList, maxDevTable, seed=TRUE, CoverageWeight = FALSE){
 
   row <- which(psitable$EVENT == eventID)
 
@@ -373,7 +389,7 @@ plotIndividualViolinsList <- function(eventID, npoints, psitable, qualtable, gro
     groupBetas    <- individualBetas_nofitting_incr(table = qualtable[row,],
                                                     cols = columns,
                                                     indpoints = npoints,
-                                                    maxdevRefTable = maxDevTable, seed=seed)
+                                                    maxdevRefTable = maxDevTable, seed=seed, CoverageWeight=CoverageWeight)
     betasPerGroup[[g]] <- groupBetas
 
     groupIndSamplesList <- list()
@@ -382,7 +398,7 @@ plotIndividualViolinsList <- function(eventID, npoints, psitable, qualtable, gro
       indBetasGroup <- individualBetas_nofitting_incr(table = qualtable[row,],
                                                       cols = columns[samp],
                                                       indpoints = npoints,
-                                                      maxdevRefTable = maxDevTable, seed=seed)
+                                                      maxdevRefTable = maxDevTable, seed=seed, CoverageWeight=CoverageWeight)
 
       groupIndSamplesList[[samp]] <- indBetasGroup
 
@@ -447,6 +463,8 @@ plotIndividualViolinsList <- function(eventID, npoints, psitable, qualtable, gro
 #' @param basalColor general color for points (events)
 #' @param interestColor color for highlighted points (events)
 #' @param maxDevTable (data.frame) reference data frame with maximum increment values per coverage (inc+exc) to avoid emitted values to be artifitially beyond a certain threshold
+#' @param seed (boolean) Boolean indicating if seed should be fixed. Default is TRUE
+#' @param CoverageWeight (boolean)  Boolean indicating if number of points emitted in beta distributions should be weighted by the coverage of each sample. Default is FALSE
 #'
 #'
 #' @return data table to be used as ggplot input for plotting
@@ -467,7 +485,7 @@ plotIndividualViolinsList <- function(eventID, npoints, psitable, qualtable, gro
 #' colsGroupA    <- convertCols(psiTable, samplesA)
 #' colsGroupB    <- convertCols(psiTable, samplesB)
 #' prepareTableVolcano(psitable = psiTable, qualtable = qualTable, npoints = 500, colsA = colsGroupA, colsB = colsGroupB, labA = groupA, labB = groupB, basalColor = "#89C0AE", interestColor = "#E69A9C", maxDevTable = maxDevSimulationN100)
-prepareTableVolcano <- function(psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, seed=TRUE){
+prepareTableVolcano <- function(psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, seed=TRUE, CoverageWeight=CoverageWeight){
 
   colsA    <- convertCols(psitable, colsA)
   samplesA <- names(colsA)
@@ -482,7 +500,7 @@ prepareTableVolcano <- function(psitable, qualtable, npoints, colsA, colsB, labA
                                                          cols = colsA,
                                                          indpoints = npoints,
                                                          maxdevRefTable = maxDevTable,
-                                                         seed=seed))
+                                                         seed=seed, CoverageWeight=CoverageWeight))
 
   #Group betAS (B)
   groupBbetAS <- lapply(1:nrow(qualtable),
@@ -491,7 +509,7 @@ prepareTableVolcano <- function(psitable, qualtable, npoints, colsA, colsB, labA
                                                          cols = colsB,
                                                          indpoints = npoints,
                                                          maxdevRefTable = maxDevTable,
-                                                         seed=seed))
+                                                         seed=seed, CoverageWeight=CoverageWeight))
 
   #Differential betAS (A vs. B)
   diffABbetAS <- lapply(1:nrow(qualtable),
@@ -584,12 +602,14 @@ plotVolcano <- function(betasTable, labA, labB, basalColor, interestColor){
 #' @param colsB
 #' @param basalColor
 #' @param interestColor
+#' @param seed (boolean) Boolean indicating if seed should be fixed. Default is TRUE
+#' @param CoverageWeight (boolean)  Boolean indicating if number of points emitted in beta distributions should be weighted by the coverage of each sample. Default is FALSE
 #'
 #' @return
 #' @export
 #'
 #' @examples
-prepareTableVolcanoFstat <- function(psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, seed=TRUE){
+prepareTableVolcanoFstat <- function(psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, seed=TRUE, CoverageWeight=FALSE){
 
   colsA    <- convertCols(psitable, colsA)
   samplesA <- names(colsA)
@@ -609,7 +629,7 @@ prepareTableVolcanoFstat <- function(psitable, qualtable, npoints, colsA, colsB,
                                                        labA = labA,
                                                        labB = labB,
                                                        maxDevTable = maxDevTable,
-                                                       seed=seed))
+                                                       seed=seed, CoverageWeight=CoverageWeight))
 
 
   names(fstat2groups) <- qualtable$EVENT
@@ -676,13 +696,15 @@ plotVolcanoFstat <- function(betasTable, labA, labB, basalColor, interestColor){
 #' @param colsB
 #' @param basalColor
 #' @param interestColor
+#' @param seed (boolean) Boolean indicating if seed should be fixed. Default is TRUE
+#' @param CoverageWeight (boolean)  Boolean indicating if number of points emitted in beta distributions should be weighted by the coverage of each sample. Default is FALSE
 #'
 #' @return
 #' @export
 #'
 #' @examples
 #' @importFrom ggrepel geom_text_repel
-prepareTableVolcanoFDR <- function(psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, nsim, seed=TRUE){
+prepareTableVolcanoFDR <- function(psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, nsim, seed=TRUE, CoverageWeight=FALSE){
 
   colsA    <- convertCols(psitable, colsA)
   samplesA <- names(colsA)
@@ -696,7 +718,7 @@ prepareTableVolcanoFDR <- function(psitable, qualtable, npoints, colsA, colsB, l
                           individualBetas_nofitting_incr(table = qualtable[x,],
                                                          cols = colsA,
                                                          indpoints = npoints,
-                                                         maxdevRefTable = maxDevTable, seed=seed))
+                                                         maxdevRefTable = maxDevTable, seed=seed, CoverageWeight=CoverageWeight))
 
   #Group betAS (B)
   groupBbetAS <- lapply(1:nrow(qualtable),
@@ -704,7 +726,7 @@ prepareTableVolcanoFDR <- function(psitable, qualtable, npoints, colsA, colsB, l
                           individualBetas_nofitting_incr(table = qualtable[x,],
                                                          cols = colsB,
                                                          indpoints = npoints,
-                                                         maxdevRefTable = maxDevTable, seed=seed))
+                                                         maxdevRefTable = maxDevTable, seed=seed, CoverageWeight=CoverageWeight))
 
   #Differential betAS (A vs. B)
   diffABbetAS <- lapply(1:nrow(qualtable),
@@ -712,7 +734,7 @@ prepareTableVolcanoFDR <- function(psitable, qualtable, npoints, colsA, colsB, l
                           estimateFDR(indBetasA = groupAbetAS[[x]],
                                       indBetasB = groupBbetAS[[x]],
                                       groupsAB = c(labA, labB),
-                                      nsim = nsim, seed=seed))
+                                      nsim = nsim, seed=seed, CoverageWeight=CoverageWeight))
 
   names(groupAbetAS) <- qualtable$EVENT
   names(groupBbetAS) <- qualtable$EVENT
@@ -792,13 +814,15 @@ plotVolcanoFDR <- function(betasTable, labA, labB, basalColor, interestColor){
 #' @param groupList
 #' @param npoints
 #' @param maxDevTable
+#' @param seed (boolean) Boolean indicating if seed should be fixed. Default is TRUE
+#' @param CoverageWeight (boolean)  Boolean indicating if number of points emitted in beta distributions should be weighted by the coverage of each sample. Default is FALSE
 #'
 #' @return
 #' @export
 #'
 #' @examples
 #' @importFrom ggrepel geom_text_repel
-prepareTableVolcanoMultipleGroups <- function(psitable, qualtable, groupList, npoints, maxDevTable, seed=TRUE){
+prepareTableVolcanoMultipleGroups <- function(psitable, qualtable, groupList, npoints, maxDevTable, seed=TRUE,CoverageWeight=FALSE){
 
   # Prepare individual betAS object per group
   groupNames  <- names(groupList)
@@ -821,7 +845,7 @@ prepareTableVolcanoMultipleGroups <- function(psitable, qualtable, groupList, np
                                                           cols = pos,
                                                           indpoints = npoints,
                                                           maxdevRefTable = maxDevTable,
-                                                          seed=seed))
+                                                          seed=seed, CoverageWeight=CoverageWeight))
     # Name each position in list after the event
     names(indbetas) <- qualtable$EVENT
 
@@ -839,7 +863,9 @@ prepareTableVolcanoMultipleGroups <- function(psitable, qualtable, groupList, np
                                generalisedGroupsBetas(eventPos = x,
                                                       indList = indBetasList,
                                                       samplesList = samplesPerGroupList,
-                                                      groupNames = groupNames))
+                                                      groupNames = groupNames,
+                                                      seed=seed,
+                                                      CoverageWeight=CoverageWeight))
 
   # Name each position in list after the event
   names(genGroupsBetas) <- names(indBetasList[[1]])
@@ -1054,12 +1080,15 @@ hc_theme_smpl_tailored <- function (...){
 #' @param basalColor
 #' @param interestColor
 #' @param nsim
+#' @param seed (boolean) Boolean indicating if seed should be fixed. Default is TRUE
+#' @param CoverageWeight (boolean)  Boolean indicating if number of points emitted in beta distributions should be weighted by the coverage of each sample. Default is FALSE
 #'
 #' @return
 #' @export
 #'
 #' @examples
-prepareTableEvent <- function(eventID, psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, nsim, seed=TRUE){
+
+prepareTableEvent <- function(eventID, psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, nsim, seed=TRUE, CoverageWeight=FALSE){
 
 
 
@@ -1076,13 +1105,15 @@ prepareTableEvent <- function(eventID, psitable, qualtable, npoints, colsA, cols
                                               cols = colsA,
                                               indpoints = npoints,
                                               maxdevRefTable = maxDevTable,
-                                              seed=seed)
+                                              seed=seed,
+                                              CoverageWeight=CoverageWeight)
 
   #Group betAS (B)
   indBetasB <- individualBetas_nofitting_incr(table = qualtable[x,],
                                               cols = colsB,
                                               indpoints = npoints,
-                                              maxdevRefTable = maxDevTable, seed=seed)
+                                              maxdevRefTable = maxDevTable, seed=seed,
+                                              CoverageWeight=CoverageWeight)
 
   eventPlotsObjs <- list()
 
@@ -1146,6 +1177,7 @@ prepareTableEvent <- function(eventID, psitable, qualtable, npoints, colsA, cols
 
   }
 
+  set.seed(seed)
   artifA <- sample(x = artifA, size = minlen)
   artifB <- sample(x = artifB, size = minlen)
 
@@ -1166,64 +1198,119 @@ prepareTableEvent <- function(eventID, psitable, qualtable, npoints, colsA, cols
   # 2. F-statistic approach
   # :::::::::::::::::::::::::
 
-  #Calculate withins for each group (withins is the vector that will concatenate all within differences found)
   withins <- c()
-
+  betweens <- c()
   pointsA <- indBetasA$BetaPoints
   pointsB <- indBetasB$BetaPoints
 
   samplesA <- unique(names(pointsA))
   samplesB <- unique(names(pointsB))
 
-  # Matrix determining all possible combinations of sample pairs within group
-  within_combs_A <- combn(samplesA, 2, simplify = TRUE)
 
-  # Define withins for each of A combinations
-  for(combA in 1:ncol(within_combs_A)){
+  Nbpoints_to_sample <- 1000 # number of differences to sample, will only affect the resolution of the result;
+  # If CoverageWeight = T, samples with higher coverage will be more likely to be picked for a difference
 
-    betas1  <- pointsA[grep(within_combs_A[1,combA], names(pointsA))]
-    betas2  <- pointsA[grep(within_combs_A[2,combA], names(pointsA))]
-    withins <- c(withins, betas2-betas1)
+  if (length(samplesA)!=1){
+
+
+    # Matrix determining all possible combinations of sample pairs within group
+    within_combs_A <- combn(samplesA, 2, simplify = TRUE)
+
+    for(combA in 1:ncol(within_combs_A)){
+
+      sample1 <- within_combs_A[1,combA]
+      sample2 <- within_combs_A[2,combA]
+
+      cov_sample1 <- indBetasA$tinc[sample1] + indBetasA$texc[sample1]
+      cov_sample2 <- indBetasA$tinc[sample2] + indBetasA$texc[sample2]
+      cov_total <- sum(indBetasA$tinc + indBetasA$texc)
+
+      Prop_groupA <- (indBetasA$tinc+indBetasA$texc)/cov_total
+
+      P12 <- as.numeric(Prop_groupA[sample1]*(Prop_groupA[sample2]/(sum(Prop_groupA[names(Prop_groupA)!=sample1]))) + Prop_groupA[sample2]*(Prop_groupA[sample1]/(sum(Prop_groupA[names(Prop_groupA)!=sample2]))))
+
+      Nb_sampledpoints_12 <- round(Nbpoints_to_sample*P12)
+
+      betas1  <- pointsA[grep(within_combs_A[1,combA], names(pointsA))] # define points of sample 1
+      betas2  <- pointsA[grep(within_combs_A[2,combA], names(pointsA))] # define points of sample 2
+
+      set.seed(seed)
+
+      betas1  <- sample(betas1, Nb_sampledpoints_12, replace=T)
+      betas2  <- sample(betas2, Nb_sampledpoints_12, replace=T)
+
+      withins <- c(withins, betas2-betas1)
+    }
 
   }
 
-  # Matrix determining all possible combinations of sample pairs within group
-  within_combs_B <- combn(samplesB, 2, simplify = TRUE)
 
-  # Define withins for each of A combinations
-  for(combB in 1:ncol(within_combs_B)){
 
-    betas1  <- pointsB[grep(within_combs_B[1,combB], names(pointsB))]
-    betas2  <- pointsB[grep(within_combs_B[2,combB], names(pointsB))]
-    withins <- c(withins, betas2-betas1)
+  if (length(samplesB)!=1){
+    # Matrix determining all possible combinations of sample pairs within group
+    within_combs_B <- combn(samplesB, 2, simplify = TRUE)
+
+    for(combB in 1:ncol(within_combs_B)){
+
+      sample1 <- within_combs_B[1,combB]
+      sample2 <- within_combs_B[2,combB]
+
+      cov_sample1 <- indBetasB$tinc[sample1] + indBetasB$texc[sample1]
+      cov_sample2 <- indBetasB$tinc[sample2] + indBetasB$texc[sample2]
+      cov_total <- sum(indBetasB$tinc + indBetasB$texc)
+
+      Prop_groupB <- (indBetasB$tinc+indBetasB$texc)/cov_total
+
+      P12 <- as.numeric(Prop_groupB[sample1]*(Prop_groupB[sample2]/(sum(Prop_groupB[names(Prop_groupB)!=sample1]))) + Prop_groupB[sample2]*(Prop_groupB[sample1]/(sum(Prop_groupB[names(Prop_groupB)!=sample2]))))
+
+      Nb_sampledpoints_12 <- round(Nbpoints_to_sample*P12)
+
+      betas1  <- pointsB[grep(within_combs_B[1,combB], names(pointsB))] # define points of sample 1
+      betas2  <- pointsB[grep(within_combs_B[2,combB], names(pointsB))] # define points of sample 2
+
+      set.seed(seed)
+      betas1  <- sample(betas1, Nb_sampledpoints_12, replace=T)
+      betas2  <- sample(betas2, Nb_sampledpoints_12, replace=T)
+
+      withins <- c(withins, betas2-betas1)
+    }
 
   }
 
-  #Calculate betweens
-  groups <- c(labA, labB)
 
-  betweens <- c()
+  # calculate betweens
+  set.seed(seed)
+  betas1 <- sample(pointsA, Nbpoints_to_sample*2, replace=T)  # Nbpoints_to_sample*2 so that the number of points sampled in the numerator is the same as the denominator
+  betas2 <- sample(pointsB, Nbpoints_to_sample*2, replace=T)
+  betweens <-   betas2-betas1
 
-  if(length(pointsA) != length(pointsB)){
-
-    minlen <- min(length(pointsA), length(pointsB))
-
-  }else{
-
-    minlen <- length(pointsB)
-
-  }
-
-  pointsB <- sample(pointsB, size = minlen)
-  pointsA <- sample(pointsA, size = minlen)
-
-  betweens <- c(betweens, pointsB-pointsA)
+  #
+  # for (i in 1:Nbpoints_to_sample){
+  #
+  #   # Add to the withins one difference between samples from group A
+  #   if (length(samplesA)!=1) { # if there is only one sample in group A, it shouldn't contribute to the calculation of the withins
+  #     sampled_point_1 <- sample(pointsA,1)
+  #     sampled_point_2 <- sample(pointsA[names(pointsA)!=names(sampled_point_1)],1)
+  #     withins <- c(withins, sampled_point_2-sampled_point_1)
+  #   }
+  #
+  #   if (length(samplesB)!=1) { # if there is only one sample in group B, it shouldn't contribute to the calculation of the withins
+  #     # Add to the withins one difference between samples from group B
+  #     sampled_point_1 <- sample(pointsB,1)
+  #     sampled_point_2 <- sample(pointsB[names(pointsB)!=names(sampled_point_1)],1)
+  #     withins <- c(withins, sampled_point_2-sampled_point_1)
+  #   }
+  #
+  #   # Calculate betweens
+  #   sampled_point_1 <- sample(pointsA,1)
+  #   sampled_point_2 <- sample(pointsB,1)
+  #   betweens <- c(betweens,sampled_point_2-sampled_point_1)
+  #
+  # }
 
   # Generate F-like statistic
   fstat  <- median(abs(betweens))/median(abs(withins))
 
-  # Calculate delta PSI
-  deltaPsi 	<- indBetasB$MedianBeta - indBetasA$MedianBeta
 
   eventPlotsObjs[[6]] <- withins
   eventPlotsObjs[[7]] <- betweens
@@ -1240,26 +1327,73 @@ prepareTableEvent <- function(eventID, psitable, qualtable, npoints, colsA, cols
   simDeltaPsi <- c()
 
   npoints <- 10000
+  #
+  #   simulatedA  <- list()
+  #   for(sample in unique(artiflabelsA)){
+  #
+  #     simReads    <- simulate_reads(cov = covA[which(names(covA) == sample)], psi = originalMedian)
+  #     set.seed(seed)
+  #     sampleDistA <- rbeta(npoints, shape1 = simReads$inc, shape2 = simReads$exc)
+  #     simulatedA[[length(simulatedA)+1]] <- sampleDistA
+  #
+  #   }
+  #
+  #   simulatedB  <- list()
+  #   for(sample in unique(artiflabelsB)){
+  #
+  #     simReads <- simulate_reads(cov = covB[which(names(covB) == sample)], psi = originalMedian)
+  #     set.seed(seed)
+  #     sampleDistB <- rbeta(npoints, shape1 = simReads$inc, shape2 = simReads$exc)
+  #     simulatedB[[length(simulatedB)+1]] <- sampleDistB
+  #
+  #   }
+
+
+  if (CoverageWeight) {
+
+    NbPointsA <- round(nA * npoints * (indBetasA$inc + indBetasA$exc)/sum(covA))
+
+  } else {
+
+    NbPointsA <- rep(npoints, nA)
+    names(NbPointsA) <- unique(artiflabelsA)
+
+  }
 
   simulatedA  <- list()
+
   for(sample in unique(artiflabelsA)){
 
     simReads    <- simulate_reads(cov = covA[which(names(covA) == sample)], psi = originalMedian)
     set.seed(seed)
-    sampleDistA <- rbeta(npoints, shape1 = simReads$inc, shape2 = simReads$exc)
+    sampleDistA <- rbeta(NbPointsA[sample], shape1 = simReads$inc, shape2 = simReads$exc)
     simulatedA[[length(simulatedA)+1]] <- sampleDistA
 
   }
 
   simulatedB  <- list()
+
+
+  if (CoverageWeight) {
+
+    NbPointsB <- round(nB * npoints * (indBetasB$inc + indBetasB$exc)/sum(covB))
+
+  } else {
+
+    NbPointsB <- rep(npoints, nB)
+    names(NbPointsB) <- unique(artiflabelsB)
+
+  }
+
   for(sample in unique(artiflabelsB)){
 
     simReads <- simulate_reads(cov = covB[which(names(covB) == sample)], psi = originalMedian)
     set.seed(seed)
-    sampleDistB <- rbeta(npoints, shape1 = simReads$inc, shape2 = simReads$exc)
+    sampleDistB <- rbeta(NbPointsB[sample], shape1 = simReads$inc, shape2 = simReads$exc)
     simulatedB[[length(simulatedB)+1]] <- sampleDistB
 
   }
+
 
   sampledPointsA  <- lapply(1:length(simulatedA), function(x) sample(x = simulatedA[[x]], size = nsim))
   concatenatedA   <- as.numeric(as.vector(unlist(sampledPointsA)))
@@ -1292,6 +1426,288 @@ prepareTableEvent <- function(eventID, psitable, qualtable, npoints, colsA, cols
   return(eventPlotsObjs)
 
 }
+# prepareTableEvent <- function(eventID, psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, nsim, seed=TRUE, CoverageWeight=FALSE){
+#
+#
+#
+#   colsA    <- convertCols(psitable, colsA)
+#   samplesA <- names(colsA)
+#
+#   colsB    <- convertCols(psitable, colsB)
+#   samplesB <- names(colsB)
+#
+#   x <- match(eventID, qualtable$EVENT)
+#
+#   #Group betAS (A)
+#   indBetasA <- individualBetas_nofitting_incr(table = qualtable[x,],
+#                                               cols = colsA,
+#                                               indpoints = npoints,
+#                                               maxdevRefTable = maxDevTable,
+#                                               seed=seed,
+#                                               CoverageWeight=CoverageWeight)
+#
+#   #Group betAS (B)
+#   indBetasB <- individualBetas_nofitting_incr(table = qualtable[x,],
+#                                               cols = colsB,
+#                                               indpoints = npoints,
+#                                               maxdevRefTable = maxDevTable, seed=seed,
+#                                               CoverageWeight=CoverageWeight)
+#
+#   eventPlotsObjs <- list()
+#
+#   eventPlotsObjs[[1]] <- indBetasA
+#   eventPlotsObjs[[2]] <- indBetasB
+#
+#   groupsAB <- c(labA, labB)
+#
+#   # Get predefined objects A:
+#   artifA <- indBetasA$BetaPoints
+#   artiflabelsA <- names(indBetasA$BetaPoints)
+#   psisA <- indBetasA$PSI
+#   nA <- length(indBetasA$PSI)
+#   labelA <- labA
+#   covA <- indBetasA$inc + indBetasA$exc
+#   medianA <- indBetasA$MedianBeta
+#
+#   # Get predefined objects B:
+#   artifB <- indBetasB$BetaPoints
+#   artiflabelsB <- names(indBetasB$BetaPoints)
+#   psisB <- indBetasB$PSI
+#   nB <- length(indBetasB$PSI)
+#   labelB <- labB
+#   covB <- indBetasB$inc + indBetasB$exc
+#   medianB <- indBetasB$MedianBeta
+#
+#
+#   if (seed){
+#     seed <- "21122023"
+#   } else {
+#     seed <- paste( sample( 0:9, 8, replace=TRUE ), collapse="" )
+#   }
+#
+#
+#   # :::::::::::::::::::::::::
+#   # 1. Pdiff approach
+#   # :::::::::::::::::::::::::
+#
+#   # Number of points in generated Beta: (2 of them - first and last - are to remove to avoid Inf)
+#   # npoints <- jointpoints + 2
+#   xlength <- 1001
+#
+#   indpoints <- length(artifA)/nA
+#
+#   df_psis <- as.data.frame(rbind(cbind(psisA, names(psisA), rep(labelA, times = length(psisA))),
+#                                  cbind(psisB, names(psisB), rep(labelB, times = length(psisB)))))
+#   colnames(df_psis) <- c("PSI", "Sample", "Type")
+#
+#   jntBetas <- list()
+#
+#   prob3 <- c()
+#   seq3 <- seq(-1, 1, length.out = xlength)
+#
+#   if(length(artifA) != length(artifB)){
+#
+#     minlen <- min(length(artifA), length(artifB))
+#
+#   }else{
+#
+#     minlen <- length(artifB)
+#
+#   }
+#   set.seed(seed)
+#   artifA <- sample(x = artifA, size = minlen)
+#   artifB <- sample(x = artifB, size = minlen)
+#
+#   for(l in seq3){
+#     prob3 <- c(prob3, length(which(artifA - artifB > l))/length(artifA))
+#   }
+#
+#   df3 <- as.data.frame(cbind(seq3, prob3))
+#
+#   p_zero    <- df3$prob3[ceiling(xlength/2)]
+#   t_p_zero  <- abs(p_zero-0.5)+0.5
+#
+#   eventPlotsObjs[[3]] <- df3
+#   eventPlotsObjs[[4]] <- p_zero
+#   eventPlotsObjs[[5]] <- t_p_zero
+#
+#   # :::::::::::::::::::::::::
+#   # 2. F-statistic approach
+#   # :::::::::::::::::::::::::
+#
+#   #Calculate withins for each group (withins is the vector that will concatenate all within differences found)
+#   withins <- c()
+#
+#   pointsA <- indBetasA$BetaPoints
+#   pointsB <- indBetasB$BetaPoints
+#
+#   samplesA <- unique(names(pointsA))
+#   samplesB <- unique(names(pointsB))
+#
+#   # Matrix determining all possible combinations of sample pairs within group
+#   within_combs_A <- combn(samplesA, 2, simplify = TRUE)
+#
+#   # Define withins for each of A combinations
+#   for(combA in 1:ncol(within_combs_A)){
+#
+#     betas1  <- pointsA[grep(within_combs_A[1,combA], names(pointsA))]
+#     betas2  <- pointsA[grep(within_combs_A[2,combA], names(pointsA))]
+#     withins <- c(withins, betas2-betas1)
+#
+#   }
+#
+#   # Matrix determining all possible combinations of sample pairs within group
+#   within_combs_B <- combn(samplesB, 2, simplify = TRUE)
+#
+#   # Define withins for each of A combinations
+#   for(combB in 1:ncol(within_combs_B)){
+#
+#     betas1  <- pointsB[grep(within_combs_B[1,combB], names(pointsB))]
+#     betas2  <- pointsB[grep(within_combs_B[2,combB], names(pointsB))]
+#     withins <- c(withins, betas2-betas1)
+#
+#   }
+#
+#   #Calculate betweens
+#   groups <- c(labA, labB)
+#
+#   betweens <- c()
+#
+#   if(length(pointsA) != length(pointsB)){
+#
+#     minlen <- min(length(pointsA), length(pointsB))
+#
+#   }else{
+#
+#     minlen <- length(pointsB)
+#
+#   }
+#   set.seed(seed)
+#   pointsB <- sample(pointsB, size = minlen)
+#   pointsA <- sample(pointsA, size = minlen)
+#
+#   betweens <- c(betweens, pointsB-pointsA)
+#
+#   # Generate F-like statistic
+#   fstat  <- median(abs(betweens))/median(abs(withins))
+#
+#   # Calculate delta PSI
+#   deltaPsi 	<- indBetasB$MedianBeta - indBetasA$MedianBeta
+#
+#   eventPlotsObjs[[6]] <- withins
+#   eventPlotsObjs[[7]] <- betweens
+#   eventPlotsObjs[[8]] <- fstat
+#
+#   # :::::::::::::::::::::::::
+#   # 3. FDR approach
+#   # :::::::::::::::::::::::::
+#
+#   # Under the null hypothesis of no difference in PSI across groups (all samples come from the same distribution)
+#   originalMedian  <- median(c(indBetasA$PSI, indBetasB$PSI))
+#   foundPsi        <- medianB - medianA
+#
+#   simDeltaPsi <- c()
+#
+#   npoints <- 10000
+# #
+# #   simulatedA  <- list()
+# #   for(sample in unique(artiflabelsA)){
+# #
+# #     simReads    <- simulate_reads(cov = covA[which(names(covA) == sample)], psi = originalMedian)
+# #     set.seed(seed)
+# #     sampleDistA <- rbeta(npoints, shape1 = simReads$inc, shape2 = simReads$exc)
+# #     simulatedA[[length(simulatedA)+1]] <- sampleDistA
+# #
+# #   }
+# #
+# #   simulatedB  <- list()
+# #   for(sample in unique(artiflabelsB)){
+# #
+# #     simReads <- simulate_reads(cov = covB[which(names(covB) == sample)], psi = originalMedian)
+# #     set.seed(seed)
+# #     sampleDistB <- rbeta(npoints, shape1 = simReads$inc, shape2 = simReads$exc)
+# #     simulatedB[[length(simulatedB)+1]] <- sampleDistB
+# #
+# #   }
+#
+#
+#   if (CoverageWeight) {
+#
+#     NbPointsA <- round(nA * npoints * (indBetasA$inc + indBetasA$exc)/sum(covA))
+#
+#   } else {
+#
+#     NbPointsA <- rep(npoints, nA)
+#     names(NbPointsA) <- unique(artiflabelsA)
+#
+#   }
+#
+#   simulatedA  <- list()
+#
+#   for(sample in unique(artiflabelsA)){
+#
+#     simReads    <- simulate_reads(cov = covA[which(names(covA) == sample)], psi = originalMedian)
+#     set.seed(seed)
+#     sampleDistA <- rbeta(NbPointsA[sample], shape1 = simReads$inc, shape2 = simReads$exc)
+#     simulatedA[[length(simulatedA)+1]] <- sampleDistA
+#
+#   }
+#
+#   simulatedB  <- list()
+#
+#
+#   if (CoverageWeight) {
+#
+#     NbPointsB <- round(nB * npoints * (indBetasB$inc + indBetasB$exc)/sum(covB))
+#
+#   } else {
+#
+#     NbPointsB <- rep(npoints, nB)
+#     names(NbPointsB) <- unique(artiflabelsB)
+#
+#   }
+#
+#   for(sample in unique(artiflabelsB)){
+#
+#     simReads <- simulate_reads(cov = covB[which(names(covB) == sample)], psi = originalMedian)
+#     set.seed(seed)
+#     sampleDistB <- rbeta(NbPointsB[sample], shape1 = simReads$inc, shape2 = simReads$exc)
+#     simulatedB[[length(simulatedB)+1]] <- sampleDistB
+#
+#   }
+#
+#   set.seed(seed)
+#   sampledPointsA  <- lapply(1:length(simulatedA), function(x) sample(x = simulatedA[[x]], size = nsim))
+#   concatenatedA   <- as.numeric(as.vector(unlist(sampledPointsA)))
+#   psiA <- as.numeric(as.vector(lapply(1:nsim, function(x) median(concatenatedA[seq(from = x, to = nsim*nA, by = nsim)]))))
+#   set.seed(seed)
+#   sampledPointsB  <- lapply(1:length(simulatedB), function(x) sample(x = simulatedB[[x]], size = nsim))
+#   concatenatedB   <- as.numeric(as.vector(unlist(sampledPointsB)))
+#   psiB <- as.numeric(as.vector(lapply(1:nsim, function(x) median(concatenatedB[seq(from = x, to = nsim*nB, by = nsim)]))))
+#
+#   simDeltaPsi <- psiB - psiA
+#
+#   fdr <- length(which(abs(simDeltaPsi) >= abs(foundPsi)))/nsim
+#
+#   eventPlotsObjs[[9]] <- simulatedA
+#   eventPlotsObjs[[10]] <- simulatedB
+#   eventPlotsObjs[[11]] <- simDeltaPsi
+#   eventPlotsObjs[[12]] <- fdr
+#   eventPlotsObjs[[13]] <- nsim
+#
+#   eventPlotsObjs[[14]] <- foundPsi
+#   eventPlotsObjs[[15]] <- eventID
+#   eventPlotsObjs[[16]] <- groupsAB
+#
+#   names(eventPlotsObjs) <- c("indBetasA", "indBetasB",
+#                              "DataFramePdiff", "Pzero", "Pdiff",
+#                              "Withins", "Betweens", "Fstat",
+#                              "simA", "simB", "simDelta", "FDR", "nsim",
+#                              "deltaPsi", "eventID", "groupsAB")
+#
+#   return(eventPlotsObjs)
+#
+# }
 
 #' Plot individual beta distributions per sample
 #'
@@ -1645,12 +2061,14 @@ plotFDRFromEventObjList <- function(eventObjList){
 #' @param groupList
 #' @param npoints
 #' @param maxDevTable
+#' @param seed (boolean) Boolean indicating if seed should be fixed. Default is TRUE
+#' @param CoverageWeight (boolean)  Boolean indicating if number of points emitted in beta distributions should be weighted by the coverage of each sample. Default is FALSE
 #'
 #' @return
 #' @export
 #'
 #' @examples
-prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, npoints, maxDevTable, seed=TRUE){
+prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, npoints, maxDevTable, seed=TRUE, CoverageWeight=FALSE){
 
   x <- match(eventID, qualtable$EVENT)
 
@@ -1674,7 +2092,8 @@ prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, n
                                                cols = pos,
                                                indpoints = npoints,
                                                maxdevRefTable = maxDevTable,
-                                               seed=seed)
+                                               seed=seed,
+                                               CoverageWeight = CoverageWeight)
     # Name each position in list after the event
     # names(indbetas) <- groupNames[i]
 
@@ -1704,6 +2123,7 @@ prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, n
   allMedianPsi  <- c()
   withins     <- c()
   betweens    <- c()
+  Nbpoints_to_sample <- 1000
 
   for(g in 1:length(unique(groups))){
 
@@ -1721,9 +2141,27 @@ prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, n
     # Define withins for each of those combinations
     for(c in 1:ncol(within_combs)){
 
-      betasA  <- points[grep(within_combs[1,c], names(points))]
-      betasB  <- points[grep(within_combs[2,c], names(points))]
-      withins <- c(withins, betasB-betasA)
+      sample1 <- paste0(within_combs[1,c],".Q")
+      sample2 <- paste0(within_combs[2,c],".Q")
+
+      cov_sample1 <- indBetasList[[g]]$tinc[sample1] + indBetasList[[g]]$texc[sample1]
+      cov_sample2 <- indBetasList[[g]]$tinc[sample2] + indBetasList[[g]]$texc[sample2]
+      cov_total <- sum(indBetasList[[g]]$tinc + indBetasList[[g]]$texc)
+
+      Prop_group <- (indBetasList[[g]]$tinc+indBetasList[[g]]$texc)/cov_total
+
+      P12 <- as.numeric(Prop_group[sample1]*(Prop_group[sample2]/(sum(Prop_group[names(Prop_group)!=sample1]))) + Prop_group[sample2]*(Prop_group[sample1]/(sum(Prop_group[names(Prop_group)!=sample2]))))
+
+      Nb_sampledpoints_12 <- round(Nbpoints_to_sample*P12)
+
+      betas1  <- points[grep(sample1, names(points))] # define points of sample 1
+      betas2  <- points[grep(sample2, names(points))] # define points of sample 2
+
+      set.seed(seed)
+      betas1  <- sample(betas1, Nb_sampledpoints_12, replace=T)
+      betas2  <- sample(betas2, Nb_sampledpoints_12, replace=T)
+
+      withins <- c(withins, betas2-betas1)
 
     }
 
@@ -1739,13 +2177,10 @@ prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, n
     betasA  <- indBetasList[[posA]]$BetaPoints
     betasB  <- indBetasList[[posB]]$BetaPoints
 
-    if(length(betasA) < length(betasB)){
-      betasB <- sample(betasB, size = length(betasA))
-    }else if(length(betasA) > length(betasB)){
-      betasA <- sample(betasA, size = length(betasB))
-    }
-
-    betweens <- c(betweens, betasB-betasA)
+    set.seed(seed)
+    betas1 <- sample(betasA, Nbpoints_to_sample*length(unique(groups)), replace=T) # Nbpoints_to_sample*length(unique(groups) so that the number of points sampled in the numerator is the same as the denominator
+    betas2 <- sample(betasB, Nbpoints_to_sample*length(unique(groups)), replace=T)
+    betweens <-   c(betweens,betas2-betas1)
 
   }
 
@@ -1754,6 +2189,7 @@ prepareTableEventMultiple <- function(eventID, psitable, qualtable, groupList, n
 
   # Generate Pdiff-like
   len_Fstat     <- min(length(betweens), length(withins))
+  set.seed(seed)
   between_sample  <- sample(x = betweens, size = len_Fstat)
   within_sample   <- sample(x = withins, size = len_Fstat)
 
