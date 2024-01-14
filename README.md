@@ -55,11 +55,11 @@ If you prefer to use betAS locally (as a Shiny app or as an R package), you can 
 
 #### A) R package
 
-Install betAS R package from [GitHub](https://github.com/) with:
+Install the latest version of the betAS R package from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("DiseaseTranscriptomicsLab/betAS@dev")
+devtools::install_github("DiseaseTranscriptomicsLab/betAS@v1.2.0")
 library(betAS)
 ```
 
@@ -185,6 +185,8 @@ Please send any feedback and questions on *betAS* to:
 > Mariana Ascensão-Ferreira (marianaascferreira@medicina.ulisboa.pt)
 >
 > Rita Martins-Silva (rita.silva@medicina.ulisboa.pt)
+>
+> Disease Transcriptomics Lab (imm-nmorais@medicina.ulisboa.pt)
 > 
 
 [Disease Transcriptomics Lab, Instituto de Medicina Molecular (Portugal)](http://imm.medicina.ulisboa.pt/group/distrans/)

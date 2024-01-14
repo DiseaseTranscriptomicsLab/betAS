@@ -1,7 +1,7 @@
 Package: betAS
 Type: Package
 Title: Intuitive differential alternative splicing analyses using beta distributions 
-Version: 1.1.1
+Version: 1.2.0
 Authors@R: c(
         person("Mariana", "Ascensão-Ferreira",
                email="marianaascferreira@medicina.ulisboa.pt", role=c("aut", "cre"),
