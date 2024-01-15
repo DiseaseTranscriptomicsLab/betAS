@@ -485,7 +485,7 @@ plotIndividualViolinsList <- function(eventID, npoints, psitable, qualtable, gro
 #' colsGroupA    <- convertCols(psiTable, samplesA)
 #' colsGroupB    <- convertCols(psiTable, samplesB)
 #' prepareTableVolcano(psitable = psiTable, qualtable = qualTable, npoints = 500, colsA = colsGroupA, colsB = colsGroupB, labA = groupA, labB = groupB, basalColor = "#89C0AE", interestColor = "#E69A9C", maxDevTable = maxDevSimulationN100)
-prepareTableVolcano <- function(psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, seed=TRUE, CoverageWeight=CoverageWeight){
+prepareTableVolcano <- function(psitable, qualtable, npoints, colsA, colsB, labA, labB, basalColor, interestColor, maxDevTable, seed=TRUE, CoverageWeight=F){
 
   colsA    <- convertCols(psitable, colsA)
   samplesA <- names(colsA)
