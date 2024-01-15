@@ -89,9 +89,25 @@ Consider also loading the following libraries, for visualization
 purposes, by typing:
 
 ```{r load2, message=FALSE, warning=F}
+
+if(!require(ggplot2)){
+    install.packages("ggplot2")
+}
 library(ggplot2)
-library(plotly) 
+
+if(!require(plotly)){
+    install.packages("plotly")
+}
+library(plotly)
+
+if(!require(dplyr)){
+    install.packages("dplyr")
+}
 library(dplyr)
+
+if(!require(ggpubr)){
+    install.packages("ggpubr")
+}
 library(ggpubr)
 ```
 
