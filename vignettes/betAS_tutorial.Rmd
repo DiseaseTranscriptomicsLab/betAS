@@ -88,6 +88,12 @@ library(betAS)
 Consider also loading the following libraries, for visualization
 purposes, by typing:
 
+```{r cran, include=F}
+options(repos = c(CRAN = "https://cran.r-project.org"))
+
+```
+
+
 ```{r load2, message=FALSE, warning=F}
 
 if(!require(ggplot2)){
