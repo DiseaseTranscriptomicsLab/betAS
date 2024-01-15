@@ -4,7 +4,6 @@
 #' @importFrom colourpicker colourInput updateColourInput
 #' @importFrom DT renderDT DTOutput formatRound datatable
 #' @importFrom bslib bs_theme
-#' @importFrom shinyBS bsTooltip
 betASapp_ui <- function(){
   # :::: Variables ::::
   availabletools      <- c("vast-tools", "rMATS","whippet")
