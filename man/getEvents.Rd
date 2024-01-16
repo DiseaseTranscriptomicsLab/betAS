@@ -34,12 +34,15 @@ a standard format that is compatible with betAS.
 }
 \examples{
 # Assuming you have already loaded or created an incTable from rMATS using the getDataset() function:
+rMATS_incTable <- getDataset(pathTables=NULL, tool="rMATS") # substitute pathTables with the path to your data
 formattedTable_rMATS <- getEvents(incTable = rMATS_incTable, tool = "rMATS")
 
 # Similarly, for vast-tools:
+vasttools_incTable <- getDataset(pathTables=NULL, tool="vast-tools")
 formattedTable_vasttools <- getEvents(incTable = vasttools_incTable, tool = "vast-tools")
 
 # And for whippet:
+whippet_incTable <- getDataset(pathTables=NULL, tool="whippet")
 formattedTable_whippet <- getEvents(incTable = whippet_incTable, tool = "whippet")
 
 }

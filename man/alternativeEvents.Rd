@@ -33,7 +33,9 @@ within the [minPsi, maxPsi] range. Both bounds are inclusive.
 }
 \examples{
 # Assuming you have a filteredList from filterEvents():
-filtered_data <- filterEvents(...) # Replace with your actual data
+load_data <- getDataset(pathTables=NULL, tool="vast-tools")   # Replace with your actual data
+data <- getEvents(load_data, tool="vast-tools")
+filtered_data <- filterEvents(InputList = data, types = c("CE", "AA"), N = 10)
 alternative_data <- alternativeEvents(filteredList = filtered_data, minPsi = 20, maxPsi = 80)
 
 }

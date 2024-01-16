@@ -163,12 +163,15 @@ getDataset <- function(pathTables=NULL, tool){
 #'
 #' @examples
 #' # Assuming you have already loaded or created an incTable from rMATS using the getDataset() function:
+#' rMATS_incTable <- getDataset(pathTables=NULL, tool="rMATS") # substitute pathTables with the path to your data
 #' formattedTable_rMATS <- getEvents(incTable = rMATS_incTable, tool = "rMATS")
 #'
 #' # Similarly, for vast-tools:
+#' vasttools_incTable <- getDataset(pathTables=NULL, tool="vast-tools")
 #' formattedTable_vasttools <- getEvents(incTable = vasttools_incTable, tool = "vast-tools")
 #'
 #' # And for whippet:
+#' whippet_incTable <- getDataset(pathTables=NULL, tool="whippet")
 #' formattedTable_whippet <- getEvents(incTable = whippet_incTable, tool = "whippet")
 #'
 #' @export
@@ -208,17 +211,6 @@ getEvents <- function(incTable, tool){
 #'
 #' @return A boolean value indicating if all values of (inc + exc) across samples
 #'         for a given event are greater than or equal to the specified minimum, \code{N}.
-#'
-#' @examples
-#' # Assuming you have a set of "Qual" columns for a given event:
-#' quals_data <- c(...) # Replace with your actual data
-#' min_reads_check <- CheckMinReads(quals = quals_data, N = 5)
-#' if (min_reads_check) {
-#'   print("All samples meet the minimum reads criteria.")
-#' } else {
-#'   print("Not all samples meet the minimum reads criteria.")
-#' }
-#'
 #' @export
 CheckMinReads <- function(quals, N){
 
@@ -270,10 +262,10 @@ CheckMinReads <- function(quals, N){
 #'        but with events filtered by coverage and type.
 #'
 #' @examples
-#' # Assuming you have an InputList from getEvents():
-#' input_data <- getEvents(...) # Replace with your actual data
+#' load_data <- getDataset(pathTables=NULL, tool="vast-tools")
+#' data <- getEvents(load_data, tool="vast-tools")
 #' # Filtering whippet events, to isolate only CE and AA events with a minimum of 10 reads in each sample
-#' filtered_data <- filterEvents(InputList = input_data, types = c("CE", "AA"), N = 10)
+#' filtered_data <- filterEvents(InputList = data, types = c("CE", "AA"), N = 10)
 #'
 #' @export
 #'
@@ -338,7 +330,9 @@ filterEvents <- function(InputList, types=NULL, N=10){
 #'
 #' @examples
 #' # Assuming you have a filteredList from filterEvents():
-#' filtered_data <- filterEvents(...) # Replace with your actual data
+#' load_data <- getDataset(pathTables=NULL, tool="vast-tools")   # Replace with your actual data
+#' data <- getEvents(load_data, tool="vast-tools")
+#' filtered_data <- filterEvents(InputList = data, types = c("CE", "AA"), N = 10)
 #' alternative_data <- alternativeEvents(filteredList = filtered_data, minPsi = 20, maxPsi = 80)
 #'
 #' @export

@@ -90,31 +90,22 @@ purposes, by typing:
 
 ```{r cran, include=F}
 options(repos = c(CRAN = "https://cran.r-project.org"))
-
 ```
 
 
 ```{r load2, message=FALSE, warning=F}
 
-if(!require(ggplot2)){
-    install.packages("ggplot2")
-}
+if(!require(ggplot2)) install.packages("ggplot2")
 library(ggplot2)
 
-if(!require(plotly)){
-    install.packages("plotly")
-}
+if(!require(plotly)) install.packages("plotly")
 library(plotly)
 
-if(!require(dplyr)){
-    install.packages("dplyr")
-}
+if(!require(dplyr)) install.packages("dplyr")
 library(dplyr)
 
-if(!require(ggpubr)){
-    install.packages("ggpubr")
-}
-library(ggpubr)
+if(!require(cowplot)) install.packages("cowplot")  
+library(cowplot)
 ```
 
 # Loading alternative splicing quantification data
@@ -749,7 +740,7 @@ plotFDR <- prepareTableEvent(eventID = eventID,
                              CoverageWeight=F) %>% 
   plotFDRFromEventObjList()
 
-ggarrange(plotPdiff,plotFstat,plotFDR, ncol=3)
+plot_grid(plotPdiff,plotFstat,plotFDR, ncol=3)
 
 ```
 
@@ -902,7 +893,7 @@ eventList <- prepareTableEventMultiple(eventID = eventID_mult,
 fstat_mult <- plotFstatFromEventObjListMultiple(eventObjList = eventList)
 
 
-ggarrange(fstat_mult,mult_violinplots, ncol=2, widths = c(0.3, 1))
+plot_grid(fstat_mult,mult_violinplots, ncol=2, rel_widths = c(0.3, 1))
 
 
 ```

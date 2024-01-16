@@ -16,7 +16,7 @@ prepareTableVolcano(
   interestColor,
   maxDevTable,
   seed = TRUE,
-  CoverageWeight = CoverageWeight
+  CoverageWeight = F
 )
 }
 \arguments{

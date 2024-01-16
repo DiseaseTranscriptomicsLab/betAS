@@ -32,9 +32,9 @@ This function filters splicing events based on quality (presence of NAs),
 specified event types, and a minimum read count threshold.
 }
 \examples{
-# Assuming you have an InputList from getEvents():
-input_data <- getEvents(...) # Replace with your actual data
+load_data <- getDataset(pathTables=NULL, tool="vast-tools")
+data <- getEvents(load_data, tool="vast-tools")
 # Filtering whippet events, to isolate only CE and AA events with a minimum of 10 reads in each sample
-filtered_data <- filterEvents(InputList = input_data, types = c("CE", "AA"), N = 10)
+filtered_data <- filterEvents(InputList = data, types = c("CE", "AA"), N = 10)
 
 }

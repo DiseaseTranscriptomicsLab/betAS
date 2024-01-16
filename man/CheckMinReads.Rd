@@ -19,14 +19,3 @@ A boolean value indicating if all values of (inc + exc) across samples
 This function checks if the coverage associated to a given event (inc+exc)
 across samples for a specific event meet a certain threshold.
 }
-\examples{
-# Assuming you have a set of "Qual" columns for a given event:
-quals_data <- c(...) # Replace with your actual data
-min_reads_check <- CheckMinReads(quals = quals_data, N = 5)
-if (min_reads_check) {
-  print("All samples meet the minimum reads criteria.")
-} else {
-  print("Not all samples meet the minimum reads criteria.")
-}
-
-}
