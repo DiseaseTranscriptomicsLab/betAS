@@ -93,8 +93,10 @@ docker run -e PASSWORD=bioc -p 8787:8787 marianaferreira/betas:latest
 #### C) GitHub / R Studio 
 
 1. Download the latest stable version of the repository from this link and unzip the files.
-2. Open R Studio and run the script located at `R/betAS.R`. This action will launch the Shiny app.
-3. If you wish to make changes, you can adapt the content of this script. For instance, the default input file size is configured to 100Mb. You have the flexibility to modify this value by adjusting the `shiny.maxRequestSize` parameter.
+2. Open R Studio and change your working directory to this new folder.
+3. In the console, run `devtools::load_all()`, which will simulate what happens when a package is installed and loaded with `library()`.
+4. Start the visual interface of betAS by running `betASapp()`. 
+6. If you wish to make changes to the Shiny app, you can adapt the content of the `R/betASapp.R` script. For instance, the default input file size is configured to 100Mb. You have the flexibility to modify this value by adjusting the `shiny.maxRequestSize` parameter.
 
 
 ## Workflow
