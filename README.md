@@ -59,7 +59,7 @@ Install the latest version of the betAS R package from [GitHub](https://github.c
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("DiseaseTranscriptomicsLab/betAS@v1.2.0")
+devtools::install_github("DiseaseTranscriptomicsLab/betAS@v1.2.1")
 library(betAS)
 ```
 
